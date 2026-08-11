@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { 
   Gamepad2, 
   ArrowLeft, 
@@ -13,20 +14,60 @@ import {
   Sparkles, 
   Target, 
   Award,
-  ChevronRight
+  ChevronRight,
+  Circle,
+  Triangle,
+  Square,
+  Activity,
+  Flame
 } from 'lucide-react';
 
-export default function PlayerDashboard() {
-  return (
-    <div className="min-h-screen bg-[#020005] text-white p-4 sm:p-6 lg:p-10 font-sans relative overflow-x-hidden flex flex-col justify-between">
-      {/* Background Glow Accents */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[#ff0055]/10 rounded-full blur-3xl pointer-events-none z-0" />
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-[#e60039]/10 rounded-full blur-3xl pointer-events-none z-0" />
+interface LeaderboardPlayer {
+  rank: number;
+  empId: string;
+  name: string;
+  username: string;
+  role: string;
+  score: number;
+  badgeColor: string;
+}
 
-      <div className="max-w-6xl w-full mx-auto space-y-8 relative z-10">
+const TOP_LEADERBOARD_PLAYERS: LeaderboardPlayer[] = [
+  { rank: 1, empId: 'EMP-001', name: 'Abdurrehman', username: 'abdurrehman', role: 'Admin', score: 9999, badgeColor: '#ff0055' },
+  { rank: 2, empId: 'EMP-007', name: 'Oh Il-nam', username: 'ilnam007', role: 'VIP', score: 9000, badgeColor: '#f59e0b' },
+  { rank: 3, empId: 'EMP-456', name: 'Seong Gi-hun', username: 'gihun456', role: 'Player', score: 4560, badgeColor: '#10b981' },
+  { rank: 4, empId: 'EMP-067', name: 'Kang Sae-byeok', username: 'saebyeok067', role: 'VIP', score: 4100, badgeColor: '#a855f7' },
+  { rank: 5, empId: 'EMP-218', name: 'Cho Sang-woo', username: 'sangwoo218', role: 'Player', score: 3820, badgeColor: '#3b82f6' },
+];
+
+export default function HighFidelityPlayerDashboard() {
+  // Reaction Emoji Counters State
+  const [reactions, setReactions] = useState<{ [key: string]: number }>({
+    '🔥': 142,
+    '⚡': 98,
+    '💀': 67,
+    '👑': 210,
+    '🎯': 85,
+  });
+
+  const handleEmojiClick = (emoji: string) => {
+    setReactions((prev) => ({
+      ...prev,
+      [emoji]: prev[emoji] + 1,
+    }));
+  };
+
+  return (
+    <div className="min-h-screen h-screen bg-black text-white p-4 sm:p-6 lg:p-8 font-sans relative overflow-x-hidden flex flex-col justify-between select-none">
+      {/* Background Ambient Glow Accents */}
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#ff0055]/15 rounded-full blur-3xl pointer-events-none z-0" />
+      <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-[#e60039]/15 rounded-full blur-3xl pointer-events-none z-0" />
+
+      <div className="max-w-7xl w-full mx-auto space-y-6 relative z-10 my-auto">
         
-        {/* Top Header */}
-        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-[#ff0055]/30">
+        {/* Navigation Bar */}
+        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[#ff0055]/30">
+          {/* Logo & Back Link */}
           <div className="flex items-center gap-3">
             <Link
               href="/"
@@ -35,157 +76,185 @@ export default function PlayerDashboard() {
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-[#ff0055]/20 border border-[#ff0055]/40 text-[#ff0055]">
+
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-[#ff0055]/20 border border-[#ff0055]/40 text-[#ff0055] shadow-[0_0_15px_#ff0055]">
                 <Gamepad2 className="w-5 h-5" />
               </div>
-              <span className="font-extrabold text-xl tracking-wider text-white">
-                CYBER<span className="text-[#ff0055]">//</span>SIMULATOR
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-xl tracking-wider text-white">
+                  CYBER<span className="text-[#ff0055]">//</span>SIMULATOR
+                </span>
+                <div className="flex items-center gap-1 text-[#ff0055] px-2 py-0.5 rounded-full bg-[#1c061e] border border-[#ff0055]/30">
+                  <Circle className="w-2.5 h-2.5 fill-current" />
+                  <Triangle className="w-2.5 h-2.5 fill-current" />
+                  <Square className="w-2.5 h-2.5 fill-current" />
+                </div>
+              </div>
             </div>
           </div>
 
+          {/* Right Action Bar: Status & EDIT AVATAR Button */}
           <div className="flex items-center gap-4">
-            <div className="px-3.5 py-1.5 rounded-xl bg-[#120315] border border-[#ff0055]/40 flex items-center gap-2.5 shadow-[0_0_15px_rgba(255,0,85,0.2)]">
-              <UserCheck className="w-4 h-4 text-[#ff0055]" />
-              <div className="flex flex-col font-mono text-xs">
-                <span className="font-bold text-white">PLAYER #456</span>
-                <span className="text-[10px] text-[#ff0055]">STATUS: ACTIVE</span>
-              </div>
+            <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#120315] border border-[#ff0055]/40 font-mono text-xs text-[#ff0055]">
+              <span className="w-2 h-2 rounded-full bg-[#ff0055] animate-ping" />
+              <span>PLAYER #456: ONLINE</span>
             </div>
-            {/* Prominent CREATE AVATAR Button */}
+
+            {/* Glowing EDIT AVATAR Button */}
             <Link
               href="/avatar"
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#ff0055] to-[#e60039] hover:from-[#e60039] hover:to-[#ff0055] text-white text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-[0_0_20px_rgba(255,0,85,0.5)] border border-white/20 transition-all active:scale-95"
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#ff0055] to-[#e60039] hover:from-[#e60039] hover:to-[#ff0055] text-white text-xs font-extrabold uppercase tracking-wider flex items-center gap-2 shadow-[0_0_20px_rgba(255,0,85,0.5)] border border-white/20 transition-all active:scale-95 cursor-pointer"
             >
-              <Sparkles className="w-4 h-4" />
-              Create Avatar
+              <Sparkles className="w-4 h-4 text-white" />
+              EDIT AVATAR
             </Link>
           </div>
         </header>
 
-        {/* Welcome Banner */}
-        <div className="p-6 sm:p-8 rounded-3xl bg-[#0a030d]/90 border border-[#ff0055]/40 backdrop-blur-xl shadow-[0_0_35px_rgba(255,0,85,0.2)] flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
-          <div className="space-y-2 text-center md:text-left z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#ff0055]/20 border border-[#ff0055]/40 text-xs font-mono text-[#ff0055]">
-              <Zap className="w-3.5 h-3.5 animate-pulse" />
-              PLAYER WORKSTATION ACTIVE
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-pink-200 to-[#ff0055]">
-              Welcome to the Arena
-            </h1>
-            <p className="text-xs sm:text-sm text-zinc-400 max-w-lg">
-              Your neural link is synchronized. Complete active challenges, customize your operant avatar, and advance through the cyber grid.
-            </p>
-          </div>
-
-          {/* Large CTA Box */}
-          <div className="z-10 shrink-0">
-            <Link
-              href="/avatar"
-              className="px-6 py-4 rounded-2xl bg-gradient-to-r from-[#ff0055] via-[#e60039] to-[#ff0055] text-white font-bold text-sm tracking-wider uppercase flex items-center gap-3 shadow-[0_0_30px_#ff0055] hover:scale-105 transition-all border border-white/30"
-            >
-              <Sparkles className="w-5 h-5" />
-              CUSTOMIZE AVATAR STUDIO
-              <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-5 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex items-center justify-between">
-            <div>
-              <span className="text-xs font-mono text-zinc-400 block uppercase">TOTAL SCORE</span>
-              <span className="text-2xl font-extrabold text-[#ff0055] font-mono">4,560 PTS</span>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-[#1c061e] border border-[#ff0055]/40 flex items-center justify-center text-[#ff0055]">
-              <Trophy className="w-5 h-5" />
-            </div>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex items-center justify-between">
-            <div>
-              <span className="text-xs font-mono text-zinc-400 block uppercase">GLOBAL RANK</span>
-              <span className="text-2xl font-extrabold text-white font-mono">#456</span>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-[#1c061e] border border-[#ff0055]/40 flex items-center justify-center text-amber-400">
-              <Award className="w-5 h-5" />
-            </div>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex items-center justify-between">
-            <div>
-              <span className="text-xs font-mono text-zinc-400 block uppercase">SIM ACCURACY</span>
-              <span className="text-2xl font-extrabold text-emerald-400 font-mono">94.2%</span>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-emerald-950/60 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
-              <Target className="w-5 h-5" />
-            </div>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex items-center justify-between">
-            <div>
-              <span className="text-xs font-mono text-zinc-400 block uppercase">SURVIVED ROUNDS</span>
-              <span className="text-2xl font-extrabold text-white font-mono">4 / 6</span>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-[#1c061e] border border-[#ff0055]/40 flex items-center justify-center text-[#ff0055]">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-          </div>
-        </div>
-
-        {/* Active Challenges */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-mono font-bold text-white tracking-wide uppercase flex items-center gap-2">
-              <Play className="w-4 h-4 text-[#ff0055]" />
-              ACTIVE SIMULATION CHALLENGES
-            </h2>
-            <span className="text-xs font-mono text-zinc-400">SEASON 1</span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-5 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 space-y-3">
-              <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-emerald-400 font-bold">● COMPLETED</span>
-                <span className="text-zinc-500">+1200 PTS</span>
+        {/* 70 / 30 SPLIT CONTENT LAYOUT */}
+        <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 items-start">
+          
+          {/* LEFT PANEL (70% WIDTH -> lg:col-span-7): Massive SYSTEM STANDBY Arena Card & Stats */}
+          <div className="lg:col-span-7 space-y-6">
+            
+            {/* Massive Arena Card */}
+            <div className="squid-panel rounded-3xl p-6 sm:p-8 border border-[#ff0055]/40 backdrop-blur-xl shadow-[0_0_35px_rgba(255,0,85,0.25)] relative overflow-hidden space-y-6">
+              
+              {/* Status Header Badge */}
+              <div className="flex items-center justify-between">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#ff0055]/20 border border-[#ff0055]/40 text-xs font-mono text-[#ff0055]">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#ff0055] animate-ping" />
+                  <span>ARENA SIMULATOR // STANDBY</span>
+                </div>
+                <span className="text-xs font-mono text-zinc-400">SECTOR 04</span>
               </div>
-              <h3 className="text-base font-bold text-white">Glass Bridge Simulation</h3>
-              <p className="text-xs text-zinc-400">
-                Memorized tempered glass stepping tiles in Sector 4.
-              </p>
+
+              {/* Title & Description */}
+              <div className="space-y-2">
+                <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-pink-200 to-[#ff0055]">
+                  Round 1: Red Light Green Light Simulation
+                </h1>
+                <p className="text-xs sm:text-sm text-zinc-300 max-w-xl leading-relaxed">
+                  Neural sensors calibrated. Motion tracking active for 456 participants. Maintain absolute stillness when the ocular camera rotates. Complete the course before timer expiration.
+                </p>
+              </div>
+
+              {/* Action Button & Arena Info */}
+              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                <button 
+                  className="px-8 py-4 rounded-2xl bg-gradient-to-r from-[#ff0055] via-[#e60039] to-[#ff0055] hover:shadow-[0_0_30px_#ff0055] text-white font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-3 shadow-lg border border-white/20 transition-all active:scale-95 cursor-pointer"
+                >
+                  <Play className="w-5 h-5 fill-current" />
+                  START SIMULATION
+                </button>
+
+                <div className="flex items-center gap-4 text-xs font-mono text-zinc-400 px-4 py-2 rounded-xl bg-[#050008] border border-zinc-800">
+                  <div>LIMIT: <span className="text-white font-bold">5 MIN</span></div>
+                  <div>PASS: <span className="text-[#ff0055] font-bold">85%+</span></div>
+                </div>
+              </div>
             </div>
 
-            <div className="p-5 rounded-2xl bg-[#0a030d]/80 border-2 border-[#ff0055] shadow-[0_0_20px_rgba(255,0,85,0.3)] space-y-3">
-              <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-[#ff0055] font-bold animate-pulse">● IN PROGRESS</span>
-                <span className="text-zinc-400">+1500 PTS</span>
+            {/* Quick Stats Grid (4 Cards) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
+                <span className="text-[10px] font-mono text-zinc-400 uppercase">SYSTEM SCORE</span>
+                <span className="text-xl font-extrabold text-[#ff0055] font-mono">9,999 PTS</span>
               </div>
-              <h3 className="text-base font-bold text-white">Tug of War Strategy</h3>
-              <p className="text-xs text-zinc-400">
-                Synchronize timing pulses with team members to pull opponent weight.
-              </p>
+
+              <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
+                <span className="text-[10px] font-mono text-zinc-400 uppercase">GLOBAL RANK</span>
+                <span className="text-xl font-extrabold text-white font-mono">#1 (ADMIN)</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
+                <span className="text-[10px] font-mono text-zinc-400 uppercase">ACCURACY</span>
+                <span className="text-xl font-extrabold text-emerald-400 font-mono">99.8%</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
+                <span className="text-[10px] font-mono text-zinc-400 uppercase">SURVIVED</span>
+                <span className="text-xl font-extrabold text-white font-mono">6 / 6</span>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT PANEL (30% WIDTH -> lg:col-span-3): Vertical Leaderboard Panel & Mock Reactions */}
+          <div className="lg:col-span-3 squid-panel rounded-3xl p-6 border border-[#ff0055]/40 backdrop-blur-xl shadow-[0_0_35px_rgba(255,0,85,0.25)] space-y-5">
+            
+            {/* Leaderboard Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-[#ff0055]/30">
+              <div className="flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-[#ff0055]" />
+                <h3 className="text-xs font-mono font-bold uppercase text-white tracking-wider">
+                  TOP OPERANTS
+                </h3>
+              </div>
+              <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-[#ff0055]/20 text-[#ff0055]">
+                RANKED
+              </span>
             </div>
 
-            <div className="p-5 rounded-2xl bg-[#0a030d]/80 border border-zinc-800 space-y-3 opacity-75">
-              <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-zinc-500 font-bold">○ LOCKED</span>
-                <span className="text-zinc-500">ROUND 5</span>
+            {/* Top 5 Mock Players List */}
+            <div className="space-y-3">
+              {TOP_LEADERBOARD_PLAYERS.map((player) => (
+                <div
+                  key={player.empId}
+                  className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
+                    player.rank === 1
+                      ? 'bg-[#1e0720] border-[#ff0055] shadow-[0_0_15px_rgba(255,0,85,0.3)]'
+                      : 'bg-[#050008] border-zinc-800 hover:border-[#ff0055]/40'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    {/* Rank Badge */}
+                    <div
+                      className="w-6 h-6 rounded-lg font-mono text-xs font-bold flex items-center justify-center text-white"
+                      style={{ backgroundColor: player.badgeColor }}
+                    >
+                      #{player.rank}
+                    </div>
+
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-white leading-tight">
+                        {player.name}
+                      </span>
+                      <span className="text-[9px] font-mono text-zinc-400">
+                        @{player.username}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Score */}
+                  <span className="text-xs font-mono font-bold text-white">
+                    {player.score.toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Mock Emoji Reaction Buttons */}
+            <div className="pt-4 border-t border-[#ff0055]/20 space-y-2">
+              <span className="text-[10px] font-mono text-zinc-400 uppercase block">
+                ARENA REACTION FEEDBACK:
+              </span>
+              <div className="flex items-center justify-between gap-1.5">
+                {Object.entries(reactions).map(([emoji, count]) => (
+                  <button
+                    key={emoji}
+                    onClick={() => handleEmojiClick(emoji)}
+                    className="flex-1 py-2 rounded-xl bg-[#050008] border border-zinc-800 hover:border-[#ff0055] text-xs font-mono flex flex-col items-center justify-center gap-0.5 transition-all active:scale-90 cursor-pointer"
+                  >
+                    <span>{emoji}</span>
+                    <span className="text-[9px] text-zinc-400 font-bold">{count}</span>
+                  </button>
+                ))}
               </div>
-              <h3 className="text-base font-bold text-zinc-300">Dalgona Precision</h3>
-              <p className="text-xs text-zinc-500">
-                Carve geometric shapes out of sugar honeycomb without breaking borders.
-              </p>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="max-w-6xl w-full mx-auto text-center text-xs text-zinc-500 border-t border-zinc-900 pt-6 mt-8 relative z-10">
-        Cyber Simulator Player Arena &copy; 2026. All rights reserved.
-      </footer>
     </div>
   );
 }
