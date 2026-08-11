@@ -1,40 +1,70 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
-import { User, AtSign, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { User, AtSign, ArrowRight, CheckCircle2, AlertCircle, ShieldAlert } from 'lucide-react';
 
-export default function MinimalistAuthPage() {
-  // Global Mouse Tracking
+export default function SquidGameMinimalistAuth() {
+  // Global Mouse Coordinates
   const rawMouseX = useMotionValue(0);
   const rawMouseY = useMotionValue(0);
 
-  const springConfig = { stiffness: 150, damping: 22 };
+  // Eyeball Center Ref for Exact Viewport Tracking
+  const eyeContainerRef = useRef<HTMLDivElement>(null);
 
-  // Character 3D Rotation & Eye Tracking
+  // Exact Viewport Delta Offset Motion Values
+  const eyeXMotion = useMotionValue(0);
+  const eyeYMotion = useMotionValue(0);
+
+  const springConfig = { stiffness: 220, damping: 24 };
+
+  // Refined Eyeball Translation Springs
+  const smoothEyeX = useSpring(eyeXMotion, springConfig);
+  const smoothEyeY = useSpring(eyeYMotion, springConfig);
+
+  // 3D Head Rotation Springs
   const headRotateX = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [12, -12]), springConfig);
   const headRotateY = useSpring(useTransform(rawMouseX, [-0.5, 0.5], [-16, 16]), springConfig);
 
   // Focus State Logic
   const [isInputFocused, setIsInputFocused] = useState(false);
 
-  // Eye Motion
-  const eyeTargetX = useTransform(rawMouseX, [-0.5, 0.5], [-24, 24]);
-  const eyeTargetY = useTransform(rawMouseY, [-0.5, 0.5], [-16, 16]);
-
-  const smoothEyeX = useSpring(eyeTargetX, springConfig);
-  const smoothEyeY = useSpring(eyeTargetY, springConfig);
-
-  // When focused on inputs, lock gaze to the right (+28px) and shrink scale slightly
-  const finalEyeX = isInputFocused ? 28 : smoothEyeX;
+  // When focused on inputs, lock gaze to the right panel (+32px) and shrink eyeball
+  const finalEyeX = isInputFocused ? 32 : smoothEyeX;
   const finalEyeY = isInputFocused ? 0 : smoothEyeY;
-  const finalHeadScale = useSpring(isInputFocused ? 0.92 : 1.0, springConfig);
+  const finalEyeScale = useSpring(isInputFocused ? 0.7 : 1.0, springConfig);
 
+  // Refined Exact Viewport Mouse Tracker
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const { clientX, clientY } = e;
     const { innerWidth, innerHeight } = window;
+
+    // Normalized Mouse Position (-0.5 to 0.5)
     rawMouseX.set(clientX / innerWidth - 0.5);
     rawMouseY.set(clientY / innerHeight - 0.5);
+
+    // Calculate Exact Angle and Distance from Eye Center to Cursor
+    if (eyeContainerRef.current) {
+      const rect = eyeContainerRef.current.getBoundingClientRect();
+      const eyeCenterX = rect.left + rect.width / 2;
+      const eyeCenterY = rect.top + rect.height / 2;
+
+      const deltaX = clientX - eyeCenterX;
+      const deltaY = clientY - eyeCenterY;
+
+      const angle = Math.atan2(deltaY, deltaX);
+      const distance = Math.hypot(deltaX, deltaY);
+
+      // Max pupil travel radius inside visor
+      const maxRadius = 26;
+      const clampedRadius = Math.min(maxRadius, distance / 15);
+
+      const targetX = Math.cos(angle) * clampedRadius;
+      const targetY = Math.sin(angle) * clampedRadius;
+
+      eyeXMotion.set(targetX);
+      eyeYMotion.set(targetY);
+    }
   };
 
   // Form State (ONLY Name & Username)
@@ -45,7 +75,7 @@ export default function MinimalistAuthPage() {
 
   const isFormValid = name.trim().length > 0 && username.trim().length > 0;
 
-  // Runaway button evade logic
+  // Runaway button flee logic
   const makeButtonFlee = () => {
     if (!isFormValid) {
       const randomX = (Math.random() - 0.5) * 260;
@@ -69,61 +99,64 @@ export default function MinimalistAuthPage() {
     setLoginStatus('loggingIn');
     setTimeout(() => {
       setLoginStatus('success');
-    }, 1200);
+    }, 1300);
   };
 
   return (
     <div 
       onMouseMove={handleMouseMove}
-      className="h-screen w-screen flex flex-col lg:flex-row overflow-hidden font-sans select-none bg-black text-black"
+      className="h-screen w-screen flex flex-col lg:flex-row overflow-hidden font-sans select-none bg-black text-white"
     >
-      {/* LEFT PANEL: Pitch Black (#000000) with Minimalist Tracking Character */}
-      <div className="lg:w-1/2 h-full bg-black text-white relative flex flex-col items-center justify-center p-8 lg:p-12 overflow-hidden border-b lg:border-b-0 lg:border-r border-zinc-900">
+      {/* LEFT PANEL: Pitch Black (#000000) with Refined Tracking Character */}
+      <div className="lg:w-1/2 h-full bg-black text-white relative flex flex-col items-center justify-center p-8 lg:p-12 overflow-hidden border-b lg:border-b-0 lg:border-r border-[#ff0055]/20">
         
-        {/* Subtle Background Glow Accent (No Blue) */}
-        <div className="absolute w-96 h-96 bg-zinc-900/60 rounded-full blur-3xl pointer-events-none" />
+        {/* Crimson Glow Orb Accent */}
+        <div className="absolute w-96 h-96 bg-[#ff0055]/15 rounded-full blur-3xl pointer-events-none" />
 
-        {/* Minimalist Robot / Character Container */}
+        {/* Minimalist Robot / Guard Head Container */}
         <div className="relative z-10 flex flex-col items-center justify-center perspective-1000">
           <motion.div
             style={{
               rotateX: headRotateX,
               rotateY: headRotateY,
-              scale: finalHeadScale,
               transformStyle: 'preserve-3d',
             }}
-            className="w-64 h-64 sm:w-72 sm:h-72 rounded-3xl bg-zinc-950 border-2 border-zinc-800 p-6 flex flex-col items-center justify-between shadow-2xl relative overflow-hidden"
+            className="w-64 h-64 sm:w-72 sm:h-72 rounded-3xl bg-[#09030a] border-2 border-[#ff0055]/50 p-6 flex flex-col items-center justify-between shadow-[0_0_40px_rgba(255,0,85,0.3)] relative overflow-hidden"
           >
-            {/* Robot Head Top Light Bar */}
+            {/* Top Status Lights */}
             <div className="w-full flex items-center justify-between px-2">
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <span className="w-2 h-2 rounded-full bg-zinc-700" />
+                <span className="w-2 h-2 rounded-full bg-[#ff0055] animate-ping" />
+                <span className="w-2 h-2 rounded-full bg-[#e60039]" />
               </div>
-              <span className="text-[10px] font-mono text-zinc-500 tracking-widest uppercase">
-                {isInputFocused ? 'GAZE: LOCKED' : 'GAZE: TRACKING'}
+              <span className="text-[10px] font-mono text-[#ff0055] tracking-widest uppercase">
+                {isInputFocused ? 'OCULAR: FORM FOCUS' : 'OCULAR: LIVE TRACKING'}
               </span>
             </div>
 
             {/* Character Visor & Mechanical Eye */}
-            <div className="w-full h-36 rounded-2xl bg-black border border-zinc-800 p-4 relative flex items-center justify-center overflow-hidden shadow-inner">
-              {/* Visor Grid Background Lines */}
-              <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] bg-[size:16px_16px]" />
+            <div 
+              ref={eyeContainerRef}
+              className="w-full h-36 rounded-2xl bg-[#030005] border border-[#ff0055]/40 p-4 relative flex items-center justify-center overflow-hidden shadow-inner"
+            >
+              {/* Visor Grid Background */}
+              <div className="absolute inset-0 opacity-15 bg-[linear-gradient(to_right,#ff0055_1px,transparent_1px),linear-gradient(to_bottom,#ff0055_1px,transparent_1px)] bg-[size:16px_16px]" />
 
-              {/* Eye Visor Container */}
-              <div className="relative w-44 h-20 rounded-full bg-zinc-900/90 border border-zinc-700 flex items-center justify-center overflow-hidden">
+              {/* Eye Outer Ring */}
+              <div className="relative w-44 h-20 rounded-full bg-[#120410] border border-[#ff0055]/60 flex items-center justify-center overflow-hidden shadow-[0_0_15px_rgba(255,0,85,0.4)]">
                 
-                {/* Mouse Tracking Pupil & Lens */}
+                {/* Refined Mouse Tracking Eyeball */}
                 <motion.div
                   style={{
                     x: finalEyeX,
                     y: finalEyeY,
+                    scale: finalEyeScale,
                   }}
-                  className="w-14 h-14 rounded-full bg-gradient-to-tr from-zinc-800 via-white to-zinc-300 flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.8)] relative border border-white"
+                  className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#800020] via-[#ff0055] to-pink-300 flex items-center justify-center shadow-[0_0_25px_#ff0055] relative border border-pink-200"
                 >
-                  {/* Inner Dark Lens */}
-                  <div className="w-7 h-7 rounded-full bg-black border-2 border-zinc-600 flex items-center justify-center relative">
-                    <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]" />
+                  {/* Inner Dark Pupil */}
+                  <div className="w-7 h-7 rounded-full bg-[#050008] border-2 border-red-900 flex items-center justify-center relative overflow-hidden shadow-inner">
+                    <div className="w-3 h-3 rounded-full bg-red-600 shadow-[0_0_8px_#ff0000]" />
                     {/* Glare Reflection */}
                     <div className="absolute top-0.5 right-1 w-2 h-2 rounded-full bg-white opacity-90" />
                   </div>
@@ -131,48 +164,49 @@ export default function MinimalistAuthPage() {
               </div>
             </div>
 
-            {/* Robot Lower Mouth/Speaker Detail */}
+            {/* Bottom Speaker Detail */}
             <div className="w-full flex items-center justify-center gap-1.5 pt-2">
-              <div className="w-8 h-1 bg-zinc-800 rounded-full" />
-              <div className="w-12 h-1 bg-zinc-700 rounded-full" />
-              <div className="w-8 h-1 bg-zinc-800 rounded-full" />
+              <div className="w-8 h-1 bg-[#ff0055]/40 rounded-full" />
+              <div className="w-12 h-1 bg-[#ff0055] rounded-full shadow-[0_0_6px_#ff0055]" />
+              <div className="w-8 h-1 bg-[#ff0055]/40 rounded-full" />
             </div>
           </motion.div>
 
-          {/* Minimalist Subtext */}
+          {/* Subtext */}
           <div className="mt-8 text-center">
-            <h2 className="text-xl font-bold tracking-tight text-white">
-              Interactive Access Grid
+            <h2 className="text-xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-[#ff0055]" />
+              Squid Game Ocular Grid
             </h2>
             <p className="text-xs text-zinc-400 mt-1 max-w-xs">
-              Character tracks your cursor movements across the screen.
+              Refined viewport eye tracking active. Move cursor to test.
             </p>
           </div>
         </div>
       </div>
 
-      {/* RIGHT PANEL: Clean White (#FFFFFF) Auth Form */}
-      <div className="lg:w-1/2 h-full bg-white text-black relative flex flex-col justify-between p-8 lg:p-16 overflow-y-auto">
+      {/* RIGHT PANEL: Pitch Black Dark Minimalist Auth Form (No White Panels) */}
+      <div className="lg:w-1/2 h-full bg-[#030005] text-white relative flex flex-col justify-between p-8 lg:p-16 overflow-y-auto">
         
-        {/* Top Minimalist Header */}
+        {/* Top Header */}
         <div className="flex items-center justify-between">
-          <span className="font-extrabold text-lg tracking-tight text-black">
-            CYBER<span className="text-red-600">//</span>EMULATOR
+          <span className="font-extrabold text-lg tracking-tight text-white">
+            SQUID<span className="text-[#ff0055]">//</span>GAME
           </span>
-          <span className="text-xs font-mono text-gray-400">
-            SYSTEM v2.0
+          <span className="text-xs font-mono text-[#ff0055] px-2.5 py-1 rounded bg-[#ff0055]/20 border border-[#ff0055]/40">
+            SYSTEM v456
           </span>
         </div>
 
-        {/* Center Auth Form Container */}
+        {/* Center Auth Form */}
         <div className="max-w-md w-full mx-auto my-auto py-8">
           
-          {/* Form Header */}
+          {/* Header in Bright Neon Pink */}
           <div className="mb-8">
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-black">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#ff0055] drop-shadow-[0_0_12px_rgba(255,0,85,0.6)]">
               Welcome back!
             </h1>
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-sm text-zinc-400 mt-2">
               Please enter your details to sign in.
             </p>
           </div>
@@ -184,16 +218,16 @@ export default function MinimalistAuthPage() {
               animate={{ scale: 1, opacity: 1 }}
               className="py-10 flex flex-col items-center justify-center text-center space-y-4"
             >
-              <div className="w-16 h-16 rounded-full bg-black text-white flex items-center justify-center shadow-lg">
-                <CheckCircle2 className="w-10 h-10 text-white" />
+              <div className="w-16 h-16 rounded-full bg-[#ff0055]/20 border-2 border-[#ff0055] flex items-center justify-center shadow-[0_0_25px_#ff0055]">
+                <CheckCircle2 className="w-10 h-10 text-[#ff0055]" />
               </div>
-              <h2 className="text-2xl font-bold text-black">Welcome, {name}!</h2>
-              <p className="text-sm text-gray-500 max-w-xs">
-                You have successfully authenticated as <span className="font-semibold text-black">{username}</span>.
+              <h2 className="text-2xl font-bold text-white">AUTHENTICATED</h2>
+              <p className="text-sm text-zinc-300 max-w-xs">
+                Player <span className="font-bold text-[#ff0055]">{name}</span> ({username}) access granted.
               </p>
               <button 
                 onClick={() => setLoginStatus('idle')}
-                className="mt-4 px-6 py-3 rounded-xl text-xs font-semibold bg-black text-white hover:bg-zinc-800 transition-all shadow-md"
+                className="mt-4 px-6 py-3 rounded-xl text-xs font-bold bg-[#ff0055] text-white hover:bg-[#e60039] transition-all shadow-[0_0_15px_#ff0055]"
               >
                 Sign Out
               </button>
@@ -203,11 +237,12 @@ export default function MinimalistAuthPage() {
               
               {/* NAME FIELD ONLY */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-gray-700 block">
-                  Name
+                <label className="text-xs font-semibold uppercase tracking-wider text-zinc-300 block flex justify-between">
+                  <span>Name</span>
+                  <span className="text-[10px] font-mono text-[#ff0055]">REQUIRED</span>
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#ff0055]">
                     <User className="w-4 h-4" />
                   </div>
                   <input
@@ -218,18 +253,19 @@ export default function MinimalistAuthPage() {
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Abdurrehman"
                     required
-                    className="w-full pl-11 pr-4 py-3.5 bg-gray-100 border border-gray-200 text-gray-900 placeholder-gray-400 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-black focus:ring-2 focus:ring-black/10 transition-all"
+                    className="w-full pl-11 pr-4 py-3.5 bg-zinc-900/80 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl text-sm focus:outline-none focus:border-[#ff0055] focus:ring-2 focus:ring-[#ff0055]/30 transition-all"
                   />
                 </div>
               </div>
 
               {/* USERNAME FIELD ONLY */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-gray-700 block">
-                  Username
+                <label className="text-xs font-semibold uppercase tracking-wider text-zinc-300 block flex justify-between">
+                  <span>Username</span>
+                  <span className="text-[10px] font-mono text-[#ff0055]">PLAYER_ID</span>
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#ff0055]">
                     <AtSign className="w-4 h-4" />
                   </div>
                   <input
@@ -240,7 +276,7 @@ export default function MinimalistAuthPage() {
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="@abdurrehman"
                     required
-                    className="w-full pl-11 pr-4 py-3.5 bg-gray-100 border border-gray-200 text-gray-900 placeholder-gray-400 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-black focus:ring-2 focus:ring-black/10 transition-all"
+                    className="w-full pl-11 pr-4 py-3.5 bg-zinc-900/80 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl text-sm focus:outline-none focus:border-[#ff0055] focus:ring-2 focus:ring-[#ff0055]/30 transition-all"
                   />
                 </div>
               </div>
@@ -251,7 +287,7 @@ export default function MinimalistAuthPage() {
                   <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-xs text-red-600 flex items-center gap-1.5 font-medium"
+                    className="text-xs text-[#ff0055] flex items-center gap-1.5 font-medium"
                   >
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     <span>Please fill in both Name and Username to click Log in.</span>
@@ -259,7 +295,7 @@ export default function MinimalistAuthPage() {
                 )}
               </div>
 
-              {/* RUNAWAY DARK 'LOG IN' BUTTON */}
+              {/* RUNAWAY NEON PINK/RED 'LOG IN' BUTTON */}
               <div className="relative h-14 flex items-center justify-center">
                 <motion.div
                   animate={{
@@ -278,10 +314,10 @@ export default function MinimalistAuthPage() {
                   <button
                     type="submit"
                     disabled={loginStatus === 'loggingIn'}
-                    className={`w-full py-4 px-6 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-md ${
+                    className={`w-full py-4 px-6 rounded-xl font-bold uppercase tracking-wider text-sm transition-all duration-300 flex items-center justify-center gap-2 shadow-lg ${
                       isFormValid
-                        ? 'bg-black text-white hover:bg-zinc-800 cursor-pointer active:scale-95'
-                        : 'bg-zinc-300 text-zinc-500 cursor-not-allowed border border-zinc-200'
+                        ? 'bg-gradient-to-r from-[#ff0055] via-[#e60039] to-[#ff0055] text-white hover:shadow-[0_0_25px_#ff0055] cursor-pointer active:scale-95 border border-white/20'
+                        : 'bg-gradient-to-r from-red-950 to-pink-950 text-pink-300/40 border border-pink-500/20 cursor-not-allowed'
                     }`}
                   >
                     {loginStatus === 'loggingIn' ? (
@@ -303,8 +339,8 @@ export default function MinimalistAuthPage() {
         </div>
 
         {/* Bottom Minimalist Footer */}
-        <div className="text-center text-xs text-gray-400 border-t border-gray-100 pt-6">
-          Need access? Contact administrator.
+        <div className="text-center text-xs text-zinc-500 border-t border-zinc-900 pt-6">
+          Need access? Contact Frontman Administrator.
         </div>
       </div>
     </div>
