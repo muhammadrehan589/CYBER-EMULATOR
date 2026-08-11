@@ -3,7 +3,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
-import { User, AtSign, ArrowRight, CheckCircle2, AlertCircle, ShieldAlert } from 'lucide-react';
+import { 
+  User, 
+  AtSign, 
+  Lock, 
+  ArrowRight, 
+  CheckCircle2, 
+  AlertCircle, 
+  ShieldAlert, 
+  Key, 
+  ArrowLeft,
+  Eye,
+  EyeOff
+} from 'lucide-react';
 
 export default function CyberSimulatorAuthPage() {
   const router = useRouter();
@@ -15,29 +27,35 @@ export default function CyberSimulatorAuthPage() {
   // Eyeball Center Ref for Exact Viewport Tracking
   const eyeContainerRef = useRef<HTMLDivElement>(null);
 
-  // Exact Viewport Delta Offset Motion Values
+  // Viewport Delta Motion Values for Outer Eyeball
   const eyeXMotion = useMotionValue(0);
   const eyeYMotion = useMotionValue(0);
 
   const springConfig = { stiffness: 220, damping: 24 };
 
-  // Refined Eyeball Translation Springs
+  // Refined Outer Eyeball Translation Springs
   const smoothEyeX = useSpring(eyeXMotion, springConfig);
   const smoothEyeY = useSpring(eyeYMotion, springConfig);
+
+  // ADVANCED PUPIL PARALLAX: Higher Multiplier (1.65x) for inner pupil movement
+  const pupilX = useTransform(smoothEyeX, (v) => v * 1.65);
+  const pupilY = useTransform(smoothEyeY, (v) => v * 1.65);
 
   // 3D Head Rotation Springs
   const headRotateX = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [12, -12]), springConfig);
   const headRotateY = useSpring(useTransform(rawMouseX, [-0.5, 0.5], [-16, 16]), springConfig);
 
-  // Focus State Logic
+  // Focus & Typing State for Squeeze/Squint Reaction
   const [isInputFocused, setIsInputFocused] = useState(false);
 
-  // When focused on inputs, lock gaze to the right panel (+32px) and shrink eyeball
-  const finalEyeX = isInputFocused ? 32 : smoothEyeX;
+  // When focused on inputs, lock gaze toward the right panel (+28px)
+  const finalEyeX = isInputFocused ? 28 : smoothEyeX;
   const finalEyeY = isInputFocused ? 0 : smoothEyeY;
-  const finalEyeScale = useSpring(isInputFocused ? 0.7 : 1.0, springConfig);
 
-  // Refined Exact Viewport Mouse Tracker
+  const finalPupilX = isInputFocused ? 38 : pupilX;
+  const finalPupilY = isInputFocused ? 0 : pupilY;
+
+  // Viewport Mouse Tracker
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const { clientX, clientY } = e;
     const { innerWidth, innerHeight } = window;
@@ -58,9 +76,9 @@ export default function CyberSimulatorAuthPage() {
       const angle = Math.atan2(deltaY, deltaX);
       const distance = Math.hypot(deltaX, deltaY);
 
-      // Max pupil travel radius inside visor
-      const maxRadius = 26;
-      const clampedRadius = Math.min(maxRadius, distance / 15);
+      // Max outer eyeball travel radius inside visor
+      const maxRadius = 18;
+      const clampedRadius = Math.min(maxRadius, distance / 18);
 
       const targetX = Math.cos(angle) * clampedRadius;
       const targetY = Math.sin(angle) * clampedRadius;
@@ -70,13 +88,21 @@ export default function CyberSimulatorAuthPage() {
     }
   };
 
-  // Form State (ONLY Name & Username)
+  // Form & Trapdoor State
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [buttonOffset, setButtonOffset] = useState({ x: 0, y: 0 });
   const [loginStatus, setLoginStatus] = useState<'idle' | 'loggingIn' | 'success'>('idle');
 
-  const isFormValid = name.trim().length > 0 && username.trim().length > 0;
+  // Admin Trapdoor Password States
+  const [isAdminTrapdoor, setIsAdminTrapdoor] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [adminAuthError, setAdminAuthError] = useState('');
+
+  const isFormValid = isAdminTrapdoor
+    ? adminPassword.trim().length > 0
+    : name.trim().length > 0 && username.trim().length > 0;
 
   // Runaway button flee logic
   const makeButtonFlee = () => {
@@ -93,16 +119,44 @@ export default function CyberSimulatorAuthPage() {
     }
   }, [isFormValid]);
 
+  // Two-Step Authentication Logic
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!isFormValid) {
       makeButtonFlee();
       return;
     }
+
+    // Step 2: Handle Admin Password Verification
+    if (isAdminTrapdoor) {
+      if (adminPassword.trim() === 'admin123') {
+        setAdminAuthError('');
+        setLoginStatus('loggingIn');
+        setTimeout(() => {
+          setLoginStatus('success');
+          router.push('/admin');
+        }, 1000);
+      } else {
+        setAdminAuthError('SECURITY OVERRIDE FAILED: INVALID ADMIN KEY');
+      }
+      return;
+    }
+
+    // Step 1: Check if user is Admin ('abdurrehman' or '@abdurrehman')
+    const cleanUsername = username.trim().toLowerCase().replace(/^@/, '');
+    if (cleanUsername === 'abdurrehman') {
+      // Trigger Admin Trapdoor Mode!
+      setIsAdminTrapdoor(true);
+      setAdminAuthError('');
+      return;
+    }
+
+    // Normal Player Login -> Redirect to Player Dashboard
     setLoginStatus('loggingIn');
     setTimeout(() => {
       setLoginStatus('success');
-      router.push('/admin');
+      router.push('/dashboard');
     }, 1000);
   };
 
@@ -111,7 +165,7 @@ export default function CyberSimulatorAuthPage() {
       onMouseMove={handleMouseMove}
       className="h-screen w-screen flex flex-col lg:flex-row overflow-hidden font-sans select-none bg-black text-white"
     >
-      {/* LEFT PANEL: Pitch Black (#000000) with Refined Tracking Character */}
+      {/* LEFT PANEL: Pitch Black (#000000) with Advanced Pupil & Squeeze Eye */}
       <div className="lg:w-1/2 h-full bg-black text-white relative flex flex-col items-center justify-center p-8 lg:p-12 overflow-hidden border-b lg:border-b-0 lg:border-r border-[#ff0055]/20">
         
         {/* Crimson Glow Orb Accent */}
@@ -134,7 +188,11 @@ export default function CyberSimulatorAuthPage() {
                 <span className="w-2 h-2 rounded-full bg-[#e60039]" />
               </div>
               <span className="text-[10px] font-mono text-[#ff0055] tracking-widest uppercase">
-                {isInputFocused ? 'OCULAR: FORM FOCUS' : 'OCULAR: LIVE TRACKING'}
+                {isAdminTrapdoor 
+                  ? 'TRAPDOOR: ADMIN OVERRIDE' 
+                  : isInputFocused 
+                    ? 'SQUINT: FORM FOCUSED' 
+                    : 'OCULAR: LIVE PARALLAX'}
               </span>
             </div>
 
@@ -149,21 +207,37 @@ export default function CyberSimulatorAuthPage() {
               {/* Eye Outer Ring */}
               <div className="relative w-44 h-20 rounded-full bg-[#120410] border border-[#ff0055]/60 flex items-center justify-center overflow-hidden shadow-[0_0_15px_rgba(255,0,85,0.4)]">
                 
-                {/* Refined Mouse Tracking Eyeball */}
+                {/* SQUEEZE / SQUINT ANIMATED EYE CONTAINER */}
                 <motion.div
+                  animate={{
+                    scaleX: isInputFocused ? 1.15 : 1.0,
+                    scaleY: isInputFocused ? 0.55 : 1.0,
+                    scale: isInputFocused ? 0.9 : 1.0,
+                  }}
+                  transition={{
+                    type: 'spring',
+                    stiffness: 300,
+                    damping: 20,
+                  }}
                   style={{
                     x: finalEyeX,
                     y: finalEyeY,
-                    scale: finalEyeScale,
                   }}
                   className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#800020] via-[#ff0055] to-pink-300 flex items-center justify-center shadow-[0_0_25px_#ff0055] relative border border-pink-200"
                 >
-                  {/* Inner Dark Pupil */}
-                  <div className="w-7 h-7 rounded-full bg-[#050008] border-2 border-red-900 flex items-center justify-center relative overflow-hidden shadow-inner">
-                    <div className="w-3 h-3 rounded-full bg-red-600 shadow-[0_0_8px_#ff0000]" />
-                    {/* Glare Reflection */}
+                  {/* ISOLATED INNER PUPIL WITH HIGHER PARALLAX MULTIPLIER */}
+                  <motion.div
+                    style={{
+                      x: finalPupilX,
+                      y: finalPupilY,
+                    }}
+                    className="w-7 h-7 rounded-full bg-[#050008] border-2 border-red-900 flex items-center justify-center relative overflow-hidden shadow-inner"
+                  >
+                    {/* Glowing Red Core */}
+                    <div className="w-3 h-3 rounded-full bg-red-600 shadow-[0_0_10px_#ff0000]" />
+                    {/* Lens Glare Reflection */}
                     <div className="absolute top-0.5 right-1 w-2 h-2 rounded-full bg-white opacity-90" />
-                  </div>
+                  </motion.div>
                 </motion.div>
               </div>
             </div>
@@ -183,13 +257,15 @@ export default function CyberSimulatorAuthPage() {
               Cyber Simulator Ocular Grid
             </h2>
             <p className="text-xs text-zinc-400 mt-1 max-w-xs">
-              Refined viewport eye tracking active. Move cursor to test.
+              {isAdminTrapdoor 
+                ? 'Admin security override trapdoor active.' 
+                : 'Advanced pupil parallax & squint reaction enabled.'}
             </p>
           </div>
         </div>
       </div>
 
-      {/* RIGHT PANEL: Pitch Black Dark Minimalist Auth Form */}
+      {/* RIGHT PANEL: Auth Form with Two-Step Admin Password Trapdoor */}
       <div className="lg:w-1/2 h-full bg-[#030005] text-white relative flex flex-col justify-between p-8 lg:p-16 overflow-y-auto">
         
         {/* Top Header */}
@@ -205,13 +281,15 @@ export default function CyberSimulatorAuthPage() {
         {/* Center Auth Form */}
         <div className="max-w-md w-full mx-auto my-auto py-8">
           
-          {/* Header in Bright Neon Pink */}
+          {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#ff0055] drop-shadow-[0_0_12px_rgba(255,0,85,0.6)]">
-              Welcome back!
+              {isAdminTrapdoor ? 'Admin Override' : 'Welcome back!'}
             </h1>
             <p className="text-sm text-zinc-400 mt-2">
-              Please enter your details to sign in.
+              {isAdminTrapdoor 
+                ? 'Security clearance required for Administrator Abdurrehman.' 
+                : 'Please enter your details to sign in.'}
             </p>
           </div>
 
@@ -227,57 +305,124 @@ export default function CyberSimulatorAuthPage() {
               </div>
               <h2 className="text-2xl font-bold text-white">AUTHENTICATED</h2>
               <p className="text-sm text-zinc-300 max-w-xs">
-                Redirecting <span className="font-bold text-[#ff0055]">{name}</span> ({username}) to Admin Panel...
+                Redirecting <span className="font-bold text-[#ff0055]">{name || 'Abdurrehman'}</span> to {isAdminTrapdoor ? 'Admin Control Room' : 'Player Arena'}...
               </p>
             </motion.div>
           ) : (
             <form onSubmit={handleLoginSubmit} className="space-y-6">
               
-              {/* NAME FIELD ONLY */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-zinc-300 block flex justify-between">
-                  <span>Name</span>
-                  <span className="text-[10px] font-mono text-[#ff0055]">REQUIRED</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#ff0055]">
-                    <User className="w-4 h-4" />
+              {/* STEP 2: ADMIN PASSWORD TRAPDOOR INPUT */}
+              {isAdminTrapdoor ? (
+                <div className="space-y-4">
+                  {/* Admin User Info Pill */}
+                  <div className="p-3 rounded-xl bg-[#120315] border border-[#ff0055]/40 flex items-center justify-between font-mono text-xs">
+                    <span className="text-zinc-400">OPERATOR:</span>
+                    <span className="font-bold text-[#ff0055]">Abdurrehman (@abdurrehman)</span>
                   </div>
-                  <input
-                    type="text"
-                    value={name}
-                    onFocus={() => setIsInputFocused(true)}
-                    onBlur={() => setIsInputFocused(false)}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Abdurrehman"
-                    required
-                    className="w-full pl-11 pr-4 py-3.5 bg-zinc-900/80 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl text-sm focus:outline-none focus:border-[#ff0055] focus:ring-2 focus:ring-[#ff0055]/30 transition-all"
-                  />
-                </div>
-              </div>
 
-              {/* USERNAME FIELD ONLY */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-zinc-300 block flex justify-between">
-                  <span>Username</span>
-                  <span className="text-[10px] font-mono text-[#ff0055]">PLAYER_ID</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#ff0055]">
-                    <AtSign className="w-4 h-4" />
+                  {/* Password Input Field */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-zinc-300 block flex justify-between">
+                      <span>SECURITY KEY (PASSWORD)</span>
+                      <span className="text-[10px] font-mono text-[#ff0055]">ADMIN_ONLY</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#ff0055]">
+                        <Key className="w-4 h-4" />
+                      </div>
+                      <input
+                        type={showAdminPassword ? 'text' : 'password'}
+                        value={adminPassword}
+                        onFocus={() => setIsInputFocused(true)}
+                        onBlur={() => setIsInputFocused(false)}
+                        onChange={(e) => setAdminPassword(e.target.value)}
+                        placeholder="Enter Admin Password (e.g. admin123)"
+                        autoFocus
+                        required
+                        className="w-full pl-11 pr-10 py-3.5 bg-zinc-900/80 border border-[#ff0055]/50 text-white placeholder-zinc-500 rounded-xl text-sm focus:outline-none focus:border-[#ff0055] focus:ring-2 focus:ring-[#ff0055]/40 transition-all font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAdminPassword(!showAdminPassword)}
+                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-zinc-400 hover:text-[#ff0055] transition-colors"
+                      >
+                        {showAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
-                  <input
-                    type="text"
-                    value={username}
-                    onFocus={() => setIsInputFocused(true)}
-                    onBlur={() => setIsInputFocused(false)}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="@abdurrehman"
-                    required
-                    className="w-full pl-11 pr-4 py-3.5 bg-zinc-900/80 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl text-sm focus:outline-none focus:border-[#ff0055] focus:ring-2 focus:ring-[#ff0055]/30 transition-all"
-                  />
+
+                  {/* Error Notification */}
+                  {adminAuthError && (
+                    <div className="p-3 rounded-xl bg-red-950/80 border border-red-600 text-xs font-mono text-red-400 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+                      <span>{adminAuthError}</span>
+                    </div>
+                  )}
+
+                  {/* Back to Normal Login Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAdminTrapdoor(false);
+                      setAdminPassword('');
+                      setAdminAuthError('');
+                    }}
+                    className="text-xs font-mono text-zinc-400 hover:text-[#ff0055] flex items-center gap-1.5 transition-colors pt-1"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>Back to Normal Login</span>
+                  </button>
                 </div>
-              </div>
+              ) : (
+                /* STEP 1: NORMAL NAME & USERNAME INPUTS */
+                <>
+                  {/* NAME FIELD */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-zinc-300 block flex justify-between">
+                      <span>Name</span>
+                      <span className="text-[10px] font-mono text-[#ff0055]">REQUIRED</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#ff0055]">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="text"
+                        value={name}
+                        onFocus={() => setIsInputFocused(true)}
+                        onBlur={() => setIsInputFocused(false)}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Abdurrehman"
+                        required
+                        className="w-full pl-11 pr-4 py-3.5 bg-zinc-900/80 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl text-sm focus:outline-none focus:border-[#ff0055] focus:ring-2 focus:ring-[#ff0055]/30 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* USERNAME FIELD */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-zinc-300 block flex justify-between">
+                      <span>Username</span>
+                      <span className="text-[10px] font-mono text-[#ff0055]">PLAYER_ID</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#ff0055]">
+                        <AtSign className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="text"
+                        value={username}
+                        onFocus={() => setIsInputFocused(true)}
+                        onBlur={() => setIsInputFocused(false)}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="@abdurrehman"
+                        required
+                        className="w-full pl-11 pr-4 py-3.5 bg-zinc-900/80 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl text-sm focus:outline-none focus:border-[#ff0055] focus:ring-2 focus:ring-[#ff0055]/30 transition-all"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* Fleeing Warning Hint */}
               <div className="min-h-[20px]">
@@ -288,7 +433,11 @@ export default function CyberSimulatorAuthPage() {
                     className="text-xs text-[#ff0055] flex items-center gap-1.5 font-medium"
                   >
                     <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>Please fill in both Name and Username to click Log in.</span>
+                    <span>
+                      {isAdminTrapdoor 
+                        ? 'Please enter Admin Password to proceed.' 
+                        : 'Please fill in both Name and Username to click Log in.'}
+                    </span>
                   </motion.div>
                 )}
               </div>
@@ -321,7 +470,12 @@ export default function CyberSimulatorAuthPage() {
                     {loginStatus === 'loggingIn' ? (
                       <>
                         <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Logging in...
+                        Authenticating...
+                      </>
+                    ) : isAdminTrapdoor ? (
+                      <>
+                        OVERRIDE & ENTER ADMIN
+                        <ArrowRight className="w-4 h-4" />
                       </>
                     ) : (
                       <>
