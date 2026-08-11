@@ -1,0 +1,349 @@
+'use client';
+
+import React, { useState } from 'react';
+import { Player, ActivityLogEntry } from '@/types/admin';
+import { PlayerTable } from '@/components/admin/PlayerTable';
+import { ActivityLog } from '@/components/admin/ActivityLog';
+import { PlayerManagementModal } from '@/components/admin/PlayerManagementModal';
+import { 
+  ShieldCheck, 
+  Users, 
+  UserX, 
+  AlertTriangle, 
+  Trophy, 
+  ArrowLeft,
+  Circle,
+  Triangle,
+  Square,
+  Lock
+} from 'lucide-react';
+import Link from 'next/link';
+
+// Initial Mock Player State with 'Abdurrehman' as Default Admin
+const INITIAL_PLAYERS: Player[] = [
+  {
+    empId: 'EMP-001',
+    name: 'Abdurrehman',
+    username: 'abdurrehman',
+    department: 'Security & Command',
+    role: 'Admin',
+    status: 'active',
+    score: 9999,
+    joinedAt: '2026-01-01',
+  },
+  {
+    empId: 'EMP-456',
+    name: 'Seong Gi-hun',
+    username: 'gihun456',
+    department: 'Operations',
+    role: 'Player',
+    status: 'active',
+    score: 4560,
+    joinedAt: '2026-02-10',
+  },
+  {
+    empId: 'EMP-218',
+    name: 'Cho Sang-woo',
+    username: 'sangwoo218',
+    department: 'Engineering',
+    role: 'Player',
+    status: 'active',
+    score: 3820,
+    joinedAt: '2026-02-12',
+  },
+  {
+    empId: 'EMP-067',
+    name: 'Kang Sae-byeok',
+    username: 'saebyeok067',
+    department: 'Intelligence',
+    role: 'VIP',
+    status: 'active',
+    score: 4100,
+    joinedAt: '2026-02-14',
+  },
+  {
+    empId: 'EMP-007',
+    name: 'Oh Il-nam',
+    username: 'ilnam007',
+    department: 'VIP Lounge',
+    role: 'VIP',
+    status: 'suspended',
+    score: 9000,
+    joinedAt: '2026-01-05',
+  },
+  {
+    empId: 'EMP-101',
+    name: 'Jang Deok-su',
+    username: 'deoksu101',
+    department: 'Security',
+    role: 'Guard',
+    status: 'suspended',
+    score: 1200,
+    joinedAt: '2026-02-01',
+  },
+];
+
+// Initial Activity Logs
+const INITIAL_LOGS: ActivityLogEntry[] = [
+  {
+    id: 'log-1',
+    empId: 'EMP-001',
+    timestamp: '2026-08-11 10:30',
+    action: 'Admin Authentication',
+    type: 'login',
+    details: 'Administrator Abdurrehman logged into Control Room Grid with master clearance.',
+  },
+  {
+    id: 'log-2',
+    empId: 'EMP-456',
+    timestamp: '2026-08-11 09:15',
+    action: 'Round 3 Passed',
+    type: 'score',
+    details: 'Completed Glass Bridge puzzle with +1200 bonus points.',
+  },
+  {
+    id: 'log-3',
+    empId: 'EMP-218',
+    timestamp: '2026-08-11 08:45',
+    action: 'Grid Login',
+    type: 'login',
+    details: 'Logged into node terminal from Engineering Sector.',
+  },
+  {
+    id: 'log-4',
+    empId: 'EMP-007',
+    timestamp: '2026-08-10 18:20',
+    action: 'Account Suspended',
+    type: 'status_change',
+    details: 'Suspended by Admin Abdurrehman for policy violation in VIP Lounge.',
+  },
+  {
+    id: 'log-5',
+    empId: 'EMP-101',
+    timestamp: '2026-08-10 14:10',
+    action: 'Security Violation Flag',
+    type: 'flag',
+    details: 'Attempted unauthorized command execution on Sector 4 barrier.',
+  },
+];
+
+const DEPARTMENTS = [
+  'Security & Command',
+  'Operations',
+  'Engineering',
+  'Intelligence',
+  'Security',
+  'VIP Lounge',
+];
+
+export default function AdminPage() {
+  const [players, setPlayers] = useState<Player[]>(INITIAL_PLAYERS);
+  const [logs, setLogs] = useState<ActivityLogEntry[]>(INITIAL_LOGS);
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(INITIAL_PLAYERS[0]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDepartment, setSelectedDepartment] = useState('ALL');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  // Filtered Players Logic
+  const filteredPlayers = players.filter((player) => {
+    const matchesSearch =
+      player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      player.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      player.empId.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesDept =
+      selectedDepartment === 'ALL' || player.department === selectedDepartment;
+
+    return matchesSearch && matchesDept;
+  });
+
+  // Toggle Suspend / Activate Player State
+  const handleToggleStatus = (empId: string) => {
+    setPlayers((prev) =>
+      prev.map((player) => {
+        if (player.empId === empId) {
+          const newStatus = player.status === 'active' ? 'suspended' : 'active';
+          
+          // Log status change entry
+          const newLog: ActivityLogEntry = {
+            id: `log-${Date.now()}`,
+            empId: player.empId,
+            timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
+            action: newStatus === 'suspended' ? 'Player Suspended' : 'Player Reactivated',
+            type: 'status_change',
+            details: `Status set to ${newStatus.toUpperCase()} by Admin Abdurrehman.`,
+          };
+          setLogs((prevLogs) => [newLog, ...prevLogs]);
+
+          const updated = { ...player, status: newStatus as Player['status'] };
+          if (selectedPlayer?.empId === empId) {
+            setSelectedPlayer(updated);
+          }
+          return updated;
+        }
+        return player;
+      })
+    );
+  };
+
+  // Add New Player Handler
+  const handleAddPlayer = (newPlayerData: Omit<Player, 'status' | 'score' | 'joinedAt'>) => {
+    const newPlayer: Player = {
+      ...newPlayerData,
+      status: 'active',
+      score: 1000,
+      joinedAt: new Date().toISOString().slice(0, 10),
+    };
+
+    setPlayers((prev) => [newPlayer, ...prev]);
+
+    // Log addition event
+    const newLog: ActivityLogEntry = {
+      id: `log-${Date.now()}`,
+      empId: newPlayer.empId,
+      timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
+      action: 'Account Created',
+      type: 'login',
+      details: `New ${newPlayer.role} registered in ${newPlayer.department} by Admin Abdurrehman.`,
+    };
+    setLogs((prevLogs) => [newLog, ...prevLogs]);
+
+    setSelectedPlayer(newPlayer);
+  };
+
+  // KPI Metrics Calculation
+  const activeCount = players.filter((p) => p.status === 'active').length;
+  const suspendedCount = players.filter((p) => p.status === 'suspended').length;
+  const flagCount = logs.filter((l) => l.type === 'flag').length;
+  const totalScore = players.reduce((sum, p) => sum + p.score, 0);
+
+  return (
+    <div className="min-h-screen bg-[#020005] text-white p-4 sm:p-6 lg:p-8 font-sans relative overflow-x-hidden">
+      {/* Background Subtle Crimson Glows */}
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#ff0055]/10 rounded-full blur-3xl pointer-events-none z-0" />
+      <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-[#e60039]/10 rounded-full blur-3xl pointer-events-none z-0" />
+
+      <div className="max-w-7xl mx-auto space-y-6 relative z-10">
+        
+        {/* Top Navigation Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[#ff0055]/25">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="p-2.5 rounded-xl bg-[#0e0414] border border-[#ff0055]/30 text-[#ff0055] hover:bg-[#ff0055] hover:text-white transition-all shadow-[0_0_10px_rgba(255,0,85,0.2)]"
+              title="Return to Main Portal"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold text-[#ff0055] tracking-widest uppercase">
+                  ADMIN CONTROL ROOM // PHASE 1
+                </span>
+                <div className="flex items-center gap-1 text-[#ff0055] px-2 py-0.5 rounded-full bg-[#1c061e] border border-[#ff0055]/30">
+                  <Circle className="w-2.5 h-2.5 fill-current" />
+                  <Triangle className="w-2.5 h-2.5 fill-current" />
+                  <Square className="w-2.5 h-2.5 fill-current" />
+                </div>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-pink-200 to-[#ff0055]">
+                Squid Game Player Directory & Audit Log
+              </h1>
+            </div>
+          </div>
+
+          {/* Admin Logged-In Badge */}
+          <div className="flex items-center gap-3 self-end sm:self-auto">
+            <div className="px-3.5 py-1.5 rounded-xl bg-[#120315] border border-[#ff0055]/40 flex items-center gap-2.5 shadow-[0_0_15px_rgba(255,0,85,0.2)]">
+              <ShieldCheck className="w-4 h-4 text-[#ff0055]" />
+              <div className="flex flex-col text-right font-mono">
+                <span className="text-xs font-bold text-white">Abdurrehman</span>
+                <span className="text-[9px] text-[#ff0055]">SYSTEM ADMIN (EMP-001)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* KPI Metrics Banner */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Active Personnel Card */}
+          <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md shadow-[0_0_20px_rgba(255,0,85,0.1)] flex items-center justify-between">
+            <div>
+              <span className="text-xs font-mono text-zinc-400 block uppercase">Active Personnel</span>
+              <span className="text-2xl font-extrabold text-white font-mono">{activeCount}</span>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-emerald-950/60 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+              <Users className="w-5 h-5" />
+            </div>
+          </div>
+
+          {/* Suspended Players Card */}
+          <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md shadow-[0_0_20px_rgba(255,0,85,0.1)] flex items-center justify-between">
+            <div>
+              <span className="text-xs font-mono text-zinc-400 block uppercase">Suspended Players</span>
+              <span className="text-2xl font-extrabold text-red-500 font-mono">{suspendedCount}</span>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-red-950/60 border border-red-500/40 flex items-center justify-center text-red-500">
+              <UserX className="w-5 h-5" />
+            </div>
+          </div>
+
+          {/* Security Flags Card */}
+          <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md shadow-[0_0_20px_rgba(255,0,85,0.1)] flex items-center justify-between">
+            <div>
+              <span className="text-xs font-mono text-zinc-400 block uppercase">Security Flags</span>
+              <span className="text-2xl font-extrabold text-amber-400 font-mono">{flagCount}</span>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-amber-950/60 border border-amber-500/40 flex items-center justify-center text-amber-400">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+          </div>
+
+          {/* Total Aggregate Score Card */}
+          <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md shadow-[0_0_20px_rgba(255,0,85,0.1)] flex items-center justify-between">
+            <div>
+              <span className="text-xs font-mono text-zinc-400 block uppercase">Total System Score</span>
+              <span className="text-2xl font-extrabold text-[#ff0055] font-mono">{totalScore.toLocaleString()}</span>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-[#1f0622] border border-[#ff0055]/50 flex items-center justify-center text-[#ff0055]">
+              <Trophy className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Layout: PlayerTable (Left/Wide) + ActivityLog (Right/Side Panel) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          {/* Player Table Column (2/3 width) */}
+          <div className="lg:col-span-2">
+            <PlayerTable
+              players={filteredPlayers}
+              selectedPlayer={selectedPlayer}
+              onSelectPlayer={setSelectedPlayer}
+              onToggleStatus={handleToggleStatus}
+              onOpenAddModal={() => setIsAddModalOpen(true)}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              selectedDepartment={selectedDepartment}
+              onDepartmentChange={setSelectedDepartment}
+              departments={DEPARTMENTS}
+            />
+          </div>
+
+          {/* Activity Log Side Panel (1/3 width) */}
+          <div className="lg:col-span-1">
+            <ActivityLog selectedPlayer={selectedPlayer} logs={logs} />
+          </div>
+        </div>
+
+        {/* Player Add Modal */}
+        <PlayerManagementModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          onAddPlayer={handleAddPlayer}
+          departments={DEPARTMENTS}
+        />
+      </div>
+    </div>
+  );
+}
