@@ -6,7 +6,6 @@ import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { 
   User, 
   AtSign, 
-  Lock, 
   ArrowRight, 
   CheckCircle2, 
   AlertCircle, 
@@ -45,7 +44,7 @@ export default function CyberSimulatorAuthPage() {
   const headRotateX = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [12, -12]), springConfig);
   const headRotateY = useSpring(useTransform(rawMouseX, [-0.5, 0.5], [-16, 16]), springConfig);
 
-  // Focus & Typing State for Squeeze/Squint Reaction
+  // Focus & Typing State for Iris Focus Reaction
   const [isInputFocused, setIsInputFocused] = useState(false);
 
   // When focused on inputs, lock gaze toward the right panel (+28px)
@@ -152,7 +151,7 @@ export default function CyberSimulatorAuthPage() {
       return;
     }
 
-    // Normal Player Login -> Redirect to Player Arena
+    // Normal Player Login -> Redirect to Player Arena Dashboard
     setLoginStatus('loggingIn');
     setTimeout(() => {
       setLoginStatus('success');
@@ -192,7 +191,7 @@ export default function CyberSimulatorAuthPage() {
                 </span>
               </div>
               <div className="text-[9px] font-mono px-2 py-0.5 rounded bg-[#ff0055]/20 border border-[#ff0055]/40 text-[#ff0055]">
-                {isAdminTrapdoor ? 'TRAPDOOR' : isInputFocused ? 'SQUINT' : 'LIVE'}
+                {isAdminTrapdoor ? 'TRAPDOOR' : isInputFocused ? 'FOCUS' : 'LIVE'}
               </div>
             </div>
 
@@ -208,24 +207,24 @@ export default function CyberSimulatorAuthPage() {
                   {isAdminTrapdoor 
                     ? 'ADMIN CLEARANCE' 
                     : isInputFocused 
-                      ? 'MODE: SQUINT FOCUS' 
+                      ? 'MODE: IRIS FOCUS' 
                       : 'MODE: PARALLAX'}
                 </span>
               </div>
 
-              {/* MECHANICAL EYE WITH SQUEEZE/SQUINT ANIMATION */}
+              {/* MECHANICAL EYE WITH PRECISE IRIS FOCUS ANIMATION */}
               <div className="my-2 relative flex items-center justify-center w-36 h-36 z-10">
-                {/* SQUEEZE / SQUINT CONTAINER */}
+                {/* SUBTLE PREMIUM IRIS FOCUS CONTAINER */}
                 <motion.div
                   animate={{
-                    scaleX: isInputFocused ? 1.15 : 1.0,
-                    scaleY: isInputFocused ? 0.55 : 1.0,
-                    scale: isInputFocused ? 0.9 : 1.0,
+                    scaleX: isInputFocused ? 1.02 : 1.0,
+                    scaleY: isInputFocused ? 0.94 : 1.0,
+                    scale: isInputFocused ? 0.96 : 1.0,
                   }}
                   transition={{
                     type: 'spring',
-                    stiffness: 300,
-                    damping: 20,
+                    stiffness: 240,
+                    damping: 22,
                   }}
                   style={{
                     x: finalEyeX,
@@ -239,8 +238,16 @@ export default function CyberSimulatorAuthPage() {
                     <circle cx="50" cy="50" r="38" fill="#0c0012" stroke="#ff0055" strokeWidth="2" />
                   </svg>
 
-                  {/* Outer Eyeball Lens */}
-                  <div className="relative w-20 h-20 rounded-full bg-gradient-to-tr from-[#800020] via-[#ff0055] to-pink-300 flex items-center justify-center shadow-[0_0_25px_#ff0055] border-2 border-pink-200">
+                  {/* Outer Eyeball Lens with Dynamic Neon Iris Glow Boost */}
+                  <motion.div
+                    animate={{
+                      boxShadow: isInputFocused 
+                        ? '0 0 35px #ff0055, 0 0 70px rgba(255, 0, 85, 0.6)' 
+                        : '0 0 25px #ff0055',
+                    }}
+                    transition={{ duration: 0.3 }}
+                    className="relative w-20 h-20 rounded-full bg-gradient-to-tr from-[#800020] via-[#ff0055] to-pink-300 flex items-center justify-center border-2 border-pink-200"
+                  >
                     
                     {/* ISOLATED INNER PUPIL WITH HIGHER PARALLAX MULTIPLIER */}
                     <motion.div
@@ -255,7 +262,7 @@ export default function CyberSimulatorAuthPage() {
                       {/* Lens Glare Reflection */}
                       <div className="absolute top-1 right-1.5 w-2.5 h-2.5 rounded-full bg-white opacity-90" />
                     </motion.div>
-                  </div>
+                  </motion.div>
                 </motion.div>
               </div>
 
@@ -264,7 +271,7 @@ export default function CyberSimulatorAuthPage() {
                 {isAdminTrapdoor 
                   ? 'PASSWORD REQUIRED FOR ADMIN ABDURREHMAN' 
                   : isInputFocused 
-                    ? 'EYE SQUEEZES & LOCKS GAZE ON AUTH FORM' 
+                    ? 'SUBTLE IRIS FOCUS LOCKED ON AUTH FORM' 
                     : 'PUPIL PARALLAX TRACKS CURSOR POSITION'}
               </div>
             </div>
@@ -315,7 +322,7 @@ export default function CyberSimulatorAuthPage() {
             <p className="text-xs text-zinc-400 mt-1 max-w-xs">
               {isAdminTrapdoor 
                 ? 'Admin security override trapdoor active.' 
-                : 'Advanced pupil parallax & squint reaction enabled.'}
+                : 'Advanced pupil parallax & subtle iris focus enabled.'}
             </p>
           </div>
         </div>
