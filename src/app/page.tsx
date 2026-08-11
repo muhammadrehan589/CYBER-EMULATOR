@@ -24,7 +24,7 @@ export default function CyberSimulatorAuthPage() {
   const rawMouseX = useMotionValue(0);
   const rawMouseY = useMotionValue(0);
 
-  // Eyeball Center Ref for Exact Viewport Tracking
+  // Eyeball Center Ref for Viewport Tracking
   const eyeContainerRef = useRef<HTMLDivElement>(null);
 
   // Viewport Delta Motion Values for Outer Eyeball
@@ -33,15 +33,15 @@ export default function CyberSimulatorAuthPage() {
 
   const springConfig = { stiffness: 220, damping: 24 };
 
-  // Refined Outer Eyeball Translation Springs
+  // Outer Eyeball Translation Springs
   const smoothEyeX = useSpring(eyeXMotion, springConfig);
   const smoothEyeY = useSpring(eyeYMotion, springConfig);
 
-  // ADVANCED PUPIL PARALLAX: Higher Multiplier (1.65x) for inner pupil movement
+  // ISOLATED INNER PUPIL PARALLAX: 1.65x Multiplier for deep inner lens movement
   const pupilX = useTransform(smoothEyeX, (v) => v * 1.65);
   const pupilY = useTransform(smoothEyeY, (v) => v * 1.65);
 
-  // 3D Head Rotation Springs
+  // 3D Head & Console Rotation Springs
   const headRotateX = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [12, -12]), springConfig);
   const headRotateY = useSpring(useTransform(rawMouseX, [-0.5, 0.5], [-16, 16]), springConfig);
 
@@ -88,7 +88,7 @@ export default function CyberSimulatorAuthPage() {
     }
   };
 
-  // Form & Trapdoor State
+  // Form & Admin Trapdoor States
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [buttonOffset, setButtonOffset] = useState({ x: 0, y: 0 });
@@ -119,7 +119,7 @@ export default function CyberSimulatorAuthPage() {
     }
   }, [isFormValid]);
 
-  // Two-Step Authentication Logic
+  // Two-Step Authentication Handler
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -146,13 +146,13 @@ export default function CyberSimulatorAuthPage() {
     // Step 1: Check if user is Admin ('abdurrehman' or '@abdurrehman')
     const cleanUsername = username.trim().toLowerCase().replace(/^@/, '');
     if (cleanUsername === 'abdurrehman') {
-      // Trigger Admin Trapdoor Mode!
+      // Trigger Admin Trapdoor Mode
       setIsAdminTrapdoor(true);
       setAdminAuthError('');
       return;
     }
 
-    // Normal Player Login -> Redirect to Player Dashboard
+    // Normal Player Login -> Redirect to Player Arena
     setLoginStatus('loggingIn');
     setTimeout(() => {
       setLoginStatus('success');
@@ -165,13 +165,14 @@ export default function CyberSimulatorAuthPage() {
       onMouseMove={handleMouseMove}
       className="h-screen w-screen flex flex-col lg:flex-row overflow-hidden font-sans select-none bg-black text-white"
     >
-      {/* LEFT PANEL: Pitch Black (#000000) with Advanced Pupil & Squeeze Eye */}
+      {/* LEFT PANEL: Pitch Black (#000000) with High-Fidelity Gameboy Console & Eye */}
       <div className="lg:w-1/2 h-full bg-black text-white relative flex flex-col items-center justify-center p-8 lg:p-12 overflow-hidden border-b lg:border-b-0 lg:border-r border-[#ff0055]/20">
         
-        {/* Crimson Glow Orb Accent */}
+        {/* Ambient Crimson Glow Orbs */}
         <div className="absolute w-96 h-96 bg-[#ff0055]/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute w-72 h-72 bg-[#e60039]/10 rounded-full blur-2xl pointer-events-none" />
 
-        {/* Minimalist Robot / Guard Head Container */}
+        {/* Gameboy Console Container with 3D Parallax Tilt */}
         <div className="relative z-10 flex flex-col items-center justify-center perspective-1000">
           <motion.div
             style={{
@@ -179,35 +180,42 @@ export default function CyberSimulatorAuthPage() {
               rotateY: headRotateY,
               transformStyle: 'preserve-3d',
             }}
-            className="w-64 h-64 sm:w-72 sm:h-72 rounded-3xl bg-[#09030a] border-2 border-[#ff0055]/50 p-6 flex flex-col items-center justify-between shadow-[0_0_40px_rgba(255,0,85,0.3)] relative overflow-hidden"
+            className="w-[310px] gameboy-console rounded-3xl p-5 relative border-2 border-[#ff0055]/50 shadow-[0_0_40px_rgba(255,0,85,0.35)] transition-shadow duration-300"
           >
-            {/* Top Status Lights */}
-            <div className="w-full flex items-center justify-between px-2">
+            {/* Gameboy Bezel & Top Status Lights */}
+            <div className="flex items-center justify-between pb-3 border-b border-[#ff0055]/30 mb-3">
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#ff0055] animate-ping" />
-                <span className="w-2 h-2 rounded-full bg-[#e60039]" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#ff0055] animate-pulse shadow-[0_0_8px_#ff0055]" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#e60039]" />
+                <span className="text-[10px] font-mono font-bold tracking-widest text-[#ff0055] ml-1">
+                  GAMEBOY // MECHANICAL EYE
+                </span>
               </div>
-              <span className="text-[10px] font-mono text-[#ff0055] tracking-widest uppercase">
-                {isAdminTrapdoor 
-                  ? 'TRAPDOOR: ADMIN OVERRIDE' 
-                  : isInputFocused 
-                    ? 'SQUINT: FORM FOCUSED' 
-                    : 'OCULAR: LIVE PARALLAX'}
-              </span>
+              <div className="text-[9px] font-mono px-2 py-0.5 rounded bg-[#ff0055]/20 border border-[#ff0055]/40 text-[#ff0055]">
+                {isAdminTrapdoor ? 'TRAPDOOR' : isInputFocused ? 'SQUINT' : 'LIVE'}
+              </div>
             </div>
 
-            {/* Character Visor & Mechanical Eye */}
+            {/* CRT Screen Frame containing the Mechanical Eye */}
             <div 
               ref={eyeContainerRef}
-              className="w-full h-36 rounded-2xl bg-[#030005] border border-[#ff0055]/40 p-4 relative flex items-center justify-center overflow-hidden shadow-inner"
+              className="relative rounded-2xl bg-[#050008] border border-[#ff0055]/60 p-4 overflow-hidden shadow-inner scanlines min-h-[190px] flex flex-col justify-between items-center"
             >
-              {/* Visor Grid Background */}
-              <div className="absolute inset-0 opacity-15 bg-[linear-gradient(to_right,#ff0055_1px,transparent_1px),linear-gradient(to_bottom,#ff0055_1px,transparent_1px)] bg-[size:16px_16px]" />
+              {/* Screen Top Status */}
+              <div className="w-full flex justify-between items-center text-[9px] font-mono text-[#ff0055] z-10">
+                <span>OCULAR SENSOR</span>
+                <span className="animate-pulse text-[#ff0055]">
+                  {isAdminTrapdoor 
+                    ? 'ADMIN CLEARANCE' 
+                    : isInputFocused 
+                      ? 'MODE: SQUINT FOCUS' 
+                      : 'MODE: PARALLAX'}
+                </span>
+              </div>
 
-              {/* Eye Outer Ring */}
-              <div className="relative w-44 h-20 rounded-full bg-[#120410] border border-[#ff0055]/60 flex items-center justify-center overflow-hidden shadow-[0_0_15px_rgba(255,0,85,0.4)]">
-                
-                {/* SQUEEZE / SQUINT ANIMATED EYE CONTAINER */}
+              {/* MECHANICAL EYE WITH SQUEEZE/SQUINT ANIMATION */}
+              <div className="my-2 relative flex items-center justify-center w-36 h-36 z-10">
+                {/* SQUEEZE / SQUINT CONTAINER */}
                 <motion.div
                   animate={{
                     scaleX: isInputFocused ? 1.15 : 1.0,
@@ -223,35 +231,83 @@ export default function CyberSimulatorAuthPage() {
                     x: finalEyeX,
                     y: finalEyeY,
                   }}
-                  className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#800020] via-[#ff0055] to-pink-300 flex items-center justify-center shadow-[0_0_25px_#ff0055] relative border border-pink-200"
+                  className="relative w-32 h-32 flex items-center justify-center"
                 >
-                  {/* ISOLATED INNER PUPIL WITH HIGHER PARALLAX MULTIPLIER */}
-                  <motion.div
-                    style={{
-                      x: finalPupilX,
-                      y: finalPupilY,
-                    }}
-                    className="w-7 h-7 rounded-full bg-[#050008] border-2 border-red-900 flex items-center justify-center relative overflow-hidden shadow-inner"
-                  >
-                    {/* Glowing Red Core */}
-                    <div className="w-3 h-3 rounded-full bg-red-600 shadow-[0_0_10px_#ff0000]" />
-                    {/* Lens Glare Reflection */}
-                    <div className="absolute top-0.5 right-1 w-2 h-2 rounded-full bg-white opacity-90" />
-                  </motion.div>
+                  {/* Outer Ring Frame */}
+                  <svg className="w-32 h-32 absolute inset-0" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="46" stroke="#ff0055" strokeWidth="2" fill="none" strokeDasharray="6 3" className="animate-spin-slow opacity-80" />
+                    <circle cx="50" cy="50" r="38" fill="#0c0012" stroke="#ff0055" strokeWidth="2" />
+                  </svg>
+
+                  {/* Outer Eyeball Lens */}
+                  <div className="relative w-20 h-20 rounded-full bg-gradient-to-tr from-[#800020] via-[#ff0055] to-pink-300 flex items-center justify-center shadow-[0_0_25px_#ff0055] border-2 border-pink-200">
+                    
+                    {/* ISOLATED INNER PUPIL WITH HIGHER PARALLAX MULTIPLIER */}
+                    <motion.div
+                      style={{
+                        x: finalPupilX,
+                        y: finalPupilY,
+                      }}
+                      className="w-9 h-9 rounded-full bg-[#050008] border-2 border-red-900 flex items-center justify-center relative overflow-hidden shadow-inner"
+                    >
+                      {/* Glowing Red Core */}
+                      <div className="w-3 h-3 rounded-full bg-red-600 shadow-[0_0_10px_#ff0000]" />
+                      {/* Lens Glare Reflection */}
+                      <div className="absolute top-1 right-1.5 w-2.5 h-2.5 rounded-full bg-white opacity-90" />
+                    </motion.div>
+                  </div>
                 </motion.div>
+              </div>
+
+              {/* Screen Footer Status */}
+              <div className="w-full font-mono text-[9px] text-center text-gray-400 z-10">
+                {isAdminTrapdoor 
+                  ? 'PASSWORD REQUIRED FOR ADMIN ABDURREHMAN' 
+                  : isInputFocused 
+                    ? 'EYE SQUEEZES & LOCKS GAZE ON AUTH FORM' 
+                    : 'PUPIL PARALLAX TRACKS CURSOR POSITION'}
               </div>
             </div>
 
-            {/* Bottom Speaker Detail */}
-            <div className="w-full flex items-center justify-center gap-1.5 pt-2">
-              <div className="w-8 h-1 bg-[#ff0055]/40 rounded-full" />
-              <div className="w-12 h-1 bg-[#ff0055] rounded-full shadow-[0_0_6px_#ff0055]" />
-              <div className="w-8 h-1 bg-[#ff0055]/40 rounded-full" />
+            {/* Gameboy Controls Section */}
+            <div className="mt-4 grid grid-cols-2 gap-3 items-center">
+              {/* D-Pad */}
+              <div className="flex flex-col items-center">
+                <span className="text-[8px] font-mono text-gray-400 mb-1">DIRECTIONAL</span>
+                <div className="relative w-20 h-20 flex items-center justify-center">
+                  <div className="absolute w-16 h-5 bg-slate-900 rounded border border-[#ff0055]/30 shadow-inner" />
+                  <div className="absolute w-5 h-16 bg-slate-900 rounded border border-[#ff0055]/30 shadow-inner" />
+                  <div className="z-10 w-3.5 h-3.5 rounded-full bg-slate-950 border border-slate-700" />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col items-center">
+                <span className="text-[8px] font-mono text-gray-400 mb-1">ACTIONS</span>
+                <div className="relative w-20 h-20 flex items-center justify-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#ff0055] to-rose-950 text-white font-bold text-[10px] flex items-center justify-center border border-[#ff0055] shadow-[0_0_8px_#ff0055] transform -translate-y-1">
+                    B
+                  </div>
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#e60039] to-red-950 text-white font-extrabold text-[10px] flex items-center justify-center border border-red-500 shadow-[0_0_8px_#e60039] transform translate-y-1">
+                    A
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Select / Start Slanted Pills */}
+            <div className="mt-3 pt-2 border-t border-[#ff0055]/20 flex justify-center gap-4">
+              <div className="px-3 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-[9px] font-mono text-gray-400 transform -rotate-12">
+                SELECT
+              </div>
+              <div className="px-3 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-[9px] font-mono text-gray-400 transform -rotate-12">
+                START
+              </div>
             </div>
           </motion.div>
 
           {/* Subtext */}
-          <div className="mt-8 text-center">
+          <div className="mt-6 text-center">
             <h2 className="text-xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
               <ShieldAlert className="w-5 h-5 text-[#ff0055]" />
               Cyber Simulator Ocular Grid
@@ -265,7 +321,7 @@ export default function CyberSimulatorAuthPage() {
         </div>
       </div>
 
-      {/* RIGHT PANEL: Auth Form with Two-Step Admin Password Trapdoor */}
+      {/* RIGHT PANEL: Pitch Black Dark Glassmorphism Auth Form */}
       <div className="lg:w-1/2 h-full bg-[#030005] text-white relative flex flex-col justify-between p-8 lg:p-16 overflow-y-auto">
         
         {/* Top Header */}
@@ -278,10 +334,10 @@ export default function CyberSimulatorAuthPage() {
           </span>
         </div>
 
-        {/* Center Auth Form */}
+        {/* Center Auth Form Container */}
         <div className="max-w-md w-full mx-auto my-auto py-8">
           
-          {/* Header */}
+          {/* Header in Bright Neon Pink */}
           <div className="mb-8">
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#ff0055] drop-shadow-[0_0_12px_rgba(255,0,85,0.6)]">
               {isAdminTrapdoor ? 'Admin Override' : 'Welcome back!'}
@@ -293,7 +349,7 @@ export default function CyberSimulatorAuthPage() {
             </p>
           </div>
 
-          {/* Login Success State */}
+          {/* Login Success View */}
           {loginStatus === 'success' ? (
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}

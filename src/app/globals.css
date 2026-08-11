@@ -16,6 +16,20 @@ body {
   padding: 0;
 }
 
+/* Custom retro scanlines */
+.scanlines {
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.45) 50%
+  ), linear-gradient(
+    90deg,
+    rgba(255, 0, 85, 0.04),
+    rgba(0, 0, 0, 0.01),
+    rgba(230, 0, 57, 0.04)
+  );
+  background-size: 100% 4px, 6px 100%;
+}
+
 /* Squid Game Dark Glassmorphism */
 .squid-panel {
   background: rgba(10, 4, 10, 0.85);
@@ -24,4 +38,12 @@ body {
   border: 1px solid rgba(255, 0, 85, 0.35);
   box-shadow: 0 0 35px rgba(255, 0, 85, 0.2), 
               inset 0 0 20px rgba(230, 0, 57, 0.15);
+}
+
+.gameboy-console {
+  background: linear-gradient(155deg, rgba(24, 6, 22, 0.95), rgba(8, 2, 7, 0.98));
+  backdrop-filter: blur(16px);
+  border: 2px solid rgba(255, 0, 85, 0.5);
+  box-shadow: 0 0 45px rgba(255, 0, 85, 0.35),
+              inset 0 0 30px rgba(230, 0, 57, 0.25);
 }
