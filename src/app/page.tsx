@@ -1,10 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { User, AtSign, ArrowRight, CheckCircle2, AlertCircle, ShieldAlert } from 'lucide-react';
 
-export default function SquidGameMinimalistAuth() {
+export default function CyberSimulatorAuthPage() {
+  const router = useRouter();
+
   // Global Mouse Coordinates
   const rawMouseX = useMotionValue(0);
   const rawMouseY = useMotionValue(0);
@@ -99,7 +102,8 @@ export default function SquidGameMinimalistAuth() {
     setLoginStatus('loggingIn');
     setTimeout(() => {
       setLoginStatus('success');
-    }, 1300);
+      router.push('/admin');
+    }, 1000);
   };
 
   return (
@@ -176,7 +180,7 @@ export default function SquidGameMinimalistAuth() {
           <div className="mt-8 text-center">
             <h2 className="text-xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
               <ShieldAlert className="w-5 h-5 text-[#ff0055]" />
-              Squid Game Ocular Grid
+              Cyber Simulator Ocular Grid
             </h2>
             <p className="text-xs text-zinc-400 mt-1 max-w-xs">
               Refined viewport eye tracking active. Move cursor to test.
@@ -185,16 +189,16 @@ export default function SquidGameMinimalistAuth() {
         </div>
       </div>
 
-      {/* RIGHT PANEL: Pitch Black Dark Minimalist Auth Form (No White Panels) */}
+      {/* RIGHT PANEL: Pitch Black Dark Minimalist Auth Form */}
       <div className="lg:w-1/2 h-full bg-[#030005] text-white relative flex flex-col justify-between p-8 lg:p-16 overflow-y-auto">
         
         {/* Top Header */}
         <div className="flex items-center justify-between">
           <span className="font-extrabold text-lg tracking-tight text-white">
-            SQUID<span className="text-[#ff0055]">//</span>GAME
+            CYBER<span className="text-[#ff0055]">//</span>SIMULATOR
           </span>
           <span className="text-xs font-mono text-[#ff0055] px-2.5 py-1 rounded bg-[#ff0055]/20 border border-[#ff0055]/40">
-            SYSTEM v456
+            SYSTEM v1.0
           </span>
         </div>
 
@@ -223,14 +227,8 @@ export default function SquidGameMinimalistAuth() {
               </div>
               <h2 className="text-2xl font-bold text-white">AUTHENTICATED</h2>
               <p className="text-sm text-zinc-300 max-w-xs">
-                Player <span className="font-bold text-[#ff0055]">{name}</span> ({username}) access granted.
+                Redirecting <span className="font-bold text-[#ff0055]">{name}</span> ({username}) to Admin Panel...
               </p>
-              <button 
-                onClick={() => setLoginStatus('idle')}
-                className="mt-4 px-6 py-3 rounded-xl text-xs font-bold bg-[#ff0055] text-white hover:bg-[#e60039] transition-all shadow-[0_0_15px_#ff0055]"
-              >
-                Sign Out
-              </button>
             </motion.div>
           ) : (
             <form onSubmit={handleLoginSubmit} className="space-y-6">
@@ -340,7 +338,7 @@ export default function SquidGameMinimalistAuth() {
 
         {/* Bottom Minimalist Footer */}
         <div className="text-center text-xs text-zinc-500 border-t border-zinc-900 pt-6">
-          Need access? Contact Frontman Administrator.
+          Need access? Contact System Administrator.
         </div>
       </div>
     </div>
