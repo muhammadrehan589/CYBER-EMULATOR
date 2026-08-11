@@ -13,85 +13,192 @@ import {
   User, 
   Shirt, 
   Crown, 
-  Palette,
-  Glasses,
-  Save,
-  Zap,
+  Glasses, 
+  Layers,
   Circle,
   Triangle,
   Square,
-  Boxes
+  Zap
 } from 'lucide-react';
 
-interface CosmeticOption {
+// Layer Interfaces for Modular Stacking
+interface AvatarLayerOption {
   id: string;
   name: string;
-  category: 'base' | 'color' | 'headwear' | 'outfit' | 'accessory';
-  hex: string;
+  category: 'body' | 'hair' | 'top' | 'accessory';
+  color: string;
+  accentColor?: string;
   symbol?: string;
   locked?: boolean;
   cost?: number;
   description?: string;
 }
 
-const BASE_SHAPES: CosmeticOption[] = [
-  { id: 'shape-1', name: 'Humanoid Operative', category: 'base', hex: '#ff0055', description: 'Standard athletic cyber frame' },
-  { id: 'shape-2', name: 'Robotic Android', category: 'base', hex: '#64748b', description: 'Reinforced metallic alloy chassis' },
-  { id: 'shape-3', name: 'Holographic Ghost', category: 'base', hex: '#00f0ff', description: 'Translucent photon energy lattice' },
-  { id: 'shape-4', name: 'Cyber Specimen #456', category: 'base', hex: '#10b981', description: 'Experimental bio-enhanced structure' },
+// LayeredAvatar Component: Absolutely stacked modular layers
+interface LayeredAvatarProps {
+  baseBody: AvatarLayerOption;
+  hairHeadwear: AvatarLayerOption;
+  clothingTop: AvatarLayerOption;
+  accessory: AvatarLayerOption;
+  auraColor: string;
+}
+
+const LayeredAvatar: React.FC<LayeredAvatarProps> = ({
+  baseBody,
+  hairHeadwear,
+  clothingTop,
+  accessory,
+  auraColor,
+}) => {
+  return (
+    <div className="relative w-64 h-80 flex flex-col items-center justify-center">
+      {/* Background Aura Light */}
+      <div 
+        className="absolute w-56 h-56 rounded-full blur-3xl opacity-50 transition-colors duration-500 pointer-events-none"
+        style={{ backgroundColor: auraColor }}
+      />
+
+      {/* Layer 1 (Z-10): Base Body Silhouette */}
+      <motion.div 
+        key={baseBody.id}
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="absolute bottom-6 z-10 w-36 h-48 rounded-t-full border-2 border-white/20 shadow-2xl flex flex-col items-center justify-start pt-4 transition-colors duration-300"
+        style={{ backgroundColor: baseBody.color }}
+      >
+        <span className="text-[10px] font-mono text-white/60 tracking-wider">
+          {baseBody.name}
+        </span>
+      </motion.div>
+
+      {/* Layer 2 (Z-20): Clothing / Top Outfit Layer */}
+      <motion.div 
+        key={clothingTop.id}
+        initial={{ y: 15, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="absolute bottom-6 z-20 w-44 h-32 rounded-t-3xl border-t-2 border-x-2 border-white/30 flex flex-col items-center justify-center p-2 shadow-2xl transition-colors duration-300"
+        style={{ backgroundColor: clothingTop.color }}
+      >
+        {/* Collar & Stripe Detail */}
+        <div 
+          className="w-full h-3 border-b border-white/20 mb-2 rounded-t-xl"
+          style={{ backgroundColor: clothingTop.accentColor || '#ffffff22' }}
+        />
+        <span className="text-xs font-mono font-bold text-white text-center drop-shadow">
+          {clothingTop.name}
+        </span>
+      </motion.div>
+
+      {/* Layer 3 (Z-30): Head & Face Mask Layer */}
+      <motion.div 
+        key={hairHeadwear.id}
+        initial={{ scale: 0.85, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="absolute top-8 z-30 w-32 h-32 rounded-3xl border-2 border-white/40 flex flex-col items-center justify-center relative shadow-2xl overflow-hidden transition-colors duration-300"
+        style={{ backgroundColor: hairHeadwear.color }}
+      >
+        {/* Symbol overlay if Guard Mask */}
+        {hairHeadwear.symbol ? (
+          <span className="text-4xl font-extrabold text-white font-mono drop-shadow-[0_0_12px_white]">
+            {hairHeadwear.symbol}
+          </span>
+        ) : (
+          <div className="w-12 h-4 bg-black/60 rounded-full border border-white/30 flex items-center justify-center">
+            <span className="w-2 h-2 rounded-full bg-[#ff0055] animate-ping" />
+          </div>
+        )}
+
+        {/* Lens Glare */}
+        <div className="absolute top-2 left-2 w-14 h-4 bg-white/20 rounded-full transform -rotate-12 pointer-events-none" />
+      </motion.div>
+
+      {/* Layer 4 (Z-40): Hair / Hood Top Trim */}
+      <div 
+        className="absolute top-5 z-40 px-4 py-1 rounded-t-full border-t-2 border-x-2 border-white/40 text-[10px] font-mono font-bold text-white shadow-xl"
+        style={{ backgroundColor: hairHeadwear.color }}
+      >
+        {hairHeadwear.name}
+      </div>
+
+      {/* Layer 5 (Z-50): Accessory Overlay Tag */}
+      <motion.div 
+        key={accessory.id}
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ duration: 0.2 }}
+        className="absolute top-4 right-0 z-50 px-3 py-1 rounded-full text-[9px] font-mono font-bold text-white border border-white/40 shadow-xl"
+        style={{ backgroundColor: accessory.color }}
+      >
+        {accessory.name}
+      </motion.div>
+
+      {/* Podium Base */}
+      <div 
+        className="absolute -bottom-4 w-60 h-10 rounded-full blur-[2px] border-t-2 transition-colors duration-500 shadow-2xl flex items-center justify-center"
+        style={{ 
+          backgroundColor: `${auraColor}33`, 
+          borderColor: auraColor,
+          boxShadow: `0 0 30px ${auraColor}`
+        }}
+      >
+        <div className="w-44 h-4 rounded-full bg-white/10" />
+      </div>
+    </div>
+  );
+};
+
+// Data Sets for Modular Categories (No Blue)
+const BODY_OPTIONS: AvatarLayerOption[] = [
+  { id: 'body-1', name: 'Humanoid Operative', category: 'body', color: '#ff0055', description: 'Standard athletic cyber frame' },
+  { id: 'body-2', name: 'Robotic Android', category: 'body', color: '#475569', description: 'Reinforced metallic alloy chassis' },
+  { id: 'body-3', name: 'Emerald Bio-Specimen', category: 'body', color: '#10b981', description: 'Bio-luminescent energy lattice' },
+  { id: 'body-4', name: 'Charcoal Stealth Unit', category: 'body', color: '#18181b', description: 'Radar-absorbing matte body' },
 ];
 
-const PRIMARY_COLORS: CosmeticOption[] = [
-  { id: 'col-1', name: 'Crimson Pink', category: 'color', hex: '#ff0055' },
-  { id: 'col-2', name: 'Cyber Cyan', category: 'color', hex: '#00f0ff' },
-  { id: 'col-3', name: 'Emerald Green', category: 'color', hex: '#10b981' },
-  { id: 'col-4', name: 'Royal Violet', category: 'color', hex: '#a855f7' },
-  { id: 'col-5', name: 'Vanguard Gold', category: 'color', hex: '#f59e0b' },
-  { id: 'col-6', name: 'Stealth Charcoal', category: 'color', hex: '#1e293b' },
+const HAIR_OPTIONS: AvatarLayerOption[] = [
+  { id: 'hair-1', name: 'Hooded Cloak', category: 'hair', color: '#e60039' },
+  { id: 'hair-2', name: 'Circle Guard Mask', category: 'hair', color: '#ff0055', symbol: '○' },
+  { id: 'hair-3', name: 'Triangle Guard Mask', category: 'hair', color: '#ff0055', symbol: '△' },
+  { id: 'hair-4', name: 'Square Guard Mask', category: 'hair', color: '#ff0055', symbol: '□' },
+  { id: 'hair-5', name: 'Tactical Visor Helmet', category: 'hair', color: '#334155' },
+  { id: 'hair-6', name: 'Sleek Undercut', category: 'hair', color: '#a855f7' },
 ];
 
-const HEADWEAR_OPTIONS: CosmeticOption[] = [
-  { id: 'head-1', name: 'Hooded Cloak', category: 'headwear', hex: '#e60039' },
-  { id: 'head-2', name: 'LED Guard Mask (Circle)', category: 'headwear', hex: '#ff0055', symbol: '○' },
-  { id: 'head-3', name: 'LED Guard Mask (Triangle)', category: 'headwear', hex: '#ff0055', symbol: '△' },
-  { id: 'head-4', name: 'LED Guard Mask (Square)', category: 'headwear', hex: '#ff0055', symbol: '□' },
-  { id: 'head-5', name: 'VR Visor Goggles', category: 'headwear', hex: '#00f0ff' },
-  { id: 'head-6', name: 'Tactical Helmet', category: 'headwear', hex: '#334155' },
+const TOP_OPTIONS: AvatarLayerOption[] = [
+  { id: 'top-1', name: 'Tracksuit #456', category: 'top', color: '#10b981', accentColor: '#ffffff' },
+  { id: 'top-2', name: 'Pink Guard Jumpsuit', category: 'top', color: '#ff0055', accentColor: '#000000' },
+  { id: 'top-3', name: 'Tactical Armor Plating', category: 'top', color: '#1e293b', accentColor: '#e60039' },
+  { id: 'top-4', name: 'Casual Tech-Wear', category: 'top', color: '#3f3f46', accentColor: '#a855f7' },
+  { id: 'top-5', name: 'Vanguard Gold Trench', category: 'top', color: '#f59e0b', accentColor: '#ffffff' },
 ];
 
-const OUTFIT_OPTIONS: CosmeticOption[] = [
-  { id: 'outfit-1', name: 'Tracksuit #456', category: 'outfit', hex: '#10b981' },
-  { id: 'outfit-2', name: 'Tactical Armor Plating', category: 'outfit', hex: '#1e293b' },
-  { id: 'outfit-3', name: 'Casual Tech-Wear', category: 'outfit', hex: '#475569' },
-  { id: 'outfit-4', name: 'Pink Operative Jumpsuit', category: 'outfit', hex: '#ff0055' },
-  { id: 'outfit-5', name: 'Exosuit Plating', category: 'outfit', hex: '#0284c7' },
+const ACCESSORY_OPTIONS: AvatarLayerOption[] = [
+  { id: 'acc-1', name: 'Holographic Tag', category: 'accessory', color: '#ff0055' },
+  { id: 'acc-2', name: 'Laser Monocle', category: 'accessory', locked: true, cost: 1200, color: '#ef4444' },
+  { id: 'acc-3', name: 'Golden VIP Mask', category: 'accessory', locked: true, cost: 2500, color: '#f59e0b' },
+  { id: 'acc-4', name: 'Neon Katana Blade', category: 'accessory', locked: true, cost: 5000, color: '#a855f7' },
 ];
 
-const ACCESSORY_OPTIONS: CosmeticOption[] = [
-  { id: 'acc-1', name: 'Holographic Tag', category: 'accessory', hex: '#ff0055' },
-  { id: 'acc-2', name: 'Laser Monocle', category: 'accessory', locked: true, cost: 1200, hex: '#ef4444' },
-  { id: 'acc-3', name: 'Golden VIP Mask', category: 'accessory', locked: true, cost: 2500, hex: '#f59e0b' },
-  { id: 'acc-4', name: 'Neon Katana Blade', category: 'accessory', locked: true, cost: 5000, hex: '#a855f7' },
-];
-
-export default function ClasslessAvatarStudio() {
+export default function LayeredAvatarStudio() {
   const router = useRouter();
 
   // Active Category Tab
-  const [activeTab, setActiveTab] = useState<'base' | 'color' | 'headwear' | 'outfit' | 'accessory'>('base');
+  const [activeTab, setActiveTab] = useState<'body' | 'hair' | 'top' | 'accessory'>('body');
 
-  // Independent Customization State (Free-form Mix and Match)
-  const [selectedBaseShape, setSelectedBaseShape] = useState(BASE_SHAPES[0]);
-  const [selectedColor, setSelectedColor] = useState(PRIMARY_COLORS[0]);
-  const [selectedHeadwear, setSelectedHeadwear] = useState(HEADWEAR_OPTIONS[0]);
-  const [selectedOutfit, setSelectedOutfit] = useState(OUTFIT_OPTIONS[0]);
+  // Selected Modular Layer States
+  const [selectedBody, setSelectedBody] = useState(BODY_OPTIONS[0]);
+  const [selectedHair, setSelectedHair] = useState(HAIR_OPTIONS[0]);
+  const [selectedTop, setSelectedTop] = useState(TOP_OPTIONS[0]);
   const [selectedAccessory, setSelectedAccessory] = useState(ACCESSORY_OPTIONS[0]);
 
   // Lock Alert State & Save State
   const [lockAlert, setLockAlert] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleSelectCosmetic = (option: CosmeticOption) => {
+  const handleSelectLayer = (option: AvatarLayerOption) => {
     if (option.locked) {
       setLockAlert(`ITEM LOCKED: Requires ${option.cost?.toLocaleString()} PTS in Player Arena.`);
       setTimeout(() => setLockAlert(null), 3000);
@@ -100,17 +207,14 @@ export default function ClasslessAvatarStudio() {
 
     setLockAlert(null);
     switch (option.category) {
-      case 'base':
-        setSelectedBaseShape(option);
+      case 'body':
+        setSelectedBody(option);
         break;
-      case 'color':
-        setSelectedColor(option);
+      case 'hair':
+        setSelectedHair(option);
         break;
-      case 'headwear':
-        setSelectedHeadwear(option);
-        break;
-      case 'outfit':
-        setSelectedOutfit(option);
+      case 'top':
+        setSelectedTop(option);
         break;
       case 'accessory':
         setSelectedAccessory(option);
@@ -127,7 +231,7 @@ export default function ClasslessAvatarStudio() {
 
   return (
     <div className="min-h-screen bg-[#020005] text-white p-4 sm:p-6 lg:p-10 font-sans relative overflow-x-hidden flex flex-col justify-between select-none">
-      {/* Ambient Crimson/Fuchsia Glow Accents */}
+      {/* Ambient Glow Accents (No Blue) */}
       <div className="absolute top-0 left-1/3 w-[600px] h-[600px] bg-[#ff0055]/15 rounded-full blur-3xl pointer-events-none z-0" />
       <div className="absolute bottom-0 right-1/3 w-[600px] h-[600px] bg-[#e60039]/15 rounded-full blur-3xl pointer-events-none z-0" />
 
@@ -146,7 +250,7 @@ export default function ClasslessAvatarStudio() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-mono font-bold text-[#ff0055] tracking-widest uppercase">
-                  FREE-FORM AVATAR ENGINE
+                  MODULAR LAYERED AVATAR ENGINE
                 </span>
                 <div className="flex items-center gap-1 text-[#ff0055] px-2 py-0.5 rounded-full bg-[#1c061e] border border-[#ff0055]/30">
                   <Circle className="w-2.5 h-2.5 fill-current" />
@@ -155,7 +259,7 @@ export default function ClasslessAvatarStudio() {
                 </div>
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-pink-200 to-[#ff0055]">
-                Classless Customization Studio
+                Modular 2D/3D Avatar Creator
               </h1>
             </div>
           </div>
@@ -186,166 +290,86 @@ export default function ClasslessAvatarStudio() {
           )}
         </AnimatePresence>
 
-        {/* Main Studio Split: Left Glowing Display Podium (1/3) + Right Scrollable Customization Grid (2/3) */}
+        {/* Main Studio Grid: Left LayeredAvatar Podium (1/3) + Right Customization Grid (2/3) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           
-          {/* LEFT PANEL: Glowing Display Podium & Live Instant Character Preview */}
+          {/* LEFT PANEL: Modular LayeredAvatar Podium Display */}
           <div className="lg:col-span-1 bg-[#0a030d]/85 rounded-3xl border-2 border-[#ff0055]/50 p-6 backdrop-blur-xl shadow-[0_0_45px_rgba(255,0,85,0.25)] flex flex-col items-center justify-between min-h-[500px] relative overflow-hidden">
             
             {/* Viewfinder Header */}
             <div className="w-full flex items-center justify-between text-[10px] font-mono text-[#ff0055] pb-2 border-b border-[#ff0055]/20">
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-[#ff0055] animate-ping" />
-                PODIUM // FREE-FORM RENDER
+                LAYERED STACK // LIVE RENDER
               </span>
-              <span>LIVE SYNC</span>
+              <span className="flex items-center gap-1">
+                <Layers className="w-3 h-3 text-[#ff0055]" />
+                5 LAYERS ACTIVE
+              </span>
             </div>
 
-            {/* LIVE CHARACTER PREVIEW ON GLOWING PODIUM */}
-            <div className="my-8 relative w-56 h-64 flex flex-col items-center justify-center">
-              
-              {/* Primary Color Ambient Glow Aura */}
-              <div 
-                className="absolute w-52 h-52 rounded-full blur-3xl opacity-60 transition-colors duration-500"
-                style={{ backgroundColor: selectedColor.hex }}
+            {/* MODULAR LAYERED AVATAR DISPLAY COMPONENT */}
+            <div className="my-6">
+              <LayeredAvatar
+                baseBody={selectedBody}
+                hairHeadwear={selectedHair}
+                clothingTop={selectedTop}
+                accessory={selectedAccessory}
+                auraColor={selectedBody.color}
               />
-
-              {/* Headwear / Mask Layer */}
-              <motion.div 
-                key={selectedHeadwear.id}
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="z-30 mb-[-14px] flex items-center justify-center"
-              >
-                <div 
-                  className="px-4 py-2 rounded-t-full border-2 border-white/30 text-xs font-mono font-bold text-white shadow-2xl flex items-center gap-1.5"
-                  style={{ backgroundColor: selectedHeadwear.hex }}
-                >
-                  {selectedHeadwear.symbol && (
-                    <span className="text-sm font-extrabold">{selectedHeadwear.symbol}</span>
-                  )}
-                  <span>{selectedHeadwear.name}</span>
-                </div>
-              </motion.div>
-
-              {/* Base Shape Silhouette Layer */}
-              <motion.div 
-                key={selectedBaseShape.id}
-                initial={{ scale: 0.8 }}
-                animate={{ scale: 1 }}
-                className="z-20 w-32 h-32 rounded-3xl border-2 border-white/40 flex flex-col items-center justify-center relative shadow-2xl overflow-hidden transition-colors duration-300"
-                style={{ backgroundColor: selectedBaseShape.hex }}
-              >
-                {/* Center Core Element */}
-                <div 
-                  className="w-12 h-12 rounded-full border-2 border-white/50 flex items-center justify-center font-extrabold text-white text-lg shadow-inner"
-                  style={{ backgroundColor: selectedColor.hex }}
-                >
-                  ★
-                </div>
-
-                {/* Visor Glare */}
-                <div className="absolute top-2 left-2 w-14 h-4 bg-white/20 rounded-full transform -rotate-12 pointer-events-none" />
-              </motion.div>
-
-              {/* Outfit Layer */}
-              <motion.div 
-                key={selectedOutfit.id}
-                initial={{ y: 10, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                className="z-10 w-40 h-24 mt-[-12px] rounded-t-3xl border-t-2 border-x-2 border-white/30 flex items-center justify-center text-xs font-mono font-bold text-white shadow-2xl transition-colors duration-300"
-                style={{ backgroundColor: selectedOutfit.hex }}
-              >
-                {selectedOutfit.name}
-              </motion.div>
-
-              {/* Accessory Overlay Badge */}
-              <motion.div 
-                key={selectedAccessory.id}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="absolute top-4 right-0 z-40 px-3 py-1 rounded-full text-[9px] font-mono font-bold text-white border border-white/40 shadow-xl"
-                style={{ backgroundColor: selectedAccessory.hex }}
-              >
-                {selectedAccessory.name}
-              </motion.div>
-
-              {/* GLOWING PODIUM BASE */}
-              <div 
-                className="absolute bottom-[-16px] w-56 h-10 rounded-full blur-[2px] border-t-2 transition-colors duration-500 shadow-2xl flex items-center justify-center"
-                style={{ 
-                  backgroundColor: `${selectedColor.hex}33`, 
-                  borderColor: selectedColor.hex,
-                  boxShadow: `0 0 30px ${selectedColor.hex}`
-                }}
-              >
-                <div className="w-40 h-4 rounded-full bg-white/10" />
-              </div>
             </div>
 
-            {/* Customization Combination Summary */}
+            {/* Layer Stack Summary */}
             <div className="w-full p-3 rounded-xl bg-[#050008] border border-zinc-800 text-center font-mono text-xs space-y-1">
-              <span className="text-zinc-400 block text-[10px]">COMBINATION CONFIG:</span>
+              <span className="text-zinc-400 block text-[10px]">STACKED CONFIGURATION:</span>
               <div className="text-white font-bold truncate">
-                {selectedHeadwear.name} + {selectedOutfit.name}
+                {selectedHair.name} + {selectedTop.name}
               </div>
               <div className="text-[10px] text-[#ff0055] font-semibold">
-                THEME COLOR: {selectedColor.name}
+                BODY BASE: {selectedBody.name}
               </div>
             </div>
           </div>
 
-          {/* RIGHT PANEL: Scrollable Customization Menu (2/3) */}
+          {/* RIGHT PANEL: Customization Grid (Tabs: Body, Hair, Top, Accessories) */}
           <div className="lg:col-span-2 space-y-6">
             
-            {/* Customization Category Tabs */}
+            {/* Customization Tabs */}
             <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-[#0a030d]/85 border border-[#ff0055]/30 overflow-x-auto">
               <button
-                onClick={() => setActiveTab('base')}
+                onClick={() => setActiveTab('body')}
                 className={`flex-1 py-3 px-3 rounded-xl text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
-                  activeTab === 'base'
+                  activeTab === 'body'
                     ? 'bg-[#ff0055] text-white shadow-[0_0_15px_#ff0055]'
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
                 }`}
               >
-                <Boxes className="w-3.5 h-3.5" />
-                Base Shape
+                <User className="w-3.5 h-3.5" />
+                Body
               </button>
 
               <button
-                onClick={() => setActiveTab('color')}
+                onClick={() => setActiveTab('hair')}
                 className={`flex-1 py-3 px-3 rounded-xl text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
-                  activeTab === 'color'
-                    ? 'bg-[#ff0055] text-white shadow-[0_0_15px_#ff0055]'
-                    : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
-                }`}
-              >
-                <Palette className="w-3.5 h-3.5" />
-                Primary Color
-              </button>
-
-              <button
-                onClick={() => setActiveTab('headwear')}
-                className={`flex-1 py-3 px-3 rounded-xl text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
-                  activeTab === 'headwear'
+                  activeTab === 'hair'
                     ? 'bg-[#ff0055] text-white shadow-[0_0_15px_#ff0055]'
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
                 }`}
               >
                 <Crown className="w-3.5 h-3.5" />
-                Headwear
+                Hair / Headwear
               </button>
 
               <button
-                onClick={() => setActiveTab('outfit')}
+                onClick={() => setActiveTab('top')}
                 className={`flex-1 py-3 px-3 rounded-xl text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
-                  activeTab === 'outfit'
+                  activeTab === 'top'
                     ? 'bg-[#ff0055] text-white shadow-[0_0_15px_#ff0055]'
                     : 'text-zinc-400 hover:text-white hover:bg-zinc-900'
                 }`}
               >
                 <Shirt className="w-3.5 h-3.5" />
-                Outfit
+                Top / Clothing
               </button>
 
               <button
@@ -366,36 +390,33 @@ export default function ClasslessAvatarStudio() {
               <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
                 <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-[#ff0055]" />
-                  SELECT {activeTab.toUpperCase()} COSMETIC
+                  SELECT {activeTab.toUpperCase()} LAYER
                 </h3>
                 <span className="text-[10px] font-mono text-zinc-500">
-                  CLASSLESS MIX &amp; MATCH
+                  INSTANT MODULAR SYNC
                 </span>
               </div>
 
               {/* Items Cards Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[360px] overflow-y-auto pr-1">
-                {(activeTab === 'base'
-                  ? BASE_SHAPES
-                  : activeTab === 'color'
-                  ? PRIMARY_COLORS
-                  : activeTab === 'headwear'
-                  ? HEADWEAR_OPTIONS
-                  : activeTab === 'outfit'
-                  ? OUTFIT_OPTIONS
+                {(activeTab === 'body'
+                  ? BODY_OPTIONS
+                  : activeTab === 'hair'
+                  ? HAIR_OPTIONS
+                  : activeTab === 'top'
+                  ? TOP_OPTIONS
                   : ACCESSORY_OPTIONS
                 ).map((item) => {
                   const isSelected =
-                    (activeTab === 'base' && selectedBaseShape.id === item.id) ||
-                    (activeTab === 'color' && selectedColor.id === item.id) ||
-                    (activeTab === 'headwear' && selectedHeadwear.id === item.id) ||
-                    (activeTab === 'outfit' && selectedOutfit.id === item.id) ||
+                    (activeTab === 'body' && selectedBody.id === item.id) ||
+                    (activeTab === 'hair' && selectedHair.id === item.id) ||
+                    (activeTab === 'top' && selectedTop.id === item.id) ||
                     (activeTab === 'accessory' && selectedAccessory.id === item.id);
 
                   return (
                     <div
                       key={item.id}
-                      onClick={() => handleSelectCosmetic(item)}
+                      onClick={() => handleSelectLayer(item)}
                       className={`p-4 rounded-2xl border transition-all cursor-pointer relative flex items-center justify-between ${
                         item.locked
                           ? 'bg-[#050008]/50 border-zinc-800 opacity-60 hover:opacity-80'
@@ -407,7 +428,7 @@ export default function ClasslessAvatarStudio() {
                       <div className="flex items-center gap-3">
                         <div
                           className="w-10 h-10 rounded-xl border border-white/20 flex items-center justify-center font-mono font-bold text-white shadow shrink-0"
-                          style={{ backgroundColor: item.hex }}
+                          style={{ backgroundColor: item.color }}
                         >
                           {item.symbol || item.name.charAt(0)}
                         </div>
@@ -418,7 +439,7 @@ export default function ClasslessAvatarStudio() {
                           <span className="text-[10px] font-mono text-zinc-400 block mt-0.5">
                             {item.locked
                               ? `Requires ${item.cost?.toLocaleString()} PTS`
-                              : item.description || 'Unlocked Cosmetic'}
+                              : item.description || 'Unlocked Layer Asset'}
                           </span>
                         </div>
                       </div>
@@ -439,7 +460,7 @@ export default function ClasslessAvatarStudio() {
               </div>
             </div>
 
-            {/* BOTTOM RIGHT: Prominent 'LOCK IN AVATAR' Action Button */}
+            {/* BOTTOM RIGHT: Action Button */}
             <div className="flex justify-end pt-2">
               <button
                 onClick={handleLockInAvatar}
@@ -449,7 +470,7 @@ export default function ClasslessAvatarStudio() {
                 {isSaving ? (
                   <>
                     <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    LOCKING IN AVATAR...
+                    SAVING LAYERED CONFIG...
                   </>
                 ) : (
                   <>
