@@ -4,7 +4,7 @@
 
 :root {
   --background: #000000;
-  --foreground: #ffffff;
+  --foreground: #000000;
 }
 
 body {
@@ -14,60 +14,4 @@ body {
   overflow: hidden;
   margin: 0;
   padding: 0;
-}
-
-/* Custom retro scanlines */
-.scanlines {
-  background: linear-gradient(
-    rgba(18, 16, 16, 0) 50%, 
-    rgba(0, 0, 0, 0.45) 50%
-  ), linear-gradient(
-    90deg,
-    rgba(255, 0, 85, 0.04),
-    rgba(0, 240, 255, 0.01),
-    rgba(0, 240, 255, 0.04)
-  );
-  background-size: 100% 4px, 6px 100%;
-}
-
-/* Split Crimson / Cyan Dual Glassmorphism panel */
-.dual-glass-panel {
-  background: rgba(8, 8, 14, 0.85);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 0, 85, 0.3);
-  box-shadow: -8px 0 30px rgba(255, 0, 85, 0.25), 
-              8px 0 30px rgba(0, 240, 255, 0.25),
-              inset 0 0 25px rgba(255, 0, 85, 0.15);
-}
-
-.gameboy-console {
-  background: linear-gradient(155deg, rgba(24, 24, 30, 0.95), rgba(8, 8, 12, 0.98));
-  backdrop-filter: blur(16px);
-  border: 2px solid rgba(255, 0, 85, 0.5);
-  box-shadow: -10px 0 40px rgba(255, 0, 85, 0.4),
-              10px 0 40px rgba(0, 240, 255, 0.2),
-              inset 0 0 30px rgba(255, 0, 85, 0.25);
-}
-
-/* Custom Rain Droplet animations */
-@keyframes fall {
-  0% {
-    transform: translateY(-100%);
-    opacity: 0;
-  }
-  20% {
-    opacity: 0.9;
-  }
-  80% {
-    opacity: 0.9;
-  }
-  100% {
-    transform: translateY(100vh);
-    opacity: 0;
-  }
-}
-
-.animate-fall {
-  animation: fall linear infinite;
 }
