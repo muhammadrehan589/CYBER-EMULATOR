@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { motion, useMotionValue, useSpring } from 'framer-motion';
 import { 
   User, 
   AtSign, 
@@ -13,7 +13,8 @@ import {
   Key, 
   ArrowLeft,
   Eye,
-  EyeOff
+  EyeOff,
+  ScanLine
 } from 'lucide-react';
 
 export default function CyberSimulatorAuthPage() {
@@ -26,44 +27,50 @@ export default function CyberSimulatorAuthPage() {
   // Eyeball Center Ref for Viewport Tracking
   const eyeContainerRef = useRef<HTMLDivElement>(null);
 
-  // Viewport Delta Motion Values for Outer Eyeball
+  // Motion values for outer eyeball & inner pupil
   const eyeXMotion = useMotionValue(0);
   const eyeYMotion = useMotionValue(0);
+  const pupilXMotion = useMotionValue(0);
+  const pupilYMotion = useMotionValue(0);
 
-  const springConfig = { stiffness: 220, damping: 24 };
+  const springConfig = { stiffness: 240, damping: 22 };
 
-  // Outer Eyeball Translation Springs
+  // Smooth springs for outer eyeball and inner pupil
   const smoothEyeX = useSpring(eyeXMotion, springConfig);
   const smoothEyeY = useSpring(eyeYMotion, springConfig);
-
-  // ISOLATED INNER PUPIL PARALLAX: 1.65x Multiplier for deep inner lens movement
-  const pupilX = useTransform(smoothEyeX, (v) => v * 1.65);
-  const pupilY = useTransform(smoothEyeY, (v) => v * 1.65);
+  const smoothPupilX = useSpring(pupilXMotion, springConfig);
+  const smoothPupilY = useSpring(pupilYMotion, springConfig);
 
   // 3D Head & Console Rotation Springs
-  const headRotateX = useSpring(useTransform(rawMouseY, [-0.5, 0.5], [12, -12]), springConfig);
-  const headRotateY = useSpring(useTransform(rawMouseX, [-0.5, 0.5], [-16, 16]), springConfig);
+  const headRotateX = useSpring(useMotionValue(0), springConfig);
+  const headRotateY = useSpring(useMotionValue(0), springConfig);
 
-  // Focus & Typing State for Iris Focus Reaction
+  // Focus & Typing State for Biometric Scan Reaction
   const [isInputFocused, setIsInputFocused] = useState(false);
 
-  // When focused on inputs, lock gaze toward the right panel (+28px)
-  const finalEyeX = isInputFocused ? 28 : smoothEyeX;
+  // When focused on inputs, lock gaze toward the right auth form panel (+24px X, 0 Y)
+  const finalEyeX = isInputFocused ? 24 : smoothEyeX;
   const finalEyeY = isInputFocused ? 0 : smoothEyeY;
 
-  const finalPupilX = isInputFocused ? 38 : pupilX;
-  const finalPupilY = isInputFocused ? 0 : pupilY;
+  const finalPupilX = isInputFocused ? 18 : smoothPupilX;
+  const finalPupilY = isInputFocused ? 0 : smoothPupilY;
 
-  // Viewport Mouse Tracker
+  // Viewport Mouse Tracker with Strict Radial Pupil Clamping
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const { clientX, clientY } = e;
     const { innerWidth, innerHeight } = window;
 
     // Normalized Mouse Position (-0.5 to 0.5)
-    rawMouseX.set(clientX / innerWidth - 0.5);
-    rawMouseY.set(clientY / innerHeight - 0.5);
+    const normX = clientX / innerWidth - 0.5;
+    const normY = clientY / innerHeight - 0.5;
 
-    // Calculate Exact Angle and Distance from Eye Center to Cursor
+    rawMouseX.set(normX);
+    rawMouseY.set(normY);
+
+    headRotateX.set(normY * -20);
+    headRotateY.set(normX * 24);
+
+    // Calculate Exact Angle & Distance from Eyeball Center to Cursor
     if (eyeContainerRef.current) {
       const rect = eyeContainerRef.current.getBoundingClientRect();
       const eyeCenterX = rect.left + rect.width / 2;
@@ -75,15 +82,24 @@ export default function CyberSimulatorAuthPage() {
       const angle = Math.atan2(deltaY, deltaX);
       const distance = Math.hypot(deltaX, deltaY);
 
-      // Max outer eyeball travel radius inside visor
-      const maxRadius = 18;
-      const clampedRadius = Math.min(maxRadius, distance / 18);
+      // 1. Outer Eyeball Movement (Clamped inside frame radius 14px)
+      const maxEyeRadius = 14;
+      const clampedEyeDist = Math.min(maxEyeRadius, distance / 22);
+      eyeXMotion.set(Math.cos(angle) * clampedEyeDist);
+      eyeYMotion.set(Math.sin(angle) * clampedEyeDist);
 
-      const targetX = Math.cos(angle) * clampedRadius;
-      const targetY = Math.sin(angle) * clampedRadius;
+      // 2. Inner Pupil Radial Containment (Math Physics Clamping)
+      // Outer Eyeball Radius = 40px (80px dia), Inner Pupil Radius = 18px (36px dia)
+      // maxPupilRadius = (40px - 18px - 4px padding) = 18px max travel radius
+      const maxPupilRadius = 18;
+      const clampedPupilDist = Math.min(maxPupilRadius, distance / 12);
 
-      eyeXMotion.set(targetX);
-      eyeYMotion.set(targetY);
+      // Strict trigonometric clamping ensures pupil NEVER clips outside eyeball bounds
+      const clampedPupilX = Math.cos(angle) * clampedPupilDist;
+      const clampedPupilY = Math.sin(angle) * clampedPupilDist;
+
+      pupilXMotion.set(clampedPupilX);
+      pupilYMotion.set(clampedPupilY);
     }
   };
 
@@ -164,7 +180,7 @@ export default function CyberSimulatorAuthPage() {
       onMouseMove={handleMouseMove}
       className="h-screen w-screen flex flex-col lg:flex-row overflow-hidden font-sans select-none bg-black text-white"
     >
-      {/* LEFT PANEL: Pitch Black (#000000) with High-Fidelity Gameboy Console & Eye */}
+      {/* LEFT PANEL: Pitch Black (#000000) with Gameboy Console & Radial Clamped Eye */}
       <div className="lg:w-1/2 h-full bg-black text-white relative flex flex-col items-center justify-center p-8 lg:p-12 overflow-hidden border-b lg:border-b-0 lg:border-r border-[#ff0055]/20">
         
         {/* Ambient Crimson Glow Orbs */}
@@ -190,8 +206,9 @@ export default function CyberSimulatorAuthPage() {
                   GAMEBOY // MECHANICAL EYE
                 </span>
               </div>
-              <div className="text-[9px] font-mono px-2 py-0.5 rounded bg-[#ff0055]/20 border border-[#ff0055]/40 text-[#ff0055]">
-                {isAdminTrapdoor ? 'TRAPDOOR' : isInputFocused ? 'FOCUS' : 'LIVE'}
+              <div className="text-[9px] font-mono px-2 py-0.5 rounded bg-[#ff0055]/20 border border-[#ff0055]/40 text-[#ff0055] flex items-center gap-1">
+                {isInputFocused && <ScanLine className="w-2.5 h-2.5 animate-spin text-[#ff0055]" />}
+                {isAdminTrapdoor ? 'TRAPDOOR' : isInputFocused ? 'BIOMETRIC SCAN' : 'LIVE'}
               </div>
             </div>
 
@@ -207,50 +224,63 @@ export default function CyberSimulatorAuthPage() {
                   {isAdminTrapdoor 
                     ? 'ADMIN CLEARANCE' 
                     : isInputFocused 
-                      ? 'MODE: IRIS FOCUS' 
-                      : 'MODE: PARALLAX'}
+                      ? 'MODE: BIOMETRIC SCAN' 
+                      : 'MODE: RADIAL CLAMP'}
                 </span>
               </div>
 
-              {/* MECHANICAL EYE WITH PRECISE IRIS FOCUS ANIMATION */}
+              {/* MECHANICAL EYE WITH STRICT RADIAL PUPIL CONTAINMENT & BIOMETRIC SCAN */}
               <div className="my-2 relative flex items-center justify-center w-36 h-36 z-10">
-                {/* SUBTLE PREMIUM IRIS FOCUS CONTAINER */}
+                
+                {/* Animated Biometric Scan Beam overlay when input is focused */}
+                {isInputFocused && (
+                  <motion.div
+                    initial={{ y: -60, opacity: 0 }}
+                    animate={{ y: [ -60, 60, -60 ], opacity: [ 0.4, 0.9, 0.4 ] }}
+                    transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
+                    className="absolute w-36 h-1.5 bg-[#ff0055] shadow-[0_0_15px_#ff0055] z-30 pointer-events-none rounded-full"
+                  />
+                )}
+
+                {/* Outer Eyeball Frame Container */}
                 <motion.div
-                  animate={{
-                    scaleX: isInputFocused ? 1.02 : 1.0,
-                    scaleY: isInputFocused ? 0.94 : 1.0,
-                    scale: isInputFocused ? 0.96 : 1.0,
-                  }}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 240,
-                    damping: 22,
-                  }}
                   style={{
                     x: finalEyeX,
                     y: finalEyeY,
                   }}
                   className="relative w-32 h-32 flex items-center justify-center"
                 >
-                  {/* Outer Ring Frame */}
-                  <svg className="w-32 h-32 absolute inset-0" viewBox="0 0 100 100">
+                  {/* Outer Ring Frame with Rotation on Focus */}
+                  <motion.svg 
+                    animate={{
+                      rotate: isInputFocused ? 45 : 0,
+                    }}
+                    transition={{ type: 'spring', stiffness: 180, damping: 20 }}
+                    className="w-32 h-32 absolute inset-0" 
+                    viewBox="0 0 100 100"
+                  >
                     <circle cx="50" cy="50" r="46" stroke="#ff0055" strokeWidth="2" fill="none" strokeDasharray="6 3" className="animate-spin-slow opacity-80" />
                     <circle cx="50" cy="50" r="38" fill="#0c0012" stroke="#ff0055" strokeWidth="2" />
-                  </svg>
+                  </motion.svg>
 
-                  {/* Outer Eyeball Lens with Dynamic Neon Iris Glow Boost */}
+                  {/* Outer Eyeball Iris Lens with Dynamic Neon Glow Pulse */}
                   <motion.div
                     animate={{
+                      scale: isInputFocused ? 1.05 : 1.0,
                       boxShadow: isInputFocused 
-                        ? '0 0 35px #ff0055, 0 0 70px rgba(255, 0, 85, 0.6)' 
+                        ? '0 0 45px #ff0055, 0 0 90px rgba(255, 0, 85, 0.8)' 
                         : '0 0 25px #ff0055',
                     }}
                     transition={{ duration: 0.3 }}
                     className="relative w-20 h-20 rounded-full bg-gradient-to-tr from-[#800020] via-[#ff0055] to-pink-300 flex items-center justify-center border-2 border-pink-200"
                   >
                     
-                    {/* ISOLATED INNER PUPIL WITH HIGHER PARALLAX MULTIPLIER */}
+                    {/* STRICTLY RADIALLY CLAMPED INNER PUPIL (NEVER CLIPS OUTSIDE EYEBALL) */}
                     <motion.div
+                      animate={{
+                        scale: isInputFocused ? 1.3 : 1.0, // Biometric Scan Pupil Dilation
+                      }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                       style={{
                         x: finalPupilX,
                         y: finalPupilY,
@@ -258,7 +288,12 @@ export default function CyberSimulatorAuthPage() {
                       className="w-9 h-9 rounded-full bg-[#050008] border-2 border-red-900 flex items-center justify-center relative overflow-hidden shadow-inner"
                     >
                       {/* Glowing Red Core */}
-                      <div className="w-3 h-3 rounded-full bg-red-600 shadow-[0_0_10px_#ff0000]" />
+                      <motion.div 
+                        animate={{
+                          scale: isInputFocused ? 1.4 : 1.0,
+                        }}
+                        className="w-3 h-3 rounded-full bg-red-600 shadow-[0_0_10px_#ff0000]" 
+                      />
                       {/* Lens Glare Reflection */}
                       <div className="absolute top-1 right-1.5 w-2.5 h-2.5 rounded-full bg-white opacity-90" />
                     </motion.div>
@@ -271,8 +306,8 @@ export default function CyberSimulatorAuthPage() {
                 {isAdminTrapdoor 
                   ? 'PASSWORD REQUIRED FOR ADMIN ABDURREHMAN' 
                   : isInputFocused 
-                    ? 'SUBTLE IRIS FOCUS LOCKED ON AUTH FORM' 
-                    : 'PUPIL PARALLAX TRACKS CURSOR POSITION'}
+                    ? 'BIOMETRIC SCAN ACTIVE: PUPIL DILATED (1.3X)' 
+                    : 'PUPIL RADIALLY CLAMPED TO EYEBALL BOUNDS'}
               </div>
             </div>
 
@@ -322,7 +357,7 @@ export default function CyberSimulatorAuthPage() {
             <p className="text-xs text-zinc-400 mt-1 max-w-xs">
               {isAdminTrapdoor 
                 ? 'Admin security override trapdoor active.' 
-                : 'Advanced pupil parallax & subtle iris focus enabled.'}
+                : 'Radially clamped pupil physics & biometric scan active.'}
             </p>
           </div>
         </div>
@@ -537,7 +572,7 @@ export default function CyberSimulatorAuthPage() {
                       </>
                     ) : isAdminTrapdoor ? (
                       <>
-                        OVERRIDE & ENTER ADMIN
+                        OVERRIDE &amp; ENTER ADMIN
                         <ArrowRight className="w-4 h-4" />
                       </>
                     ) : (
