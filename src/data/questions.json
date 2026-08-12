@@ -2,28 +2,36 @@
   {
     "id": "q1",
     "type": "mcq",
-    "text": "What is the primary function of the cortical stack?",
-    "options": ["Memory storage", "Physical enhancement", "Visual processing", "Network routing"],
-    "answer": "Memory storage"
+    "text": "Which layer of the OSI model handles port numbers and end-to-end communication?",
+    "options": ["Transport Layer", "Network Layer", "Data Link Layer", "Application Layer"],
+    "answer": "Transport Layer"
   },
   {
     "id": "q2",
-    "type": "drag_and_drop",
-    "text": "Order the cybernetic augmentations by power usage (Lowest to Highest)",
-    "items": [
-      { "id": "item-1", "content": "Optic Sensor" },
-      { "id": "item-2", "content": "Neural Link" },
-      { "id": "item-3", "content": "Exo-Spine" }
-    ],
-    "correctOrder": ["item-1", "item-2", "item-3"]
+    "type": "mcq",
+    "text": "What distinguishes HTTPS from standard HTTP?",
+    "options": ["SSL/TLS Encryption", "Faster Compression", "UDP Protocol", "Static IP Routing"],
+    "answer": "SSL/TLS Encryption"
   },
   {
     "id": "q3",
+    "type": "drag_and_drop",
+    "text": "Order the first 4 layers of the OSI model from Layer 1 (bottom) to Layer 4.",
+    "items": [
+      { "id": "item-1", "content": "Physical Layer" },
+      { "id": "item-2", "content": "Data Link Layer" },
+      { "id": "item-3", "content": "Network Layer" },
+      { "id": "item-4", "content": "Transport Layer" }
+    ],
+    "correctOrder": ["item-1", "item-2", "item-3", "item-4"]
+  },
+  {
+    "id": "q4",
     "type": "spot_difference",
-    "text": "Find the rogue AI core in the data center.",
-    "imageUrl": "/images/data-center.jpg",
+    "text": "Spot the suspicious/malformed parameter in the database query URL.",
+    "imageUrl": "/images/sql-injection-url.jpg",
     "hotspots": [
-      { "id": "hs-1", "x": 120, "y": 450, "radius": 30 }
+      { "id": "hs-1", "x": 350, "y": 20, "radius": 40 }
     ]
   }
 ]
