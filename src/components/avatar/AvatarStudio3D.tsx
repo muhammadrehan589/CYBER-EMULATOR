@@ -131,7 +131,8 @@ const ALL_TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
 // ─── Material factory — claymation look ────────────────────────────────────────
 
 function mat(color: string, extra?: Partial<THREE.MeshStandardMaterialParameters>): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({ color, roughness: 0.4, metalness: 0.1, ...extra });
+  // Premium claymation style: high roughness, zero metalness
+  return new THREE.MeshStandardMaterial({ color, roughness: 0.8, metalness: 0, ...extra });
 }
 
 // ─── 3D Humanoid — fully proportioned, claymation style ───────────────────────
@@ -151,9 +152,10 @@ interface CharacterProps {
   skinColor: string; hairColor: string; topColor: string;
   bottomColor: string; shoeColor: string;
   gender: Gender; faceStructure: string;
+  hairStyle: string; topStyle: string;
 }
 
-function HumanoidCharacter({ skinColor, hairColor, topColor, bottomColor, shoeColor, gender, faceStructure }: CharacterProps) {
+function HumanoidCharacter({ skinColor, hairColor, topColor, bottomColor, shoeColor, gender, faceStructure, hairStyle, topStyle }: CharacterProps) {
   const root = useRef<THREE.Group>(null!);
 
   // Gentle idle breath bob — stays subtle so it doesn't feel jittery
@@ -164,14 +166,14 @@ function HumanoidCharacter({ skinColor, hairColor, topColor, bottomColor, shoeCo
 
   // ── Materials ──
   const mSkin  = mat(skinColor);
-  const mHair  = mat(hairColor, { roughness: 0.55 });
-  const mTop   = mat(topColor,  { roughness: 0.5, metalness: 0.15 });
+  const mHair  = mat(hairColor);
+  const mTop   = mat(topColor);
   const mBot   = mat(bottomColor);
-  const mShoe  = mat(shoeColor, { roughness: 0.3, metalness: 0.25 });
+  const mShoe  = mat(shoeColor);
   const mNeon  = mat('#ff0055', { emissive: '#ff0055', emissiveIntensity: 1.2, roughness: 0.15, metalness: 0 });
-  const mWhite = mat('#f4f4f4', { roughness: 0.25, metalness: 0 });
-  const mPupil = mat('#0a0005', { roughness: 0.15, metalness: 0.4 });
-  const mLip   = mat('#b84060', { roughness: 0.45 });
+  const mWhite = mat('#f4f4f4');
+  const mPupil = mat('#0a0005');
+  const mLip   = mat('#b84060');
 
   // Face shape scale multipliers
   const fScale: [number, number, number] =
@@ -187,21 +189,25 @@ function HumanoidCharacter({ skinColor, hairColor, topColor, bottomColor, shoeCo
   const torsoR    = gender === 'female' ? 0.27 : 0.30;
   const hipR      = gender === 'female' ? 0.28 : 0.25;
 
+  // Programmatic toggles
+  const isSpiky = hairStyle.includes('Spike') || hairStyle.includes('Mohawk');
+  const isJacket = topStyle.includes('Jacket') || topStyle.includes('Coat') || topStyle.includes('Vest');
+
   // Utility: sphere
   const S = (args: [number, number?, number?], material: THREE.MeshStandardMaterial, pos: [number,number,number], scale?: [number,number,number]) => (
-    <mesh material={material} position={pos} scale={scale} castShadow>
+    <mesh material={material} position={pos} scale={scale} castShadow receiveShadow>
       <sphereGeometry args={[args[0], args[1] ?? 24, args[2] ?? 24]} />
     </mesh>
   );
   // Utility: capsule
   const C = (r: number, len: number, material: THREE.MeshStandardMaterial, pos: [number,number,number], rot?: [number,number,number]) => (
-    <mesh material={material} position={pos} rotation={rot ?? [0,0,0]} castShadow>
+    <mesh material={material} position={pos} rotation={rot ?? [0,0,0]} castShadow receiveShadow>
       <capsuleGeometry args={[r, len, 8, 16]} />
     </mesh>
   );
   // Utility: box
   const B = (w: number, h: number, d: number, material: THREE.MeshStandardMaterial, pos: [number,number,number]) => (
-    <mesh material={material} position={pos} castShadow>
+    <mesh material={material} position={pos} castShadow receiveShadow>
       <boxGeometry args={[w, h, d]} />
     </mesh>
   );
@@ -218,15 +224,41 @@ function HumanoidCharacter({ skinColor, hairColor, topColor, bottomColor, shoeCo
         ══════════════════════════════════════════════════ */}
         <group position={[0, 0, 0]}>
           {/* Head sphere — larger, claymation */}
-          <mesh material={mSkin} castShadow scale={fScale}>
+          <mesh material={mSkin} castShadow receiveShadow scale={fScale}>
             <sphereGeometry args={[0.38, 40, 40]} />
           </mesh>
 
-          {/* Hair cap — slightly above & covers top half */}
-          <mesh material={mHair} castShadow scale={[fScale[0] * 1.02, fScale[1] * 1.02, fScale[2] * 1.02]}
-            position={[0, 0.02, -0.04]}>
-            <sphereGeometry args={[0.395, 40, 20, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
-          </mesh>
+          {/* Programmatic Hair Geometry */}
+          {isSpiky ? (
+            <group position={[0, 0.05, -0.04]} scale={[fScale[0], fScale[1], fScale[2]]}>
+              {/* Base dome */}
+              <mesh material={mHair} castShadow receiveShadow>
+                <sphereGeometry args={[0.39, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
+              </mesh>
+              {/* Spikes array */}
+              {Array.from({ length: 18 }).map((_, i) => (
+                <mesh key={i} material={mHair} castShadow receiveShadow
+                  position={[
+                    Math.sin(i * 1.3) * 0.25,
+                    0.15 + Math.random() * 0.1,
+                    Math.cos(i * 1.3) * 0.25
+                  ]}
+                  rotation={[
+                    (Math.random() - 0.5) * 1.5,
+                    (Math.random() - 0.5) * 1.5,
+                    (Math.random() - 0.5) * 1.5
+                  ]}
+                >
+                  <coneGeometry args={[0.07, 0.4, 8]} />
+                </mesh>
+              ))}
+            </group>
+          ) : (
+            <mesh material={mHair} castShadow receiveShadow scale={[fScale[0] * 1.02, fScale[1] * 1.02, fScale[2] * 1.02]}
+              position={[0, 0.02, -0.04]}>
+              <sphereGeometry args={[0.395, 40, 20, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
+            </mesh>
+          )}
 
           {/* Ears */}
           {S([0.09, 10, 10], mSkin, [ 0.368, -0.02, 0])}
@@ -237,8 +269,8 @@ function HumanoidCharacter({ skinColor, hairColor, topColor, bottomColor, shoeCo
           {S([0.068, 18, 18], mWhite, [ 0.14, 0.05, 0.34])}
           {S([0.068, 18, 18], mWhite, [-0.14, 0.05, 0.34])}
           {/* Iris */}
-          {S([0.044, 14, 14], mat('#1e3a7e', { roughness: 0.2, metalness: 0.1 }), [ 0.14, 0.05, 0.375])}
-          {S([0.044, 14, 14], mat('#1e3a7e', { roughness: 0.2, metalness: 0.1 }), [-0.14, 0.05, 0.375])}
+          {S([0.044, 14, 14], mat('#1e3a7e'), [ 0.14, 0.05, 0.375])}
+          {S([0.044, 14, 14], mat('#1e3a7e'), [-0.14, 0.05, 0.375])}
           {/* Pupil — black */}
           {S([0.026, 10, 10], mPupil, [ 0.14, 0.05, 0.395])}
           {S([0.026, 10, 10], mPupil, [-0.14, 0.05, 0.395])}
@@ -249,8 +281,8 @@ function HumanoidCharacter({ skinColor, hairColor, topColor, bottomColor, shoeCo
           {S([0.014, 6, 6], mWhite, [ 0.154, 0.066, 0.408])}
           {S([0.014, 6, 6], mWhite, [-0.126, 0.066, 0.408])}
           {/* Upper eyelid shadow band */}
-          {B(0.12, 0.018, 0.01, mat('#1a0a1a', { roughness: 0.6 }), [ 0.14, 0.104, 0.384])}
-          {B(0.12, 0.018, 0.01, mat('#1a0a1a', { roughness: 0.6 }), [-0.14, 0.104, 0.384])}
+          {B(0.12, 0.018, 0.01, mat('#1a0a1a'), [ 0.14, 0.104, 0.384])}
+          {B(0.12, 0.018, 0.01, mat('#1a0a1a'), [-0.14, 0.104, 0.384])}
           {/* Eyebrows */}
           {B(0.1, 0.022, 0.012, mHair, [ 0.14, 0.142, 0.365])}
           {B(0.1, 0.022, 0.012, mHair, [-0.14, 0.142, 0.365])}
@@ -279,12 +311,22 @@ function HumanoidCharacter({ skinColor, hairColor, topColor, bottomColor, shoeCo
             TORSO GROUP — shoulders anchored here
         ══════════════════════════════════════════════════ */}
         <group position={[0, -1.10, 0]}>
-          {/* Main torso capsule */}
-          {C(torsoR, 0.78, mTop, [0, 0, 0])}
+          {/* Programmatic Clothing Geometry */}
+          {isJacket ? (
+            <group>
+              {/* Jacket layer pushed back slightly */}
+              {C(torsoR * 1.08, 0.79, mTop, [0, 0, -0.02])}
+              {/* Inner shirt layer pushed forward to poke through front, creating open jacket illusion */}
+              {C(torsoR * 0.98, 0.80, mat('#111'), [0, 0, 0.04])}
+            </group>
+          ) : (
+            C(torsoR, 0.78, mTop, [0, 0, 0])
+          )}
+          
           {/* Neon chest stripe */}
-          {B(0.26, 0.032, 0.01, mNeon, [0, 0.14, torsoR + 0.005])}
+          {B(0.26, 0.032, 0.01, mNeon, [0, 0.14, torsoR + (isJacket ? 0.02 : 0.005)])}
           {/* Neon collar bar */}
-          {B(0.16, 0.02, 0.01, mNeon, [0, 0.40, torsoR + 0.005])}
+          {B(0.16, 0.02, 0.01, mNeon, [0, 0.40, torsoR + (isJacket ? 0.02 : 0.005)])}
 
           {/* ── LEFT SHOULDER & ARM ── */}
           <group position={[shoulderX, 0.30, 0]}>
@@ -387,16 +429,22 @@ function CameraControls() {
 function Scene(props: CharacterProps) {
   return (
     <>
-      <ambientLight intensity={0.45} />
-      <directionalLight position={[3, 5, 4]}   intensity={1.5} castShadow
-        shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
-      <directionalLight position={[-3, 3, -2]}  intensity={0.5} color="#ffbbcc" />
-      <pointLight      position={[-2, 3, -1]}   intensity={0.8} color="#ff0055" />
-      <pointLight      position={[ 2, 2,  2]}   intensity={0.4} color="#e60039" />
-      <pointLight      position={[ 0, 5,  1]}   intensity={0.3} color="#ffffff" />
+      <ambientLight intensity={0.5} />
+      <directionalLight 
+        position={[3, 8, 4]} 
+        intensity={1.8} 
+        castShadow
+        shadow-mapSize-width={2048} 
+        shadow-mapSize-height={2048} 
+        shadow-bias={-0.0001}
+      />
+      <directionalLight position={[-3, 4, -2]} intensity={0.6} color="#ffbbcc" />
+      <pointLight position={[-2, 3, -1]} intensity={0.8} color="#ff0055" />
+      <pointLight position={[ 2, 2,  2]} intensity={0.4} color="#e60039" />
       <Suspense fallback={null}>
         <HumanoidCharacter {...props} />
-        <Environment preset="night" />
+        {/* Premium Lighting Environment */}
+        <Environment preset="city" />
       </Suspense>
       <CameraControls />
     </>
@@ -436,6 +484,7 @@ const SectionLabel: React.FC<{ text: string }> = ({ text }) => (
 export default function AvatarStudio3D() {
   const router = useRouter();
 
+  // Hoisted state
   const [gender,        setGender]        = useState<Gender>('male');
   const [tone,          setTone]          = useState(BODY_TONES[2]);
   const [faceStructure, setFaceStructure] = useState(FACE_STRUCTURES[0]);
@@ -549,6 +598,8 @@ export default function AvatarStudio3D() {
               shoeColor={shoes.color!}
               gender={gender}
               faceStructure={faceStructure.id}
+              hairStyle={hairStyle.label}
+              topStyle={top.label}
             />
           </Canvas>
 
