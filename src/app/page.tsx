@@ -36,10 +36,10 @@ export default function Home() {
             </h1>
             <button 
               onClick={() => setIsQuizActive(true)}
-              className="px-10 py-5 bg-[#0a0a0a] border border-[#ff003c]/80 text-[#ff003c] font-black uppercase tracking-widest hover:bg-[#ff003c] hover:text-white transition-all duration-300 shadow-[0_0_20px_rgba(255,0,60,0.2)] hover:shadow-[0_0_40px_rgba(255,0,60,0.6)] rounded-2xl flex items-center gap-3 group"
+              className="px-10 py-5 bg-[#0a0a0a] border border-red-500 text-[#ff003c] font-black uppercase tracking-widest hover:bg-[#ff003c] hover:text-white transition-all duration-300 shadow-[0_0_15px_rgba(255,0,60,0.5)] rounded-2xl flex items-center gap-3 group"
             >
               <span className="w-2 h-2 rounded-full bg-[#ff003c] animate-pulse group-hover:bg-white" />
-              Initialize Quiz Sequence
+              ENTER SIMULATION MATRIX
             </button>
           </div>
         </>
