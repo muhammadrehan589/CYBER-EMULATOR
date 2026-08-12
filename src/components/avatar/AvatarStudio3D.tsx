@@ -6,7 +6,9 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, useGLTF } from '@react-three/drei';
-import { AvatarCreator } from '@readyplayerme/react-avatar-creator';
+import dynamic from 'next/dynamic';
+
+const AvatarCreator = dynamic(() => import('@readyplayerme/react-avatar-creator').then((mod) => mod.AvatarCreator), { ssr: false });
 import { ArrowLeft, ShieldCheck, RefreshCw, Zap } from 'lucide-react';
 
 function RPMModel({ url }: { url: string }) {
