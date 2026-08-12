@@ -1,0 +1,29 @@
+[
+  {
+    "id": "q1",
+    "type": "mcq",
+    "text": "What is the primary function of the cortical stack?",
+    "options": ["Memory storage", "Physical enhancement", "Visual processing", "Network routing"],
+    "answer": "Memory storage"
+  },
+  {
+    "id": "q2",
+    "type": "drag_and_drop",
+    "text": "Order the cybernetic augmentations by power usage (Lowest to Highest)",
+    "items": [
+      { "id": "item-1", "content": "Optic Sensor" },
+      { "id": "item-2", "content": "Neural Link" },
+      { "id": "item-3", "content": "Exo-Spine" }
+    ],
+    "correctOrder": ["item-1", "item-2", "item-3"]
+  },
+  {
+    "id": "q3",
+    "type": "spot_difference",
+    "text": "Find the rogue AI core in the data center.",
+    "imageUrl": "/images/data-center.jpg",
+    "hotspots": [
+      { "id": "hs-1", "x": 120, "y": 450, "radius": 30 }
+    ]
+  }
+]
