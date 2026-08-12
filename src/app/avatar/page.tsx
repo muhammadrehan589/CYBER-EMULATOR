@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 type MainTab = 'fashion' | 'wardrobe' | 'avatar';
 
 type AvatarSubCategory =
+  | 'gender'
   | 'body'
   | 'face'
   | 'eyes'
@@ -34,6 +35,7 @@ interface ColorOption {
 }
 
 interface AvatarState {
+  gender: 'male' | 'female' | 'nonbinary';
   skinTone: string;
   faceShape: string;
   bodyType: string;
@@ -74,6 +76,12 @@ const BODY_TYPES: Option[] = [
   { id: 'bt2', label: 'Athletic' },
   { id: 'bt3', label: 'Broad' },
   { id: 'bt4', label: 'Petite' },
+];
+
+const GENDER_OPTIONS: { id: 'male' | 'female' | 'nonbinary'; label: string; icon: string; desc: string }[] = [
+  { id: 'male',     label: 'Male',       icon: '♂',  desc: 'Broad shoulders, angular jaw' },
+  { id: 'female',   label: 'Female',     icon: '♀',  desc: 'Softer curves, fuller lips' },
+  { id: 'nonbinary',label: 'Non-Binary', icon: '⚧',  desc: 'Your own unique shape' },
 ];
 
 const EYE_STYLES: Option[] = [
@@ -191,6 +199,7 @@ const OUTFIT_STYLES: Option[] = [
 // ─── Default Avatar State ──────────────────────────────────────────────────────
 
 const DEFAULT_AVATAR: AvatarState = {
+  gender: 'male',
   skinTone: 'sk3',
   faceShape: 'fc1',
   bodyType: 'bt2',
@@ -209,16 +218,17 @@ const DEFAULT_AVATAR: AvatarState = {
 // ─── Sub-category Config ────────────────────────────────────────────────────────
 
 const AVATAR_SUB_CATEGORIES: { id: AvatarSubCategory; label: string; icon: string }[] = [
-  { id: 'eyes', label: 'Eyes', icon: '👁' },
-  { id: 'brows', label: 'Brows', icon: '〰️' },
-  { id: 'nose', label: 'Nose', icon: '👃' },
-  { id: 'face', label: 'Face', icon: '⬮' },
-  { id: 'lips', label: 'Lips', icon: '💋' },
-  { id: 'ears', label: 'Ears', icon: '👂' },
-  { id: 'beard', label: 'Beard', icon: '🧔' },
-  { id: 'hair', label: 'Hair', icon: '💇' },
-  { id: 'skin', label: 'Skin', icon: '🎨' },
-  { id: 'body', label: 'Body', icon: '🚶' },
+  { id: 'gender', label: 'Gender', icon: '⚧️' },
+  { id: 'eyes',   label: 'Eyes',   icon: '👁'  },
+  { id: 'brows',  label: 'Brows',  icon: '〰️'  },
+  { id: 'nose',   label: 'Nose',   icon: '👃'  },
+  { id: 'face',   label: 'Face',   icon: '⬮'  },
+  { id: 'lips',   label: 'Lips',   icon: '💋'  },
+  { id: 'ears',   label: 'Ears',   icon: '👂'  },
+  { id: 'beard',  label: 'Beard',  icon: '🧔'  },
+  { id: 'hair',   label: 'Hair',   icon: '💇'  },
+  { id: 'skin',   label: 'Skin',   icon: '🎨'  },
+  { id: 'body',   label: 'Body',   icon: '🚶'  },
 ];
 
 // ─── Color Utilities ───────────────────────────────────────────────────────────
@@ -411,23 +421,25 @@ const AvatarSVG: React.FC<AvatarSVGProps> = ({ avatar, size = 260, mini = false 
     }
   };
 
-  // Hair renderer
+  // Hair renderer — base cap: M43 108 to Q157 72 157 108 eliminates the ~2px skin gap
+  // Inner return path traces slightly inside the head so fill covers scalp fully
+  const CAP = `M43 108 Q43 72 60 57 Q80 42 100 42 Q120 42 140 57 Q157 72 157 108 Q150 89 140 79 Q124 52 100 50 Q76 52 60 79 Q50 89 43 108Z`;
   const getHair = () => {
     const hs = avatar.hairStyle;
     switch (hs) {
-      case 'hr2': return <g><path d="M44 106 Q43 72 60 57 Q80 42 100 42 Q120 42 140 57 Q157 72 156 106 Q148 88 140 78 Q124 52 100 50 Q76 52 60 78 Q52 88 44 106Z" fill={hair} /><rect x="43" y="98" width="18" height="92" rx="9" fill={hair} /><rect x="139" y="98" width="18" height="92" rx="9" fill={hair} /><line x1="49" y1="100" x2="51" y2="186" stroke={hairHighlight} strokeWidth="1" opacity="0.5" /><line x1="148" y1="100" x2="150" y2="186" stroke={hairHighlight} strokeWidth="1" opacity="0.5" /></g>;
-      case 'hr3': return <g><circle cx="100" cy="62" r="50" fill={hair} />{[[67,52],[80,42],[95,36],[112,40],[128,52],[140,65],[138,80],[62,68],[100,32],[115,30]].map(([cx, cy], i) => <circle key={i} cx={cx} cy={cy} r="10" fill={hairShadow} opacity="0.3" />)}<circle cx="100" cy="62" r="46" fill="none" stroke={hairHighlight} strokeWidth="1.5" opacity="0.25" /></g>;
-      case 'hr4': return <g><path d="M44 106 Q43 72 60 57 Q80 42 100 42 Q120 42 140 57 Q157 72 156 106 Q148 88 140 78 Q124 52 100 50 Q76 52 60 78 Q52 88 44 106Z" fill={hair} /><path d="M55 75 Q80 54 132 62 Q110 48 100 46 Q75 48 55 75Z" fill={hairShadow} opacity="0.4" /><path d="M55 75 Q82 57 130 63" stroke={hairHighlight} strokeWidth="1.5" fill="none" opacity="0.5" /></g>;
-      case 'hr5': return <g><path d="M44 106 Q43 72 60 57 Q80 42 100 42 Q120 42 140 57 Q157 72 156 106 Q148 88 140 78 Q124 52 100 50 Q76 52 60 78 Q52 88 44 106Z" fill={hair} /><ellipse cx="100" cy="52" rx="9" ry="7" fill={hairShadow} /><path d="M95 52 Q86 40 90 18 Q95 8 100 6 Q105 8 110 18 Q114 40 105 52Z" fill={hair} /><line x1="100" y1="48" x2="100" y2="10" stroke={hairHighlight} strokeWidth="1.2" opacity="0.5" /></g>;
-      case 'hr6': return <g><path d="M44 110 Q43 78 63 62 Q80 46 100 46 Q120 46 137 62 Q157 78 156 110 Q150 92 140 82 Q124 56 100 54 Q76 56 60 82 Q50 92 44 110Z" fill={hair} /></g>;
-      case 'hr7': return <g><path d="M44 106 Q43 72 60 57 Q80 42 100 42 Q120 42 140 57 Q157 72 156 106 Q148 88 140 78 Q124 52 100 50 Q76 52 60 78 Q52 88 44 106Z" fill={hair} /><circle cx="74" cy="48" r="19" fill={hair} /><circle cx="126" cy="48" r="19" fill={hair} /><circle cx="74" cy="48" r="13" fill={hairShadow} opacity="0.35" /><circle cx="126" cy="48" r="13" fill={hairShadow} opacity="0.35" /></g>;
-      case 'hr8': return <g><path d="M44 106 Q43 72 60 57 Q80 42 100 42 Q120 42 140 57 Q157 72 156 106 Q148 88 140 78 Q124 52 100 50 Q76 52 60 78 Q52 88 44 106Z" fill={hair} /><path d="M91 46 Q96 8 100 4 Q104 8 109 46Z" fill={hair} /><line x1="100" y1="46" x2="100" y2="7" stroke={hairHighlight} strokeWidth="1.5" opacity="0.6" /></g>;
-      case 'hr9': return <g><path d="M44 106 Q43 72 60 57 Q80 42 100 42 Q120 42 140 57 Q157 72 156 106 Q148 88 140 78 Q124 52 100 50 Q76 52 60 78 Q52 88 44 106Z" fill={hair} /><path d="M50 70 Q70 58 92 86 Q112 58 132 74" stroke={hairShadow} strokeWidth="2.5" fill="none" opacity="0.5" /><path d="M39 100 Q60 78 82 105" stroke={hair} strokeWidth="5" fill="none" /></g>;
-      case 'hr10': return <g><path d="M44 106 Q43 72 60 57 Q80 45 100 45 Q120 45 140 57 Q157 72 156 106 Q150 92 140 82 Q124 56 100 54 Q76 56 60 82 Q50 92 44 108Z" fill={hair} /><path d="M60 60 Q80 48 100 50 Q120 48 140 60" stroke={hairHighlight} strokeWidth="2" fill="none" opacity="0.5" /></g>;
-      case 'hr11': return <g><path d="M44 106 Q43 72 60 57 Q80 42 100 42 Q120 42 140 57 Q157 72 156 106 Q148 88 140 78 Q124 52 100 50 Q76 52 60 78 Q52 88 44 106Z" fill={hair} /><path d="M54 96 Q49 130 54 175" stroke={hair} strokeWidth="14" fill="none" strokeDasharray="7 3" /><path d="M146 96 Q151 130 146 175" stroke={hair} strokeWidth="14" fill="none" strokeDasharray="7 3" /><line x1="47" y1="165" x2="61" y2="165" stroke="#00d4ff" strokeWidth="3" /><line x1="139" y1="165" x2="153" y2="165" stroke="#00d4ff" strokeWidth="3" /></g>;
-      case 'hr12': return <g><path d="M44 106 Q43 72 60 57 Q80 42 100 42 Q120 42 140 57 Q157 72 156 106 Q148 88 140 78 Q124 52 100 50 Q76 52 60 78 Q52 88 44 106Z" fill={hair} /><rect x="42" y="95" width="22" height="45" rx="11" fill={hair} /><rect x="136" y="95" width="22" height="45" rx="11" fill={hair} /><line x1="48" y1="97" x2="50" y2="137" stroke={hairHighlight} strokeWidth="1" opacity="0.45" /><line x1="150" y1="97" x2="148" y2="137" stroke={hairHighlight} strokeWidth="1" opacity="0.45" /></g>;
+      case 'hr2': return <g><path d={CAP} fill={hair} /><rect x="42" y="97" width="19" height="94" rx="9.5" fill={hair} /><rect x="139" y="97" width="19" height="94" rx="9.5" fill={hair} /><line x1="49" y1="100" x2="51" y2="188" stroke={hairHighlight} strokeWidth="1" opacity="0.45" /><line x1="148" y1="100" x2="150" y2="188" stroke={hairHighlight} strokeWidth="1" opacity="0.45" /></g>;
+      case 'hr3': return <g><circle cx="100" cy="62" r="52" fill={hair} />{[[67,52],[80,42],[95,36],[112,40],[128,52],[140,65],[138,80],[62,68],[100,32],[115,30]].map(([cx, cy], i) => <circle key={i} cx={cx} cy={cy} r="10" fill={hairShadow} opacity="0.3" />)}<circle cx="100" cy="62" r="47" fill="none" stroke={hairHighlight} strokeWidth="1.5" opacity="0.25" /></g>;
+      case 'hr4': return <g><path d={CAP} fill={hair} /><path d="M55 75 Q80 54 132 62 Q110 48 100 46 Q75 48 55 75Z" fill={hairShadow} opacity="0.4" /><path d="M55 75 Q82 57 130 63" stroke={hairHighlight} strokeWidth="1.5" fill="none" opacity="0.5" /></g>;
+      case 'hr5': return <g><path d={CAP} fill={hair} /><ellipse cx="100" cy="52" rx="9" ry="7" fill={hairShadow} /><path d="M95 52 Q86 40 90 18 Q95 8 100 6 Q105 8 110 18 Q114 40 105 52Z" fill={hair} /><line x1="100" y1="48" x2="100" y2="10" stroke={hairHighlight} strokeWidth="1.2" opacity="0.5" /></g>;
+      case 'hr6': return <g><path d="M43 108 Q43 78 63 62 Q80 46 100 46 Q120 46 137 62 Q157 78 157 108 Q150 92 140 82 Q124 56 100 54 Q76 56 60 82 Q50 92 43 108Z" fill={hair} /></g>;
+      case 'hr7': return <g><path d={CAP} fill={hair} /><circle cx="74" cy="48" r="19" fill={hair} /><circle cx="126" cy="48" r="19" fill={hair} /><circle cx="74" cy="48" r="13" fill={hairShadow} opacity="0.35" /><circle cx="126" cy="48" r="13" fill={hairShadow} opacity="0.35" /></g>;
+      case 'hr8': return <g><path d={CAP} fill={hair} /><path d="M91 46 Q96 8 100 4 Q104 8 109 46Z" fill={hair} /><line x1="100" y1="46" x2="100" y2="7" stroke={hairHighlight} strokeWidth="1.5" opacity="0.6" /></g>;
+      case 'hr9': return <g><path d={CAP} fill={hair} /><path d="M50 70 Q70 58 92 86 Q112 58 132 74" stroke={hairShadow} strokeWidth="2.5" fill="none" opacity="0.5" /><path d="M38 100 Q60 78 82 105" stroke={hair} strokeWidth="6" fill="none" /></g>;
+      case 'hr10': return <g><path d={CAP} fill={hair} /><path d="M60 60 Q80 48 100 50 Q120 48 140 60" stroke={hairHighlight} strokeWidth="2" fill="none" opacity="0.5" /></g>;
+      case 'hr11': return <g><path d={CAP} fill={hair} /><path d="M54 96 Q49 132 54 178" stroke={hair} strokeWidth="14" fill="none" strokeDasharray="7 3" /><path d="M146 96 Q151 132 146 178" stroke={hair} strokeWidth="14" fill="none" strokeDasharray="7 3" /><line x1="47" y1="168" x2="61" y2="168" stroke="#00d4ff" strokeWidth="3" /><line x1="139" y1="168" x2="153" y2="168" stroke="#00d4ff" strokeWidth="3" /></g>;
+      case 'hr12': return <g><path d={CAP} fill={hair} /><rect x="42" y="94" width="23" height="48" rx="11.5" fill={hair} /><rect x="135" y="94" width="23" height="48" rx="11.5" fill={hair} /><line x1="48" y1="96" x2="50" y2="140" stroke={hairHighlight} strokeWidth="1" opacity="0.45" /><line x1="150" y1="96" x2="148" y2="140" stroke={hairHighlight} strokeWidth="1" opacity="0.45" /></g>;
       default: // hr1 Short Wavy
-        return <g><path d="M44 106 Q43 72 60 57 Q80 42 100 42 Q120 42 140 57 Q157 72 156 106 Q148 88 140 78 Q124 52 100 50 Q76 52 60 78 Q52 88 44 106Z" fill={hair} /><path d="M44 106 Q50 80 60 68 Q76 54 100 52 Q124 54 140 68 Q150 80 156 106" fill="none" stroke={hairHighlight} strokeWidth="1.5" opacity="0.45" /></g>;
+        return <g><path d={CAP} fill={hair} /><path d="M43 108 Q50 80 60 68 Q76 54 100 52 Q124 54 140 68 Q150 80 157 108" fill="none" stroke={hairHighlight} strokeWidth="1.5" opacity="0.45" /></g>;
     }
   };
 
@@ -456,7 +468,7 @@ const AvatarSVG: React.FC<AvatarSVGProps> = ({ avatar, size = 260, mini = false 
     }
   };
 
-  // Body/Outfit
+  // Body/Outfit — gender affects shoulder width, waist taper, hip width
   const getBody = () => {
     const outfitColors: Record<string, { main: string; accent: string }> = {
       of1: { main: '#1a0a1a', accent: '#ff0055' },
@@ -471,26 +483,49 @@ const AvatarSVG: React.FC<AvatarSVGProps> = ({ avatar, size = 260, mini = false 
     };
     const { main, accent } = outfitColors[avatar.outfitStyle] || outfitColors.of1;
 
-    // Body type scale
+    const isFemale = avatar.gender === 'female';
+    const isNB     = avatar.gender === 'nonbinary';
+
+    // Body type overall x-scale
     const bodyScale = avatar.bodyType === 'bt1' ? 0.88 : avatar.bodyType === 'bt3' ? 1.13 : avatar.bodyType === 'bt4' ? 0.82 : 1;
     const tx = (1 - bodyScale) * 100;
+
+    // Gender-specific torso path:
+    // Male:   straight sides, wide shoulders (30-170 at top, 30-170 at bottom)
+    // Female: nipped waist at y~240, wider hips
+    // NB:     slight waist taper
+    const torsoPath = isFemale
+      ? 'M38 310 L34 190 Q42 172 64 168 L84 165 Q92 175 100 178 Q108 175 116 165 L136 168 Q158 172 166 190 L162 310 Q138 288 100 290 Q62 288 38 310Z'
+      : isNB
+      ? 'M32 310 L30 186 Q40 170 62 166 L82 163 Q91 174 100 177 Q109 174 118 163 L138 166 Q160 170 170 186 L168 310 Q136 296 100 297 Q64 296 32 310Z'
+      : 'M30 310 L30 184 Q40 170 62 166 L82 163 Q91 174 100 177 Q109 174 118 163 L138 166 Q160 170 170 184 L170 310Z';
+
+    // Arm length/width female slightly slimmer
+    const armW = isFemale ? 17 : 22;
+    const armX1 = isFemale ? 19 : 16;
+    const armX2 = isFemale ? 164 : 162;
 
     return (
       <g transform={`translate(${tx}, 0) scale(${bodyScale}, 1)`}>
         {/* Torso */}
-        <path d="M30 310 L30 184 Q40 170 62 166 L82 163 Q91 174 100 177 Q109 174 118 163 L138 166 Q160 170 170 184 L170 310Z" fill={main} />
+        <path d={torsoPath} fill={main} />
+        {/* Female chest curve */}
+        {isFemale && <>
+          <ellipse cx="86" cy="210" rx="14" ry="11" fill={darken(main, 0.18)} opacity="0.6" />
+          <ellipse cx="114" cy="210" rx="14" ry="11" fill={darken(main, 0.18)} opacity="0.6" />
+        </>}
         {/* Arms */}
-        <rect x="16" y="175" width="22" height="80" rx="11" fill={skin} />
-        <rect x="162" y="175" width="22" height="80" rx="11" fill={skin} />
+        <rect x={armX1} y="175" width={armW} height="80" rx={armW/2} fill={skin} />
+        <rect x={armX2} y="175" width={armW} height="80" rx={armW/2} fill={skin} />
         {/* Hands */}
-        <ellipse cx="27" cy="256" rx="11" ry="9" fill={skin} />
-        <ellipse cx="173" cy="256" rx="11" ry="9" fill={skin} />
-        {/* Legs */}
-        <rect x="55" y="308" width="32" height="100" rx="14" fill={darken(main, 0.12)} />
-        <rect x="113" y="308" width="32" height="100" rx="14" fill={darken(main, 0.12)} />
+        <ellipse cx={armX1 + armW/2} cy="256" rx={armW/2} ry="8" fill={skin} />
+        <ellipse cx={armX2 + armW/2} cy="256" rx={armW/2} ry="8" fill={skin} />
+        {/* Legs — female hip wider */}
+        <rect x={isFemale ? 50 : 55} y="308" width={isFemale ? 34 : 32} height="100" rx="14" fill={darken(main, 0.12)} />
+        <rect x={isFemale ? 116 : 113} y="308" width={isFemale ? 34 : 32} height="100" rx="14" fill={darken(main, 0.12)} />
         {/* Feet */}
-        <ellipse cx="71" cy="408" rx="20" ry="10" fill={darken(main, 0.3)} />
-        <ellipse cx="129" cy="408" rx="20" ry="10" fill={darken(main, 0.3)} />
+        <ellipse cx={isFemale ? 67 : 71} cy="408" rx="18" ry="9" fill={darken(main, 0.3)} />
+        <ellipse cx={isFemale ? 133 : 129} cy="408" rx="18" ry="9" fill={darken(main, 0.3)} />
         {/* Collar */}
         <path d="M82 163 Q100 174 118 163" fill="none" stroke={accent} strokeWidth="1.5" opacity="0.8" />
         {/* Outfit detail */}
@@ -517,14 +552,14 @@ const AvatarSVG: React.FC<AvatarSVGProps> = ({ avatar, size = 260, mini = false 
     }
   };
 
-  const svgH = mini ? 80 : 420;
-  const viewBox = mini ? "20 36 160 120" : "0 0 200 420";
+  // mini viewBox: x30 y32 covers from just above hair (y=42) to chin (y=168), 140px wide
+  const viewBox = mini ? "30 32 140 140" : "0 0 200 420";
 
   return (
     <svg
       viewBox={viewBox}
       width={size}
-      height={mini ? size * 0.55 : size * 1.6}
+      height={mini ? size * 0.72 : size * 1.6}
       xmlns="http://www.w3.org/2000/svg"
       style={{ filter: mini ? 'none' : 'drop-shadow(0 12px 36px rgba(0,0,0,0.35))' }}
     >
@@ -670,7 +705,7 @@ export default function AvatarCustomizerPage() {
 
   // UI state
   const [mainTab, setMainTab] = useState<MainTab>('avatar');
-  const [subCat, setSubCat] = useState<AvatarSubCategory>('eyes');
+  const [subCat, setSubCat] = useState<AvatarSubCategory>('gender');
   const [isSaving, setIsSaving] = useState(false);
   const [isRotating, setIsRotating] = useState(false);
 
@@ -724,6 +759,37 @@ export default function AvatarCustomizerPage() {
   // Render thumbnail grid for each sub-category
   const renderGrid = () => {
     switch (subCat) {
+      case 'gender':
+        return (
+          <div className="space-y-3">
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider text-center pb-1">
+              Choose your avatar style
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              {GENDER_OPTIONS.map(g => (
+                <motion.button
+                  key={g.id}
+                  whileTap={{ scale: 0.94 }}
+                  onClick={() => update({ gender: g.id })}
+                  className={`flex flex-col items-center gap-2 py-4 px-2 rounded-2xl border-2 transition-all cursor-pointer
+                    ${ avatar.gender === g.id
+                      ? 'border-[#e8c84a] bg-[#fffaed] shadow-[0_0_0_3px_rgba(232,200,74,0.22)]'
+                      : 'border-transparent bg-gray-100/70 hover:bg-gray-200/70'
+                    }`}
+                >
+                  <span className="text-3xl">{g.icon}</span>
+                  <span className="text-xs font-bold text-gray-700">{g.label}</span>
+                  <span className="text-[9px] text-gray-400 text-center leading-tight">{g.desc}</span>
+                  {avatar.gender === g.id && (
+                    <div className="w-4 h-4 rounded-full bg-[#e8c84a] flex items-center justify-center mt-1">
+                      <div className="w-2 h-2 rounded-full bg-white" />
+                    </div>
+                  )}
+                </motion.button>
+              ))}
+            </div>
+          </div>
+        );
       case 'eyes':
         return (
           <div className="space-y-3">
