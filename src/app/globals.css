@@ -47,3 +47,30 @@ body {
   box-shadow: 0 0 45px rgba(255, 0, 85, 0.35),
               inset 0 0 30px rgba(230, 0, 57, 0.25);
 }
+
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.conic-border-box {
+  position: relative;
+  background: rgba(10, 4, 10, 0.85);
+  backdrop-filter: blur(20px);
+}
+
+.conic-border-box::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  background: conic-gradient(from var(--angle), transparent 0%, #ff003c 50%, transparent 100%);
+  animation: spin-angle 3s linear infinite;
+  border-radius: inherit;
+}
+
+@keyframes spin-angle {
+  from { --angle: 0deg; }
+  to { --angle: 360deg; }
+}
