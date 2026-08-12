@@ -91,7 +91,7 @@ export default function AvatarStudio3D() {
           // RPM Avatar Creator View
           <div className="flex-1 w-full h-full relative">
             <AvatarCreator 
-              subdomain="demo" 
+              subdomain="guest" 
               config={{ clearCache: true, bodyType: 'fullbody' }} 
               style={{ width: '100%', height: '100%', border: 'none' }} 
               onAvatarExported={handleAvatarExported} 
