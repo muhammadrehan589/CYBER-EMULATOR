@@ -1,68 +1,94 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ArrowLeft,
-  Sparkles,
-  ShieldCheck,
-  Lock,
-  Zap,
-  Palette,
-  Eye,
-  Scissors,
-  Shirt,
-  Glasses,
-} from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Tab = 'structure' | 'eyes' | 'hair' | 'outfit' | 'accessories';
+type MainTab = 'fashion' | 'wardrobe' | 'avatar';
 
-interface StyleOption {
+type AvatarSubCategory =
+  | 'body'
+  | 'face'
+  | 'eyes'
+  | 'brows'
+  | 'nose'
+  | 'lips'
+  | 'ears'
+  | 'beard'
+  | 'hair'
+  | 'skin';
+
+interface Option {
   id: string;
   label: string;
   locked?: boolean;
   cost?: number;
 }
 
+interface ColorOption {
+  id: string;
+  hex: string;
+  label: string;
+}
+
+interface AvatarState {
+  skinTone: string;
+  faceShape: string;
+  bodyType: string;
+  eyeStyle: string;
+  eyeColor: string;
+  browStyle: string;
+  noseStyle: string;
+  lipsStyle: string;
+  earStyle: string;
+  beardStyle: string;
+  hairStyle: string;
+  hairColor: string;
+  outfitStyle: string;
+}
+
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
-const SKIN_TONES = [
-  { id: 's1', hex: '#FDDBB4', label: 'Porcelain' },
-  { id: 's2', hex: '#F5C89A', label: 'Ivory' },
-  { id: 's3', hex: '#E8A87C', label: 'Sand' },
-  { id: 's4', hex: '#C68642', label: 'Honey' },
-  { id: 's5', hex: '#8D5524', label: 'Caramel' },
-  { id: 's6', hex: '#4A2912', label: 'Espresso' },
+const SKIN_TONES: ColorOption[] = [
+  { id: 'sk1', hex: '#FDDBB4', label: 'Porcelain' },
+  { id: 'sk2', hex: '#F5C89A', label: 'Ivory' },
+  { id: 'sk3', hex: '#E8A87C', label: 'Sand' },
+  { id: 'sk4', hex: '#C68642', label: 'Honey' },
+  { id: 'sk5', hex: '#8D5524', label: 'Caramel' },
+  { id: 'sk6', hex: '#4A2912', label: 'Espresso' },
 ];
 
-const FACE_STRUCTURES: StyleOption[] = [
-  { id: 'f1', label: 'Oval' },
-  { id: 'f2', label: 'Round' },
-  { id: 'f3', label: 'Square' },
-  { id: 'f4', label: 'Heart' },
-  { id: 'f5', label: 'Diamond', locked: true, cost: 500 },
+const FACE_SHAPES: Option[] = [
+  { id: 'fc1', label: 'Oval' },
+  { id: 'fc2', label: 'Round' },
+  { id: 'fc3', label: 'Square' },
+  { id: 'fc4', label: 'Heart' },
+  { id: 'fc5', label: 'Diamond' },
+  { id: 'fc6', label: 'Oblong' },
 ];
 
-const BODY_BUILDS: StyleOption[] = [
-  { id: 'bb1', label: 'Slim' },
-  { id: 'bb2', label: 'Athletic' },
-  { id: 'bb3', label: 'Broad' },
+const BODY_TYPES: Option[] = [
+  { id: 'bt1', label: 'Slim' },
+  { id: 'bt2', label: 'Athletic' },
+  { id: 'bt3', label: 'Broad' },
+  { id: 'bt4', label: 'Petite' },
 ];
 
-const EYE_STYLES: StyleOption[] = [
-  { id: 'e1', label: 'Round' },
-  { id: 'e2', label: 'Almond' },
-  { id: 'e3', label: 'Cat-Eye' },
-  { id: 'e4', label: 'Sleepy' },
-  { id: 'e5', label: 'Wide', locked: true, cost: 800 },
-  { id: 'e6', label: 'Star', locked: true, cost: 1500 },
+const EYE_STYLES: Option[] = [
+  { id: 'ey1', label: 'Round' },
+  { id: 'ey2', label: 'Almond' },
+  { id: 'ey3', label: 'Cat-Eye' },
+  { id: 'ey4', label: 'Sleepy' },
+  { id: 'ey5', label: 'Wide' },
+  { id: 'ey6', label: 'Deep Set' },
+  { id: 'ey7', label: 'Upturned' },
+  { id: 'ey8', label: 'Monolid' },
+  { id: 'ey9', label: 'Hooded' },
 ];
 
-const EYE_COLORS = [
+const EYE_COLORS: ColorOption[] = [
   { id: 'ec1', hex: '#3B2314', label: 'Dark Brown' },
   { id: 'ec2', hex: '#6F4E37', label: 'Warm Brown' },
   { id: 'ec3', hex: '#6B8E23', label: 'Olive' },
@@ -71,30 +97,73 @@ const EYE_COLORS = [
   { id: 'ec6', hex: '#00CED1', label: 'Teal' },
   { id: 'ec7', hex: '#C0392B', label: 'Crimson' },
   { id: 'ec8', hex: '#8B008B', label: 'Violet' },
+  { id: 'ec9', hex: '#708090', label: 'Grey' },
 ];
 
-const BROW_STYLES: StyleOption[] = [
-  { id: 'b1', label: 'Soft Arch' },
-  { id: 'b2', label: 'Straight' },
-  { id: 'b3', label: 'High Arch' },
-  { id: 'b4', label: 'Thick', locked: true, cost: 600 },
+const BROW_STYLES: Option[] = [
+  { id: 'br1', label: 'Soft Arch' },
+  { id: 'br2', label: 'Straight' },
+  { id: 'br3', label: 'High Arch' },
+  { id: 'br4', label: 'Thick' },
+  { id: 'br5', label: 'Thin' },
+  { id: 'br6', label: 'Bushy' },
 ];
 
-const HAIR_STYLES: StyleOption[] = [
-  { id: 'h1', label: 'Short Wavy' },
-  { id: 'h2', label: 'Long Straight' },
-  { id: 'h3', label: 'Curly Afro' },
-  { id: 'h4', label: 'Side Swept' },
-  { id: 'h5', label: 'Ponytail' },
-  { id: 'h6', label: 'Buzz Cut' },
-  { id: 'h9', label: 'Messy Fringe' },
-  { id: 'h10', label: 'Slicked Back' },
-  { id: 'h7', label: 'Space Buns', locked: true, cost: 1200 },
-  { id: 'h11', label: 'Cyber Braids', locked: true, cost: 1400 },
-  { id: 'h8', label: 'Mohawk', locked: true, cost: 2000 },
+const NOSE_STYLES: Option[] = [
+  { id: 'ns1', label: 'Button' },
+  { id: 'ns2', label: 'Straight' },
+  { id: 'ns3', label: 'Broad' },
+  { id: 'ns4', label: 'Pointy' },
+  { id: 'ns5', label: 'Snub' },
+  { id: 'ns6', label: 'Roman' },
 ];
 
-const HAIR_COLORS = [
+const LIPS_STYLES: Option[] = [
+  { id: 'lp1', label: 'Natural' },
+  { id: 'lp2', label: 'Full' },
+  { id: 'lp3', label: 'Thin' },
+  { id: 'lp4', label: 'Cupid' },
+  { id: 'lp5', label: 'Wide' },
+  { id: 'lp6', label: 'Pouty' },
+];
+
+const EAR_STYLES: Option[] = [
+  { id: 'ea1', label: 'Default' },
+  { id: 'ea2', label: 'Small' },
+  { id: 'ea3', label: 'Large' },
+  { id: 'ea4', label: 'Pointed' },
+  { id: 'ea5', label: 'Earring' },
+  { id: 'ea6', label: 'Stud' },
+];
+
+const BEARD_STYLES: Option[] = [
+  { id: 'bd0', label: 'None' },
+  { id: 'bd1', label: 'Stubble' },
+  { id: 'bd2', label: 'Goatee' },
+  { id: 'bd3', label: 'Full Beard' },
+  { id: 'bd4', label: 'Moustache' },
+  { id: 'bd5', label: 'Chinstrap' },
+  { id: 'bd6', label: 'Circle' },
+  { id: 'bd7', label: 'Van Dyke' },
+  { id: 'bd8', label: 'Balbo' },
+];
+
+const HAIR_STYLES: Option[] = [
+  { id: 'hr1', label: 'Short Wavy' },
+  { id: 'hr2', label: 'Long Straight' },
+  { id: 'hr3', label: 'Curly Afro' },
+  { id: 'hr4', label: 'Side Swept' },
+  { id: 'hr5', label: 'Ponytail' },
+  { id: 'hr6', label: 'Buzz Cut' },
+  { id: 'hr7', label: 'Space Buns' },
+  { id: 'hr8', label: 'Mohawk' },
+  { id: 'hr9', label: 'Messy Fringe' },
+  { id: 'hr10', label: 'Slicked Back' },
+  { id: 'hr11', label: 'Braids' },
+  { id: 'hr12', label: 'Bob Cut' },
+];
+
+const HAIR_COLORS: ColorOption[] = [
   { id: 'hc1', hex: '#1a0a00', label: 'Jet Black' },
   { id: 'hc2', hex: '#3B1F0A', label: 'Dark Brown' },
   { id: 'hc3', hex: '#8B4513', label: 'Auburn' },
@@ -107,704 +176,532 @@ const HAIR_COLORS = [
   { id: 'hc10', hex: '#22c55e', label: 'Neon Green' },
 ];
 
-const OUTFIT_STYLES: StyleOption[] = [
-  { id: 'o1', label: 'Cyber Tee' },
-  { id: 'o2', label: 'Hoodie' },
-  { id: 'o3', label: 'Trench Coat' },
-  { id: 'o4', label: 'Tactical Vest' },
-  { id: 'o7', label: 'Cyber Suit' },
-  { id: 'o8', label: 'Streetwear' },
-  { id: 'o5', label: 'Neon Jacket', locked: true, cost: 1800 },
-  { id: 'o9', label: 'Techwear', locked: true, cost: 2200 },
-  { id: 'o6', label: 'Vanguard Armor', locked: true, cost: 3500 },
+const OUTFIT_STYLES: Option[] = [
+  { id: 'of1', label: 'Cyber Tee' },
+  { id: 'of2', label: 'Hoodie' },
+  { id: 'of3', label: 'Trench Coat' },
+  { id: 'of4', label: 'Tactical Vest' },
+  { id: 'of5', label: 'Cyber Suit' },
+  { id: 'of6', label: 'Streetwear' },
+  { id: 'of7', label: 'Neon Jacket', locked: true, cost: 1800 },
+  { id: 'of8', label: 'Techwear', locked: true, cost: 2200 },
+  { id: 'of9', label: 'Vanguard Armor', locked: true, cost: 3500 },
 ];
 
-const ACCESSORY_STYLES: StyleOption[] = [
-  { id: 'a1', label: 'None' },
-  { id: 'a2', label: 'Cat-Eye Shades' },
-  { id: 'a3', label: 'Round Glasses' },
-  { id: 'a4', label: 'Snapback Cap' },
-  { id: 'a5', label: 'Beanie' },
-  { id: 'a6', label: 'Holo Tag', locked: true, cost: 900 },
-  { id: 'a7', label: 'Neon Crown', locked: true, cost: 4000 },
+// ─── Default Avatar State ──────────────────────────────────────────────────────
+
+const DEFAULT_AVATAR: AvatarState = {
+  skinTone: 'sk3',
+  faceShape: 'fc1',
+  bodyType: 'bt2',
+  eyeStyle: 'ey1',
+  eyeColor: 'ec1',
+  browStyle: 'br1',
+  noseStyle: 'ns1',
+  lipsStyle: 'lp1',
+  earStyle: 'ea1',
+  beardStyle: 'bd0',
+  hairStyle: 'hr1',
+  hairColor: 'hc1',
+  outfitStyle: 'of1',
+};
+
+// ─── Sub-category Config ────────────────────────────────────────────────────────
+
+const AVATAR_SUB_CATEGORIES: { id: AvatarSubCategory; label: string; icon: string }[] = [
+  { id: 'eyes', label: 'Eyes', icon: '👁' },
+  { id: 'brows', label: 'Brows', icon: '〰️' },
+  { id: 'nose', label: 'Nose', icon: '👃' },
+  { id: 'face', label: 'Face', icon: '⬮' },
+  { id: 'lips', label: 'Lips', icon: '💋' },
+  { id: 'ears', label: 'Ears', icon: '👂' },
+  { id: 'beard', label: 'Beard', icon: '🧔' },
+  { id: 'hair', label: 'Hair', icon: '💇' },
+  { id: 'skin', label: 'Skin', icon: '🎨' },
+  { id: 'body', label: 'Body', icon: '🚶' },
 ];
 
-// ─── SVG Avatar Face ───────────────────────────────────────────────────────────
-
-interface AvatarFaceProps {
-  skinColor: string;
-  faceStructure: string;
-  bodyBuild: string;
-  eyeStyle: string;
-  eyeColor: string;
-  browStyle: string;
-  hairStyle: string;
-  hairColor: string;
-  outfitStyle: string;
-  accessoryStyle: string;
-}
-
-const AvatarFace: React.FC<AvatarFaceProps> = ({
-  skinColor,
-  faceStructure,
-  bodyBuild,
-  eyeStyle,
-  eyeColor,
-  browStyle,
-  hairStyle,
-  hairColor,
-  outfitStyle,
-  accessoryStyle,
-}) => {
-  // Derived shadow/highlight colors
-  const shadowColor = darken(skinColor, 0.15);
-  const highlightColor = lighten(skinColor, 0.12);
-
-  const getFacePath = () => {
-    if (faceStructure === 'f2') return <ellipse cx="100" cy="105" rx="60" ry="55" fill={skinColor} />; // Round
-    if (faceStructure === 'f3') return <path d="M50 70 Q50 45 100 45 Q150 45 150 70 L145 130 Q145 160 100 165 Q55 160 55 130 Z" fill={skinColor} />; // Square
-    if (faceStructure === 'f4') return <path d="M45 80 Q45 45 100 45 Q155 45 155 80 Q155 120 100 165 Q45 120 45 80 Z" fill={skinColor} />; // Heart
-    if (faceStructure === 'f5') return <polygon points="100,45 155,95 100,165 45,95" fill={skinColor} />; // Diamond
-    return <ellipse cx="100" cy="105" rx="55" ry="60" fill={skinColor} />; // Oval default
-  };
-
-  const getBodyTransform = () => {
-    if (bodyBuild === 'bb1') return 'scale(0.85, 1) translate(18, 0)'; // Slim
-    if (bodyBuild === 'bb3') return 'scale(1.15, 1) translate(-13, 0)'; // Broad
-    return ''; // Athletic / default
-  };
-
-  return (
-    <svg
-      viewBox="0 0 200 240"
-      width="200"
-      height="240"
-      xmlns="http://www.w3.org/2000/svg"
-      style={{ filter: 'drop-shadow(0 8px 32px rgba(255,0,85,0.35))' }}
-    >
-      {/* ── Outfit / Shoulders ── */}
-      <g transform={getBodyTransform()}>
-        <OutfitLayer style={outfitStyle} skinColor={skinColor} />
-      </g>
-
-      {/* ── Neck ── */}
-      <rect x="87" y="152" width="26" height="24" rx="6" fill={skinColor} />
-      <rect x="90" y="152" width="6" height="20" rx="3" fill={shadowColor} opacity="0.35" />
-
-      {/* ── Head Base (face) ── */}
-      {getFacePath()}
-
-      {/* Face shading */}
-      <ellipse cx="76" cy="118" rx="12" ry="18" fill={shadowColor} opacity="0.18" />
-      <ellipse cx="124" cy="118" rx="12" ry="18" fill={shadowColor} opacity="0.18" />
-      <ellipse cx="100" cy="90" rx="28" ry="16" fill={highlightColor} opacity="0.3" />
-
-      {/* ── Ears ── */}
-      <ellipse cx="46" cy="108" rx="10" ry="13" fill={skinColor} />
-      <ellipse cx="154" cy="108" rx="10" ry="13" fill={skinColor} />
-      <ellipse cx="46" cy="108" rx="6" ry="8" fill={shadowColor} opacity="0.25" />
-      <ellipse cx="154" cy="108" rx="6" ry="8" fill={shadowColor} opacity="0.25" />
-
-      {/* ── Cheeks ── */}
-      <ellipse cx="73" cy="125" rx="12" ry="7" fill="#ff6b9d" opacity="0.25" />
-      <ellipse cx="127" cy="125" rx="12" ry="7" fill="#ff6b9d" opacity="0.25" />
-
-      {/* ── Eyebrows ── */}
-      <BrowLayer style={browStyle} hairColor={hairColor} />
-
-      {/* ── Eyes ── */}
-      <EyeLayer style={eyeStyle} eyeColor={eyeColor} />
-
-      {/* ── Nose ── */}
-      <path d="M98 112 Q100 122 102 112" stroke={shadowColor} strokeWidth="1.8" fill="none" strokeLinecap="round" opacity="0.6" />
-      <ellipse cx="96" cy="122" rx="4" ry="2.5" fill={shadowColor} opacity="0.2" />
-      <ellipse cx="104" cy="122" rx="4" ry="2.5" fill={shadowColor} opacity="0.2" />
-
-      {/* ── Mouth / Smile ── */}
-      <path d="M88 134 Q100 143 112 134" stroke={darken(skinColor, 0.3)} strokeWidth="2.2" fill="none" strokeLinecap="round" />
-      {/* Lip highlight */}
-      <ellipse cx="100" cy="140" rx="8" ry="3" fill="#ffffff" opacity="0.12" />
-
-      {/* ── Hair ── */}
-      <HairLayer style={hairStyle} hairColor={hairColor} />
-
-      {/* ── Accessory ── */}
-      <AccessoryLayer style={accessoryStyle} hairColor={hairColor} />
-    </svg>
-  );
-};
-
-// ─── SVG Sub-layers ───────────────────────────────────────────────────────────
-
-const EyeLayer: React.FC<{ style: string; eyeColor: string }> = ({ style, eyeColor }) => {
-  const white = '#ffffff';
-  const pupil = darken(eyeColor, 0.4);
-
-  if (style === 'e1') { // Round
-    return (
-      <g>
-        <ellipse cx="80" cy="108" rx="12" ry="12" fill={white} />
-        <ellipse cx="120" cy="108" rx="12" ry="12" fill={white} />
-        <ellipse cx="81" cy="108" rx="7" ry="7" fill={eyeColor} />
-        <ellipse cx="121" cy="108" rx="7" ry="7" fill={eyeColor} />
-        <ellipse cx="81" cy="108" rx="4" ry="4" fill={pupil} />
-        <ellipse cx="121" cy="108" rx="4" ry="4" fill={pupil} />
-        <circle cx="83" cy="105" r="2" fill={white} opacity="0.9" />
-        <circle cx="123" cy="105" r="2" fill={white} opacity="0.9" />
-        {/* Lashes */}
-        <path d="M68 100 Q80 96 92 100" stroke="#1a0a00" strokeWidth="2.2" fill="none" strokeLinecap="round" />
-        <path d="M108 100 Q120 96 132 100" stroke="#1a0a00" strokeWidth="2.2" fill="none" strokeLinecap="round" />
-      </g>
-    );
-  }
-  if (style === 'e2') { // Almond
-    return (
-      <g>
-        <path d="M68 108 Q80 98 92 108 Q80 118 68 108Z" fill={white} />
-        <path d="M108 108 Q120 98 132 108 Q120 118 108 108Z" fill={white} />
-        <ellipse cx="80" cy="108" rx="6" ry="7" fill={eyeColor} />
-        <ellipse cx="120" cy="108" rx="6" ry="7" fill={eyeColor} />
-        <ellipse cx="80" cy="108" rx="3.5" ry="4" fill={pupil} />
-        <ellipse cx="120" cy="108" rx="3.5" ry="4" fill={pupil} />
-        <circle cx="82" cy="105" r="1.8" fill={white} opacity="0.9" />
-        <circle cx="122" cy="105" r="1.8" fill={white} opacity="0.9" />
-        <path d="M68 108 Q80 98 92 108" stroke="#1a0a00" strokeWidth="2" fill="none" />
-        <path d="M108 108 Q120 98 132 108" stroke="#1a0a00" strokeWidth="2" fill="none" />
-      </g>
-    );
-  }
-  if (style === 'e3') { // Cat-Eye
-    return (
-      <g>
-        <path d="M67 110 Q80 96 93 106 Q88 115 70 114Z" fill={white} />
-        <path d="M107 110 Q120 96 133 106 Q128 115 110 114Z" fill={white} />
-        <ellipse cx="80" cy="106" rx="6" ry="6.5" fill={eyeColor} />
-        <ellipse cx="120" cy="106" rx="6" ry="6.5" fill={eyeColor} />
-        <ellipse cx="80" cy="106" rx="3.5" ry="3.8" fill={pupil} />
-        <ellipse cx="120" cy="106" rx="3.5" ry="3.8" fill={pupil} />
-        <circle cx="82" cy="104" r="1.8" fill={white} opacity="0.9" />
-        <circle cx="122" cy="104" r="1.8" fill={white} opacity="0.9" />
-        <path d="M67 110 Q80 96 93 106" stroke="#1a0a00" strokeWidth="2.2" fill="none" strokeLinecap="round" />
-        <path d="M107 110 Q120 96 133 106" stroke="#1a0a00" strokeWidth="2.2" fill="none" strokeLinecap="round" />
-        {/* Cat flick */}
-        <line x1="93" y1="106" x2="96" y2="101" stroke="#1a0a00" strokeWidth="1.8" strokeLinecap="round" />
-        <line x1="107" y1="106" x2="104" y2="101" stroke="#1a0a00" strokeWidth="1.8" strokeLinecap="round" />
-      </g>
-    );
-  }
-  if (style === 'e4') { // Sleepy / Half-closed
-    return (
-      <g>
-        <path d="M68 112 Q80 102 92 112" fill={white} />
-        <path d="M108 112 Q120 102 132 112" fill={white} />
-        <ellipse cx="80" cy="112" rx="7" ry="5" fill={white} />
-        <ellipse cx="120" cy="112" rx="7" ry="5" fill={white} />
-        <ellipse cx="80" cy="112" rx="4.5" ry="3.5" fill={eyeColor} />
-        <ellipse cx="120" cy="112" rx="4.5" ry="3.5" fill={eyeColor} />
-        <ellipse cx="80" cy="112" rx="2.5" ry="2" fill={pupil} />
-        <ellipse cx="120" cy="112" rx="2.5" ry="2" fill={pupil} />
-        {/* Heavy lid */}
-        <path d="M68 112 Q80 102 92 112" stroke="#1a0a00" strokeWidth="2.4" fill="none" strokeLinecap="round" />
-        <path d="M108 112 Q120 102 132 112" stroke="#1a0a00" strokeWidth="2.4" fill="none" strokeLinecap="round" />
-      </g>
-    );
-  }
-  if (style === 'e5') { // Wide
-    return (
-      <g>
-        <ellipse cx="80" cy="107" rx="14" ry="14" fill={white} />
-        <ellipse cx="120" cy="107" rx="14" ry="14" fill={white} />
-        <ellipse cx="80" cy="107" rx="9" ry="9" fill={eyeColor} />
-        <ellipse cx="120" cy="107" rx="9" ry="9" fill={eyeColor} />
-        <ellipse cx="80" cy="107" rx="5" ry="5" fill={pupil} />
-        <ellipse cx="120" cy="107" rx="5" ry="5" fill={pupil} />
-        <circle cx="82.5" cy="104" r="2.5" fill={white} opacity="0.9" />
-        <circle cx="122.5" cy="104" r="2.5" fill={white} opacity="0.9" />
-        <path d="M66 95 Q80 90 94 95" stroke="#1a0a00" strokeWidth="2.2" fill="none" strokeLinecap="round" />
-        <path d="M106 95 Q120 90 134 95" stroke="#1a0a00" strokeWidth="2.2" fill="none" strokeLinecap="round" />
-      </g>
-    );
-  }
-  if (style === 'e6') { // Star
-    return (
-      <g>
-        <ellipse cx="80" cy="108" rx="12" ry="12" fill={white} />
-        <ellipse cx="120" cy="108" rx="12" ry="12" fill={white} />
-        {/* Star iris */}
-        <polygon points="80,99 82,106 89,106 83.5,110.5 85.5,117.5 80,113 74.5,117.5 76.5,110.5 71,106 78,106" fill={eyeColor} />
-        <polygon points="120,99 122,106 129,106 123.5,110.5 125.5,117.5 120,113 114.5,117.5 116.5,110.5 111,106 118,106" fill={eyeColor} />
-        <circle cx="82" cy="105" r="2" fill={white} opacity="0.9" />
-        <circle cx="122" cy="105" r="2" fill={white} opacity="0.9" />
-        <path d="M68 98 Q80 93 92 98" stroke="#1a0a00" strokeWidth="2" fill="none" strokeLinecap="round" />
-        <path d="M108 98 Q120 93 132 98" stroke="#1a0a00" strokeWidth="2" fill="none" strokeLinecap="round" />
-      </g>
-    );
-  }
-  return null;
-};
-
-const BrowLayer: React.FC<{ style: string; hairColor: string }> = ({ style, hairColor }) => {
-  const brow = hairColor === '#F5DEB3' ? '#8B6914' : darken(hairColor, 0.1);
-
-  if (style === 'b1') { // Soft Arch
-    return (
-      <g>
-        <path d="M68 95 Q80 88 92 93" stroke={brow} strokeWidth="3" fill="none" strokeLinecap="round" />
-        <path d="M108 93 Q120 88 132 95" stroke={brow} strokeWidth="3" fill="none" strokeLinecap="round" />
-      </g>
-    );
-  }
-  if (style === 'b2') { // Straight
-    return (
-      <g>
-        <line x1="68" y1="92" x2="92" y2="92" stroke={brow} strokeWidth="3" strokeLinecap="round" />
-        <line x1="108" y1="92" x2="132" y2="92" stroke={brow} strokeWidth="3" strokeLinecap="round" />
-      </g>
-    );
-  }
-  if (style === 'b3') { // High Arch
-    return (
-      <g>
-        <path d="M68 97 Q80 84 92 94" stroke={brow} strokeWidth="3" fill="none" strokeLinecap="round" />
-        <path d="M108 94 Q120 84 132 97" stroke={brow} strokeWidth="3" fill="none" strokeLinecap="round" />
-      </g>
-    );
-  }
-  if (style === 'b4') { // Thick
-    return (
-      <g>
-        <path d="M67 95 Q80 87 93 93" stroke={brow} strokeWidth="5" fill="none" strokeLinecap="round" />
-        <path d="M107 93 Q120 87 133 95" stroke={brow} strokeWidth="5" fill="none" strokeLinecap="round" />
-      </g>
-    );
-  }
-  return null;
-};
-
-const HairLayer: React.FC<{ style: string; hairColor: string }> = ({ style, hairColor }) => {
-  const shadow = darken(hairColor, 0.2);
-  const highlight = lighten(hairColor, 0.15);
-
-  if (style === 'h1') { // Short Wavy
-    return (
-      <g>
-        <path d="M45 105 Q44 72 60 57 Q80 42 100 42 Q120 42 140 57 Q156 72 155 105 Q148 88 140 78 Q125 52 100 50 Q75 52 60 78 Q52 88 45 105Z" fill={hairColor} />
-        <path d="M45 105 Q50 80 60 68 Q75 54 100 52 Q125 54 140 68 Q150 80 155 105" fill="none" stroke={highlight} strokeWidth="1.5" opacity="0.5" />
-        {/* Waves */}
-        <path d="M46 100 Q52 95 58 100 Q64 105 70 100" stroke={shadow} strokeWidth="1.2" fill="none" opacity="0.6" />
-        <path d="M142 100 Q148 95 154 100" stroke={shadow} strokeWidth="1.2" fill="none" opacity="0.6" />
-      </g>
-    );
-  }
-  if (style === 'h2') { // Long Straight
-    return (
-      <g>
-        {/* Top cap */}
-        <path d="M45 105 Q44 72 60 57 Q80 42 100 42 Q120 42 140 57 Q156 72 155 105 Q148 88 140 78 Q125 52 100 50 Q75 52 60 78 Q52 88 45 105Z" fill={hairColor} />
-        {/* Long sides flowing down */}
-        <rect x="44" y="98" width="18" height="90" rx="9" fill={hairColor} />
-        <rect x="138" y="98" width="18" height="90" rx="9" fill={hairColor} />
-        <line x1="50" y1="100" x2="52" y2="185" stroke={highlight} strokeWidth="1" opacity="0.5" />
-        <line x1="148" y1="100" x2="150" y2="185" stroke={highlight} strokeWidth="1" opacity="0.5" />
-      </g>
-    );
-  }
-  if (style === 'h3') { // Curly Afro
-    return (
-      <g>
-        <circle cx="100" cy="62" r="48" fill={hairColor} />
-        {/* Curly texture circles */}
-        {[
-          [68, 52], [80, 42], [95, 36], [112, 40], [128, 52],
-          [140, 64], [138, 78], [62, 68], [100, 32], [115, 30]
-        ].map(([cx, cy], i) => (
-          <circle key={i} cx={cx} cy={cy} r="9" fill={shadow} opacity="0.3" />
-        ))}
-        <circle cx="100" cy="62" r="44" fill="none" stroke={highlight} strokeWidth="1.5" opacity="0.25" />
-      </g>
-    );
-  }
-  if (style === 'h4') { // Side Swept
-    return (
-      <g>
-        <path d="M45 105 Q44 72 60 57 Q80 42 100 42 Q120 42 140 57 Q156 72 155 105 Q148 88 140 78 Q125 52 100 50 Q75 52 60 78 Q52 88 45 105Z" fill={hairColor} />
-        {/* Swept fringe to the right */}
-        <path d="M56 75 Q80 55 130 62 Q110 48 100 46 Q75 48 56 75Z" fill={shadow} opacity="0.4" />
-        <path d="M56 75 Q80 58 128 64" stroke={highlight} strokeWidth="1.5" fill="none" opacity="0.5" />
-      </g>
-    );
-  }
-  if (style === 'h5') { // Ponytail
-    return (
-      <g>
-        <path d="M45 105 Q44 72 60 57 Q80 42 100 42 Q120 42 140 57 Q156 72 155 105 Q148 88 140 78 Q125 52 100 50 Q75 52 60 78 Q52 88 45 105Z" fill={hairColor} />
-        {/* Ponytail at back */}
-        <ellipse cx="100" cy="52" rx="8" ry="6" fill={shadow} />
-        <path d="M96 52 Q88 40 92 20 Q96 10 100 8 Q104 10 108 20 Q112 40 104 52Z" fill={hairColor} />
-        <line x1="100" y1="48" x2="100" y2="12" stroke={highlight} strokeWidth="1.2" opacity="0.5" />
-      </g>
-    );
-  }
-  if (style === 'h6') { // Buzz Cut
-    return (
-      <g>
-        <path d="M45 108 Q44 78 62 62 Q80 46 100 46 Q120 46 138 62 Q156 78 155 108 Q150 92 140 82 Q125 56 100 54 Q75 56 60 82 Q50 92 45 108Z" fill={hairColor} />
-        {/* Stubble texture */}
-        {[55,65,75,85,95,105,115,125,135,145].map((x, i) => (
-          <line key={i} x1={x} y1={i % 2 === 0 ? 58 : 62} x2={x} y2={i % 2 === 0 ? 53 : 56} stroke={shadow} strokeWidth="1" opacity="0.5" />
-        ))}
-      </g>
-    );
-  }
-  if (style === 'h7') { // Space Buns
-    return (
-      <g>
-        <path d="M45 105 Q44 72 60 57 Q80 42 100 42 Q120 42 140 57 Q156 72 155 105 Q148 88 140 78 Q125 52 100 50 Q75 52 60 78 Q52 88 45 105Z" fill={hairColor} />
-        <circle cx="74" cy="48" r="18" fill={hairColor} />
-        <circle cx="126" cy="48" r="18" fill={hairColor} />
-        <circle cx="74" cy="48" r="12" fill={shadow} opacity="0.35" />
-        <circle cx="126" cy="48" r="12" fill={shadow} opacity="0.35" />
-        <circle cx="72" cy="44" r="5" fill={highlight} opacity="0.3" />
-        <circle cx="124" cy="44" r="5" fill={highlight} opacity="0.3" />
-      </g>
-    );
-  }
-  if (style === 'h8') { // Mohawk
-    return (
-      <g>
-        <path d="M45 105 Q44 72 60 57 Q80 42 100 42 Q120 42 140 57 Q156 72 155 105 Q148 88 140 78 Q125 52 100 50 Q75 52 60 78 Q52 88 45 105Z" fill={hairColor} />
-        {/* Mohawk strip */}
-        <path d="M92 46 Q96 10 100 5 Q104 10 108 46Z" fill={hairColor} />
-        <path d="M93 44 Q97 15 100 10 Q103 15 107 44" fill={shadow} opacity="0.3" />
-        <line x1="100" y1="46" x2="100" y2="8" stroke={highlight} strokeWidth="1.5" opacity="0.6" />
-      </g>
-    );
-  }
-  if (style === 'h9') { // Messy Fringe
-    return (
-      <g>
-        <path d="M45 105 Q44 72 60 57 Q80 42 100 42 Q120 42 140 57 Q156 72 155 105 Q148 88 140 78 Q125 52 100 50 Q75 52 60 78 Q52 88 45 105Z" fill={hairColor} />
-        <path d="M50 70 Q70 60 90 85 Q110 60 130 75" stroke={shadow} strokeWidth="2" fill="none" opacity="0.5" />
-        <path d="M55 75 Q75 55 95 90 Q120 50 145 80" stroke={highlight} strokeWidth="1.5" fill="none" opacity="0.6" />
-        <path d="M40 100 Q60 80 80 105" stroke={hairColor} strokeWidth="4" fill="none" />
-      </g>
-    );
-  }
-  if (style === 'h10') { // Slicked Back
-    return (
-      <g>
-        <path d="M45 105 Q44 72 60 57 Q80 45 100 45 Q120 45 140 57 Q156 72 155 105 Q150 92 140 82 Q125 56 100 54 Q75 56 60 82 Q50 92 45 108Z" fill={hairColor} />
-        <path d="M60 60 Q80 48 100 50 Q120 48 140 60" stroke={highlight} strokeWidth="2" fill="none" opacity="0.5" />
-        <path d="M70 65 Q90 52 110 52 Q125 55 135 65" stroke={shadow} strokeWidth="1.5" fill="none" opacity="0.4" />
-      </g>
-    );
-  }
-  if (style === 'h11') { // Cyber Braids
-    return (
-      <g>
-        <path d="M45 105 Q44 72 60 57 Q80 42 100 42 Q120 42 140 57 Q156 72 155 105 Q148 88 140 78 Q125 52 100 50 Q75 52 60 78 Q52 88 45 105Z" fill={hairColor} />
-        {/* Braids */}
-        <path d="M55 95 Q50 130 55 170" stroke={hairColor} strokeWidth="12" fill="none" strokeDasharray="6 2" />
-        <path d="M145 95 Q150 130 145 170" stroke={hairColor} strokeWidth="12" fill="none" strokeDasharray="6 2" />
-        {/* Neon bands */}
-        <line x1="48" y1="160" x2="62" y2="160" stroke="#00d4ff" strokeWidth="3" />
-        <line x1="138" y1="160" x2="152" y2="160" stroke="#00d4ff" strokeWidth="3" />
-      </g>
-    );
-  }
-  return null;
-};
-
-const OutfitLayer: React.FC<{ style: string; skinColor: string }> = ({ style, skinColor }) => {
-  const outfitColors: Record<string, { main: string; accent: string }> = {
-    o1: { main: '#1a0a1a', accent: '#ff0055' },
-    o2: { main: '#2d0d2d', accent: '#e60039' },
-    o3: { main: '#0d0d18', accent: '#ff0055' },
-    o4: { main: '#18181b', accent: '#ff0055' },
-    o5: { main: '#0d1a2d', accent: '#00d4ff' },
-    o6: { main: '#1a0a00', accent: '#ffd700' },
-    o7: { main: '#101015', accent: '#00d4ff' },
-    o8: { main: '#333333', accent: '#ff4400' },
-    o9: { main: '#1a1a24', accent: '#00ff66' },
-  };
-  const { main, accent } = outfitColors[style] || outfitColors.o1;
-
-  if (style === 'o1') { // Cyber Tee
-    return (
-      <g>
-        <path d="M30 240 L30 185 Q40 172 60 168 L80 165 Q90 175 100 178 Q110 175 120 165 L140 168 Q160 172 170 185 L170 240Z" fill={main} />
-        {/* Neon stripe */}
-        <line x1="30" y1="210" x2="170" y2="210" stroke={accent} strokeWidth="2" opacity="0.7" />
-        <text x="100" y="198" textAnchor="middle" fontSize="9" fill={accent} fontFamily="monospace" fontWeight="bold">CYBER</text>
-        {/* Collar */}
-        <path d="M82 165 Q100 172 118 165" fill="none" stroke={accent} strokeWidth="1.5" />
-      </g>
-    );
-  }
-  if (style === 'o2') { // Hoodie
-    return (
-      <g>
-        <path d="M26 240 L26 182 Q36 165 60 162 L78 162 Q88 172 100 175 Q112 172 122 162 L140 162 Q164 165 174 182 L174 240Z" fill={main} />
-        {/* Hood detail */}
-        <path d="M62 162 Q100 158 138 162 Q120 148 100 146 Q80 148 62 162Z" fill={darken(main, 0.1)} />
-        {/* Pocket */}
-        <rect x="82" y="205" width="36" height="20" rx="4" fill={darken(main, 0.15)} />
-        <line x1="100" y1="205" x2="100" y2="225" stroke={accent} strokeWidth="1" opacity="0.5" />
-      </g>
-    );
-  }
-  if (style === 'o3') { // Trench Coat
-    return (
-      <g>
-        <path d="M22 240 L22 180 Q32 162 58 158 L76 158 Q88 170 100 173 Q112 170 124 158 L142 158 Q168 162 178 180 L178 240Z" fill={main} />
-        {/* Lapels */}
-        <path d="M78 158 L68 175 L82 180 L100 168Z" fill={darken(main, 0.2)} />
-        <path d="M122 158 L132 175 L118 180 L100 168Z" fill={darken(main, 0.2)} />
-        {/* Button row */}
-        {[185, 198, 211, 224].map((y, i) => (
-          <circle key={i} cx="100" cy={y} r="2.5" fill={accent} opacity="0.8" />
-        ))}
-        <line x1="100" y1="170" x2="100" y2="240" stroke={darken(main, 0.25)} strokeWidth="1.5" />
-      </g>
-    );
-  }
-  if (style === 'o4') { // Tactical Vest
-    return (
-      <g>
-        <path d="M28 240 L28 184 Q38 168 62 164 L80 162 Q90 172 100 175 Q110 172 120 162 L138 164 Q162 168 172 184 L172 240Z" fill={main} />
-        {/* Vest panels */}
-        <rect x="60" y="178" width="28" height="50" rx="3" fill={darken(main, 0.3)} opacity="0.8" />
-        <rect x="112" y="178" width="28" height="50" rx="3" fill={darken(main, 0.3)} opacity="0.8" />
-        {/* Buckles */}
-        <rect x="65" y="192" width="18" height="6" rx="2" fill={accent} opacity="0.8" />
-        <rect x="117" y="192" width="18" height="6" rx="2" fill={accent} opacity="0.8" />
-        {/* Collar */}
-        <path d="M80 162 L90 178 L100 172 L110 178 L120 162" fill="none" stroke={accent} strokeWidth="1.5" />
-      </g>
-    );
-  }
-  if (style === 'o5') { // Neon Jacket
-    return (
-      <g>
-        <path d="M26 240 L26 182 Q36 165 60 162 L78 160 Q88 172 100 175 Q112 172 122 160 L140 162 Q164 165 174 182 L174 240Z" fill={main} />
-        {/* Neon piping */}
-        <path d="M60 162 L26 182" stroke={accent} strokeWidth="2.5" opacity="0.9" />
-        <path d="M140 162 L174 182" stroke={accent} strokeWidth="2.5" opacity="0.9" />
-        <path d="M78 160 L100 175 L122 160" stroke={accent} strokeWidth="2" opacity="0.7" />
-        {/* Glow */}
-        <path d="M60 162 L26 182" stroke={accent} strokeWidth="5" opacity="0.3" />
-        <path d="M140 162 L174 182" stroke={accent} strokeWidth="5" opacity="0.3" />
-      </g>
-    );
-  }
-  if (style === 'o6') { // Vanguard Armor
-    return (
-      <g>
-        <path d="M24 240 L24 180 Q34 160 58 156 L76 154 Q88 168 100 172 Q112 168 124 154 L142 156 Q166 160 176 180 L176 240Z" fill={main} />
-        {/* Shoulder armor pads */}
-        <ellipse cx="48" cy="168" rx="22" ry="14" fill={darken(main, 0.2)} />
-        <ellipse cx="152" cy="168" rx="22" ry="14" fill={darken(main, 0.2)} />
-        <ellipse cx="48" cy="166" rx="14" ry="8" fill={accent} opacity="0.6" />
-        <ellipse cx="152" cy="166" rx="14" ry="8" fill={accent} opacity="0.6" />
-        {/* Chest piece */}
-        <path d="M76 154 Q100 160 124 154 L118 200 L100 205 L82 200Z" fill={darken(main, 0.15)} />
-        <path d="M88 165 Q100 162 112 165 L110 195 L100 198 L90 195Z" fill={accent} opacity="0.4" />
-        <circle cx="100" cy="178" r="6" fill={accent} opacity="0.7" />
-        <circle cx="100" cy="178" r="3" fill="#ffffff" opacity="0.5" />
-      </g>
-    );
-  }
-  if (style === 'o7') { // Cyber Suit
-    return (
-      <g>
-        <path d="M28 240 L28 180 Q38 165 62 162 L80 160 Q90 172 100 175 Q110 172 120 160 L138 162 Q162 165 172 180 L172 240Z" fill={main} />
-        {/* Hexagon pattern suggestion */}
-        <path d="M90 185 L110 185 L120 200 L110 215 L90 215 L80 200 Z" fill={darken(main, 0.2)} />
-        <path d="M90 185 L110 185 L120 200 L110 215 L90 215 L80 200 Z" fill="none" stroke={accent} strokeWidth="1.5" opacity="0.8" />
-        <line x1="100" y1="175" x2="100" y2="185" stroke={accent} strokeWidth="2" />
-      </g>
-    );
-  }
-  if (style === 'o8') { // Streetwear
-    return (
-      <g>
-        <path d="M22 240 L22 182 Q32 165 58 162 L78 160 Q88 172 100 175 Q112 172 122 160 L142 162 Q168 165 178 182 L178 240Z" fill={main} />
-        {/* Oversized tee look */}
-        <path d="M60 162 Q100 180 140 162 L145 190 Q100 210 55 190 Z" fill={darken(main, 0.1)} />
-        <text x="100" y="200" textAnchor="middle" fontSize="14" fill={accent} fontFamily="sans-serif" fontWeight="900" transform="rotate(-5 100 200)" opacity="0.8">URBAN</text>
-      </g>
-    );
-  }
-  if (style === 'o9') { // Techwear
-    return (
-      <g>
-        <path d="M25 240 L25 180 Q35 162 60 158 L80 156 Q90 170 100 172 Q110 170 120 156 L140 158 Q165 162 175 180 L175 240Z" fill={main} />
-        {/* Straps and utility */}
-        <line x1="60" y1="160" x2="140" y2="210" stroke={darken(main, 0.3)} strokeWidth="8" />
-        <line x1="140" y1="160" x2="60" y2="210" stroke={darken(main, 0.3)} strokeWidth="8" />
-        <circle cx="100" cy="185" r="8" fill={accent} opacity="0.9" />
-        <circle cx="100" cy="185" r="4" fill="#000" opacity="0.5" />
-      </g>
-    );
-  }
-  return null;
-};
-
-const AccessoryLayer: React.FC<{ style: string; hairColor: string }> = ({ style, hairColor }) => {
-  if (style === 'a1') return null; // None
-
-  if (style === 'a2') { // Cat-Eye Shades
-    return (
-      <g>
-        <path d="M66 106 Q80 98 94 106 Q80 114 66 106Z" fill="#1a0a00" opacity="0.85" />
-        <path d="M106 106 Q120 98 134 106 Q120 114 106 106Z" fill="#1a0a00" opacity="0.85" />
-        <path d="M66 106 Q80 98 94 106" stroke="#ff0055" strokeWidth="1.5" fill="none" />
-        <path d="M106 106 Q120 98 134 106" stroke="#ff0055" strokeWidth="1.5" fill="none" />
-        {/* Lens shine */}
-        <path d="M70 104 Q76 100 82 104" stroke="#ffffff" strokeWidth="1" fill="none" opacity="0.4" />
-        <path d="M110 104 Q116 100 122 104" stroke="#ffffff" strokeWidth="1" fill="none" opacity="0.4" />
-        {/* Bridge */}
-        <line x1="94" y1="106" x2="106" y2="106" stroke="#ff0055" strokeWidth="1.5" />
-        {/* Arms */}
-        <line x1="66" y1="106" x2="50" y2="110" stroke="#ff0055" strokeWidth="1.5" strokeLinecap="round" />
-        <line x1="134" y1="106" x2="150" y2="110" stroke="#ff0055" strokeWidth="1.5" strokeLinecap="round" />
-      </g>
-    );
-  }
-  if (style === 'a3') { // Round Glasses
-    return (
-      <g>
-        <circle cx="80" cy="108" r="13" fill="none" stroke="#ff0055" strokeWidth="2" />
-        <circle cx="120" cy="108" r="13" fill="none" stroke="#ff0055" strokeWidth="2" />
-        <circle cx="80" cy="108" r="11" fill="#000000" opacity="0.3" />
-        <circle cx="120" cy="108" r="11" fill="#000000" opacity="0.3" />
-        {/* Shine */}
-        <path d="M73 103 Q76 100 80 103" stroke="#ffffff" strokeWidth="1.2" fill="none" opacity="0.5" />
-        <path d="M113 103 Q116 100 120 103" stroke="#ffffff" strokeWidth="1.2" fill="none" opacity="0.5" />
-        {/* Bridge */}
-        <line x1="93" y1="107" x2="107" y2="107" stroke="#ff0055" strokeWidth="1.8" />
-        {/* Arms */}
-        <line x1="67" y1="108" x2="50" y2="112" stroke="#ff0055" strokeWidth="1.8" strokeLinecap="round" />
-        <line x1="133" y1="108" x2="150" y2="112" stroke="#ff0055" strokeWidth="1.8" strokeLinecap="round" />
-      </g>
-    );
-  }
-  if (style === 'a4') { // Snapback Cap
-    return (
-      <g>
-        {/* Cap body */}
-        <path d="M44 75 Q44 52 60 42 Q80 30 100 30 Q120 30 140 42 Q156 52 156 75 L44 75Z" fill={hairColor} />
-        {/* Brim */}
-        <path d="M38 75 L162 75 L156 82 L44 82Z" fill={darken(hairColor, 0.2)} />
-        {/* Crown seam */}
-        <line x1="100" y1="30" x2="100" y2="75" stroke={darken(hairColor, 0.25)} strokeWidth="1.5" />
-        {/* Logo patch */}
-        <rect x="86" y="56" width="28" height="14" rx="4" fill={darken(hairColor, 0.15)} />
-        <text x="100" y="66" textAnchor="middle" fontSize="7" fill="#ff0055" fontFamily="monospace" fontWeight="bold">CE</text>
-      </g>
-    );
-  }
-  if (style === 'a5') { // Beanie
-    return (
-      <g>
-        <path d="M44 80 Q44 48 62 38 Q80 28 100 28 Q120 28 138 38 Q156 48 156 80 L44 80Z" fill={hairColor} />
-        {/* Folded cuff */}
-        <path d="M44 80 L156 80 L156 90 L44 90Z" fill={darken(hairColor, 0.2)} />
-        {/* Ribbing lines */}
-        {[60, 74, 88, 102, 116, 130, 144].map((x, i) => (
-          <line key={i} x1={x} y1="80" x2={x} y2="90" stroke={darken(hairColor, 0.35)} strokeWidth="1" opacity="0.6" />
-        ))}
-        {/* Pom-pom */}
-        <circle cx="100" cy="32" r="10" fill={lighten(hairColor, 0.15)} />
-        <circle cx="100" cy="32" r="7" fill={lighten(hairColor, 0.2)} opacity="0.6" />
-      </g>
-    );
-  }
-  if (style === 'a6') { // Holo Tag
-    return (
-      <g>
-        <rect x="118" y="92" width="36" height="18" rx="9" fill="#ff0055" opacity="0.9" />
-        <text x="136" y="104" textAnchor="middle" fontSize="7" fill="#ffffff" fontFamily="monospace" fontWeight="bold">HOLO</text>
-        <rect x="118" y="92" width="36" height="18" rx="9" fill="none" stroke="#ffffff" strokeWidth="0.8" opacity="0.5" />
-        <line x1="118" y1="101" x2="108" y2="104" stroke="#ff0055" strokeWidth="1.2" />
-      </g>
-    );
-  }
-  if (style === 'a7') { // Neon Crown
-    return (
-      <g>
-        <path d="M56 68 L62 45 L80 62 L100 35 L120 62 L138 45 L144 68 Z" fill="#ffd700" />
-        {/* Gems */}
-        <circle cx="80" cy="62" r="5" fill="#ff0055" />
-        <circle cx="100" cy="52" r="6" fill="#ff0055" />
-        <circle cx="120" cy="62" r="5" fill="#ff0055" />
-        {/* Glow */}
-        <path d="M56 68 L62 45 L80 62 L100 35 L120 62 L138 45 L144 68 Z" fill="none" stroke="#ffd700" strokeWidth="2" opacity="0.5" filter="url(#glow)" />
-      </g>
-    );
-  }
-  return null;
-};
-
-// ─── Color Utility ─────────────────────────────────────────────────────────────
+// ─── Color Utilities ───────────────────────────────────────────────────────────
 
 function hexToRgb(hex: string): [number, number, number] {
   const n = parseInt(hex.replace('#', ''), 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
-
 function rgbToHex(r: number, g: number, b: number): string {
   return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
 }
-
 function darken(hex: string, amount: number): string {
   const [r, g, b] = hexToRgb(hex);
   return rgbToHex(r * (1 - amount), g * (1 - amount), b * (1 - amount));
 }
-
 function lighten(hex: string, amount: number): string {
   const [r, g, b] = hexToRgb(hex);
   return rgbToHex(r + (255 - r) * amount, g + (255 - g) * amount, b + (255 - b) * amount);
 }
+function getSkinColor(id: string) {
+  return SKIN_TONES.find(s => s.id === id)?.hex ?? '#E8A87C';
+}
+function getHairColor(id: string) {
+  return HAIR_COLORS.find(h => h.id === id)?.hex ?? '#1a0a00';
+}
+function getEyeColor(id: string) {
+  return EYE_COLORS.find(e => e.id === id)?.hex ?? '#3B2314';
+}
 
-// ─── Tab Config ───────────────────────────────────────────────────────────────
+// ─── 3D Avatar SVG ─────────────────────────────────────────────────────────────
 
-const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: 'structure', label: 'Structure', icon: <Palette className="w-3.5 h-3.5" /> },
-  { id: 'eyes', label: 'Eyes', icon: <Eye className="w-3.5 h-3.5" /> },
-  { id: 'hair', label: 'Hair', icon: <Scissors className="w-3.5 h-3.5" /> },
-  { id: 'outfit', label: 'Outfit', icon: <Shirt className="w-3.5 h-3.5" /> },
-  { id: 'accessories', label: 'Accessories', icon: <Glasses className="w-3.5 h-3.5" /> },
-];
+interface AvatarSVGProps {
+  avatar: AvatarState;
+  size?: number;
+  mini?: boolean;
+}
+
+const AvatarSVG: React.FC<AvatarSVGProps> = ({ avatar, size = 260, mini = false }) => {
+  const skin = getSkinColor(avatar.skinTone);
+  const hair = getHairColor(avatar.hairColor);
+  const eye = getEyeColor(avatar.eyeColor);
+  const skinShadow = darken(skin, 0.18);
+  const skinDark = darken(skin, 0.28);
+  const skinHighlight = lighten(skin, 0.14);
+  const hairShadow = darken(hair, 0.22);
+  const hairHighlight = lighten(hair, 0.12);
+  const eyePupil = darken(eye, 0.45);
+
+  // Face shape path
+  const getFacePath = () => {
+    switch (avatar.faceShape) {
+      case 'fc2': return <ellipse cx="100" cy="108" rx="62" ry="58" fill={skin} />; // Round
+      case 'fc3': return <path d="M48 72 Q48 44 100 44 Q152 44 152 72 L148 135 Q148 162 100 167 Q52 162 52 135Z" fill={skin} />; // Square
+      case 'fc4': return <path d="M44 82 Q44 44 100 44 Q156 44 156 82 Q156 124 100 168 Q44 124 44 82Z" fill={skin} />; // Heart
+      case 'fc5': return <ellipse cx="100" cy="108" rx="54" ry="65" fill={skin} />; // Diamond
+      case 'fc6': return <ellipse cx="100" cy="112" rx="52" ry="68" fill={skin} />; // Oblong
+      default:    return <ellipse cx="100" cy="108" rx="57" ry="62" fill={skin} />; // Oval
+    }
+  };
+
+  // Eye renderer
+  const getEyes = () => {
+    const white = '#ffffff';
+    switch (avatar.eyeStyle) {
+      case 'ey2': // Almond
+        return (<g>
+          <path d="M67 108 Q80 97 93 108 Q80 119 67 108Z" fill={white} />
+          <path d="M107 108 Q120 97 133 108 Q120 119 107 108Z" fill={white} />
+          <ellipse cx="80" cy="108" rx="6" ry="7" fill={eye} /><ellipse cx="120" cy="108" rx="6" ry="7" fill={eye} />
+          <ellipse cx="80" cy="108" rx="3.5" ry="4" fill={eyePupil} /><ellipse cx="120" cy="108" rx="3.5" ry="4" fill={eyePupil} />
+          <circle cx="82" cy="104" r="2" fill={white} opacity="0.9" /><circle cx="122" cy="104" r="2" fill={white} opacity="0.9" />
+          <path d="M67 108 Q80 97 93 108" stroke="#1a0a00" strokeWidth="2" fill="none" strokeLinecap="round" />
+          <path d="M107 108 Q120 97 133 108" stroke="#1a0a00" strokeWidth="2" fill="none" strokeLinecap="round" />
+        </g>);
+      case 'ey3': // Cat-Eye
+        return (<g>
+          <path d="M66 110 Q80 96 94 106 Q88 115 69 114Z" fill={white} />
+          <path d="M106 106 Q120 96 134 110 Q131 115 112 114Z" fill={white} />
+          <ellipse cx="80" cy="106" rx="6" ry="6.5" fill={eye} /><ellipse cx="120" cy="106" rx="6" ry="6.5" fill={eye} />
+          <ellipse cx="80" cy="106" rx="3.5" ry="3.8" fill={eyePupil} /><ellipse cx="120" cy="106" rx="3.5" ry="3.8" fill={eyePupil} />
+          <circle cx="82" cy="103" r="1.8" fill={white} opacity="0.9" /><circle cx="122" cy="103" r="1.8" fill={white} opacity="0.9" />
+          <path d="M66 110 Q80 96 94 106" stroke="#1a0a00" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+          <path d="M106 106 Q120 96 134 110" stroke="#1a0a00" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+          <line x1="94" y1="106" x2="97" y2="101" stroke="#1a0a00" strokeWidth="1.8" strokeLinecap="round" />
+          <line x1="106" y1="106" x2="103" y2="101" stroke="#1a0a00" strokeWidth="1.8" strokeLinecap="round" />
+        </g>);
+      case 'ey4': // Sleepy
+        return (<g>
+          <ellipse cx="80" cy="112" rx="10" ry="6" fill={white} /><ellipse cx="120" cy="112" rx="10" ry="6" fill={white} />
+          <ellipse cx="80" cy="112" rx="6" ry="4" fill={eye} /><ellipse cx="120" cy="112" rx="6" ry="4" fill={eye} />
+          <ellipse cx="80" cy="112" rx="3.5" ry="2.5" fill={eyePupil} /><ellipse cx="120" cy="112" rx="3.5" ry="2.5" fill={eyePupil} />
+          <path d="M68 111 Q80 103 92 111" stroke="#1a0a00" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <path d="M108 111 Q120 103 132 111" stroke="#1a0a00" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+        </g>);
+      case 'ey5': // Wide
+        return (<g>
+          <ellipse cx="80" cy="107" rx="14" ry="13" fill={white} /><ellipse cx="120" cy="107" rx="14" ry="13" fill={white} />
+          <ellipse cx="80" cy="107" rx="9" ry="9" fill={eye} /><ellipse cx="120" cy="107" rx="9" ry="9" fill={eye} />
+          <ellipse cx="80" cy="107" rx="5" ry="5" fill={eyePupil} /><ellipse cx="120" cy="107" rx="5" ry="5" fill={eyePupil} />
+          <circle cx="83" cy="103" r="2.5" fill={white} opacity="0.9" /><circle cx="123" cy="103" r="2.5" fill={white} opacity="0.9" />
+          <path d="M66 96 Q80 90 94 96" stroke="#1a0a00" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+          <path d="M106 96 Q120 90 134 96" stroke="#1a0a00" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+        </g>);
+      case 'ey6': // Deep Set
+        return (<g>
+          <ellipse cx="80" cy="110" rx="11" ry="10" fill={skinShadow} opacity="0.4" />
+          <ellipse cx="120" cy="110" rx="11" ry="10" fill={skinShadow} opacity="0.4" />
+          <ellipse cx="80" cy="109" rx="10" ry="9" fill={white} /><ellipse cx="120" cy="109" rx="10" ry="9" fill={white} />
+          <ellipse cx="80" cy="109" rx="6" ry="6" fill={eye} /><ellipse cx="120" cy="109" rx="6" ry="6" fill={eye} />
+          <ellipse cx="80" cy="109" rx="3" ry="3" fill={eyePupil} /><ellipse cx="120" cy="109" rx="3" ry="3" fill={eyePupil} />
+          <circle cx="82" cy="106" r="2" fill={white} opacity="0.9" /><circle cx="122" cy="106" r="2" fill={white} opacity="0.9" />
+        </g>);
+      case 'ey7': // Upturned
+        return (<g>
+          <path d="M68 112 Q80 98 94 106 Q88 116 70 116Z" fill={white} />
+          <path d="M106 106 Q120 98 132 112 Q130 116 112 116Z" fill={white} />
+          <ellipse cx="81" cy="107" rx="6" ry="6" fill={eye} /><ellipse cx="119" cy="107" rx="6" ry="6" fill={eye} />
+          <ellipse cx="81" cy="107" rx="3" ry="3" fill={eyePupil} /><ellipse cx="119" cy="107" rx="3" ry="3" fill={eyePupil} />
+          <circle cx="83" cy="104" r="1.8" fill={white} opacity="0.9" /><circle cx="121" cy="104" r="1.8" fill={white} opacity="0.9" />
+          <path d="M68 112 Q80 98 94 106" stroke="#1a0a00" strokeWidth="2" fill="none" strokeLinecap="round" />
+          <path d="M106 106 Q120 98 132 112" stroke="#1a0a00" strokeWidth="2" fill="none" strokeLinecap="round" />
+        </g>);
+      case 'ey8': // Monolid
+        return (<g>
+          <ellipse cx="80" cy="108" rx="11" ry="8" fill={white} /><ellipse cx="120" cy="108" rx="11" ry="8" fill={white} />
+          <ellipse cx="80" cy="108" rx="7" ry="5" fill={eye} /><ellipse cx="120" cy="108" rx="7" ry="5" fill={eye} />
+          <ellipse cx="80" cy="108" rx="4" ry="3" fill={eyePupil} /><ellipse cx="120" cy="108" rx="4" ry="3" fill={eyePupil} />
+          <circle cx="82" cy="105" r="1.6" fill={white} opacity="0.9" /><circle cx="122" cy="105" r="1.6" fill={white} opacity="0.9" />
+          <path d="M69 108 Q80 101 91 108" stroke="#1a0a00" strokeWidth="2" fill="none" strokeLinecap="round" />
+          <path d="M109 108 Q120 101 131 108" stroke="#1a0a00" strokeWidth="2" fill="none" strokeLinecap="round" />
+        </g>);
+      case 'ey9': // Hooded
+        return (<g>
+          <ellipse cx="80" cy="108" rx="11" ry="9" fill={white} /><ellipse cx="120" cy="108" rx="11" ry="9" fill={white} />
+          <ellipse cx="80" cy="108" rx="7" ry="6" fill={eye} /><ellipse cx="120" cy="108" rx="7" ry="6" fill={eye} />
+          <ellipse cx="80" cy="108" rx="4" ry="3.5" fill={eyePupil} /><ellipse cx="120" cy="108" rx="4" ry="3.5" fill={eyePupil} />
+          <circle cx="82" cy="104" r="1.8" fill={white} opacity="0.9" /><circle cx="122" cy="104" r="1.8" fill={white} opacity="0.9" />
+          <path d="M68 108 Q80 97 92 104" stroke={skinShadow} strokeWidth="4" fill="none" strokeLinecap="round" opacity="0.6" />
+          <path d="M108 104 Q120 97 132 108" stroke={skinShadow} strokeWidth="4" fill="none" strokeLinecap="round" opacity="0.6" />
+          <path d="M68 108 Q80 97 92 104" stroke="#1a0a00" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+          <path d="M108 104 Q120 97 132 108" stroke="#1a0a00" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+        </g>);
+      default: // Round
+        return (<g>
+          <ellipse cx="80" cy="108" rx="12" ry="12" fill={white} /><ellipse cx="120" cy="108" rx="12" ry="12" fill={white} />
+          <ellipse cx="80" cy="108" rx="8" ry="8" fill={eye} /><ellipse cx="120" cy="108" rx="8" ry="8" fill={eye} />
+          <ellipse cx="80" cy="108" rx="4.5" ry="4.5" fill={eyePupil} /><ellipse cx="120" cy="108" rx="4.5" ry="4.5" fill={eyePupil} />
+          <circle cx="83" cy="104" r="2.5" fill={white} opacity="0.9" /><circle cx="123" cy="104" r="2.5" fill={white} opacity="0.9" />
+          <path d="M68 99 Q80 93 92 99" stroke="#1a0a00" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+          <path d="M108 99 Q120 93 132 99" stroke="#1a0a00" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+        </g>);
+    }
+  };
+
+  // Brow renderer
+  const getBrows = () => {
+    const brow = hair === '#F5DEB3' ? '#8B6914' : darken(hair, 0.05);
+    switch (avatar.browStyle) {
+      case 'br2': return <g><line x1="67" y1="92" x2="92" y2="92" stroke={brow} strokeWidth="3.5" strokeLinecap="round" /><line x1="108" y1="92" x2="133" y2="92" stroke={brow} strokeWidth="3.5" strokeLinecap="round" /></g>;
+      case 'br3': return <g><path d="M67 98 Q80 83 93 94" stroke={brow} strokeWidth="3" fill="none" strokeLinecap="round" /><path d="M107 94 Q120 83 133 98" stroke={brow} strokeWidth="3" fill="none" strokeLinecap="round" /></g>;
+      case 'br4': return <g><path d="M66 96 Q80 87 93 93" stroke={brow} strokeWidth="5.5" fill="none" strokeLinecap="round" /><path d="M107 93 Q120 87 134 96" stroke={brow} strokeWidth="5.5" fill="none" strokeLinecap="round" /></g>;
+      case 'br5': return <g><path d="M70 93 Q80 89 91 93" stroke={brow} strokeWidth="1.8" fill="none" strokeLinecap="round" /><path d="M109 93 Q120 89 130 93" stroke={brow} strokeWidth="1.8" fill="none" strokeLinecap="round" /></g>;
+      case 'br6': return <g><path d="M65 96 Q80 85 93 92" stroke={brow} strokeWidth="7" fill="none" strokeLinecap="round" opacity="0.9" /><path d="M107 92 Q120 85 135 96" stroke={brow} strokeWidth="7" fill="none" strokeLinecap="round" opacity="0.9" /></g>;
+      default:    return <g><path d="M67 95 Q80 88 92 93" stroke={brow} strokeWidth="3" fill="none" strokeLinecap="round" /><path d="M108 93 Q120 88 133 95" stroke={brow} strokeWidth="3" fill="none" strokeLinecap="round" /></g>;
+    }
+  };
+
+  // Nose renderer
+  const getNose = () => {
+    switch (avatar.noseStyle) {
+      case 'ns2': return <g><line x1="100" y1="110" x2="100" y2="125" stroke={skinShadow} strokeWidth="1.8" strokeLinecap="round" opacity="0.5" /><ellipse cx="95" cy="125" rx="5" ry="2.5" fill={skinShadow} opacity="0.2" /><ellipse cx="105" cy="125" rx="5" ry="2.5" fill={skinShadow} opacity="0.2" /></g>;
+      case 'ns3': return <g><path d="M96 115 Q100 125 104 115" stroke={skinShadow} strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.55" /><ellipse cx="94" cy="124" rx="6" ry="3" fill={skinShadow} opacity="0.22" /><ellipse cx="106" cy="124" rx="6" ry="3" fill={skinShadow} opacity="0.22" /></g>;
+      case 'ns4': return <g><path d="M100 110 Q100 120 100 126" stroke={skinShadow} strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.5" /><ellipse cx="100" cy="126" rx="3" ry="2" fill={skinShadow} opacity="0.25" /></g>;
+      case 'ns5': return <g><path d="M97 115 Q100 120 103 115" stroke={skinShadow} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.45" /><ellipse cx="97" cy="123" rx="4.5" ry="2.5" fill={skinShadow} opacity="0.2" /><ellipse cx="103" cy="123" rx="4.5" ry="2.5" fill={skinShadow} opacity="0.2" /></g>;
+      case 'ns6': return <g><path d="M100 108 Q102 118 100 126" stroke={skinShadow} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.5" /><path d="M96 123 Q100 128 104 123" stroke={skinShadow} strokeWidth="1.5" fill="none" opacity="0.4" /></g>;
+      default:    return <g><path d="M97 113 Q100 123 103 113" stroke={skinShadow} strokeWidth="1.8" fill="none" strokeLinecap="round" opacity="0.5" /><ellipse cx="95" cy="123" rx="4" ry="2.5" fill={skinShadow} opacity="0.18" /><ellipse cx="105" cy="123" rx="4" ry="2.5" fill={skinShadow} opacity="0.18" /></g>;
+    }
+  };
+
+  // Lips renderer
+  const getLips = () => {
+    const lipColor = darken(skin, 0.22);
+    switch (avatar.lipsStyle) {
+      case 'lp2': return <g><path d="M85 136 Q100 148 115 136" stroke={lipColor} strokeWidth="2.5" fill="none" strokeLinecap="round" /><ellipse cx="100" cy="142" rx="11" ry="4" fill={lipColor} opacity="0.2" /></g>;
+      case 'lp3': return <g><path d="M88 136 Q100 142 112 136" stroke={lipColor} strokeWidth="1.8" fill="none" strokeLinecap="round" /></g>;
+      case 'lp4': return <g><path d="M87 135 Q93 130 100 133 Q107 130 113 135 Q100 145 87 135Z" stroke={lipColor} strokeWidth="1.5" fill={lipColor} fillOpacity="0.15" /></g>;
+      case 'lp5': return <g><path d="M83 136 Q100 146 117 136" stroke={lipColor} strokeWidth="2.2" fill="none" strokeLinecap="round" /></g>;
+      case 'lp6': return <g><path d="M87 135 Q100 150 113 135" stroke={lipColor} strokeWidth="2.5" fill="none" strokeLinecap="round" /><ellipse cx="100" cy="140" rx="9" ry="3.5" fill={lipColor} opacity="0.15" /></g>;
+      default:    return <g><path d="M88 135 Q100 144 112 135" stroke={lipColor} strokeWidth="2.2" fill="none" strokeLinecap="round" /></g>;
+    }
+  };
+
+  // Hair renderer
+  const getHair = () => {
+    const hs = avatar.hairStyle;
+    switch (hs) {
+      case 'hr2': return <g><path d="M44 106 Q43 72 60 57 Q80 42 100 42 Q120 42 140 57 Q157 72 156 106 Q148 88 140 78 Q124 52 100 50 Q76 52 60 78 Q52 88 44 106Z" fill={hair} /><rect x="43" y="98" width="18" height="92" rx="9" fill={hair} /><rect x="139" y="98" width="18" height="92" rx="9" fill={hair} /><line x1="49" y1="100" x2="51" y2="186" stroke={hairHighlight} strokeWidth="1" opacity="0.5" /><line x1="148" y1="100" x2="150" y2="186" stroke={hairHighlight} strokeWidth="1" opacity="0.5" /></g>;
+      case 'hr3': return <g><circle cx="100" cy="62" r="50" fill={hair} />{[[67,52],[80,42],[95,36],[112,40],[128,52],[140,65],[138,80],[62,68],[100,32],[115,30]].map(([cx, cy], i) => <circle key={i} cx={cx} cy={cy} r="10" fill={hairShadow} opacity="0.3" />)}<circle cx="100" cy="62" r="46" fill="none" stroke={hairHighlight} strokeWidth="1.5" opacity="0.25" /></g>;
+      case 'hr4': return <g><path d="M44 106 Q43 72 60 57 Q80 42 100 42 Q120 42 140 57 Q157 72 156 106 Q148 88 140 78 Q124 52 100 50 Q76 52 60 78 Q52 88 44 106Z" fill={hair} /><path d="M55 75 Q80 54 132 62 Q110 48 100 46 Q75 48 55 75Z" fill={hairShadow} opacity="0.4" /><path d="M55 75 Q82 57 130 63" stroke={hairHighlight} strokeWidth="1.5" fill="none" opacity="0.5" /></g>;
+      case 'hr5': return <g><path d="M44 106 Q43 72 60 57 Q80 42 100 42 Q120 42 140 57 Q157 72 156 106 Q148 88 140 78 Q124 52 100 50 Q76 52 60 78 Q52 88 44 106Z" fill={hair} /><ellipse cx="100" cy="52" rx="9" ry="7" fill={hairShadow} /><path d="M95 52 Q86 40 90 18 Q95 8 100 6 Q105 8 110 18 Q114 40 105 52Z" fill={hair} /><line x1="100" y1="48" x2="100" y2="10" stroke={hairHighlight} strokeWidth="1.2" opacity="0.5" /></g>;
+      case 'hr6': return <g><path d="M44 110 Q43 78 63 62 Q80 46 100 46 Q120 46 137 62 Q157 78 156 110 Q150 92 140 82 Q124 56 100 54 Q76 56 60 82 Q50 92 44 110Z" fill={hair} /></g>;
+      case 'hr7': return <g><path d="M44 106 Q43 72 60 57 Q80 42 100 42 Q120 42 140 57 Q157 72 156 106 Q148 88 140 78 Q124 52 100 50 Q76 52 60 78 Q52 88 44 106Z" fill={hair} /><circle cx="74" cy="48" r="19" fill={hair} /><circle cx="126" cy="48" r="19" fill={hair} /><circle cx="74" cy="48" r="13" fill={hairShadow} opacity="0.35" /><circle cx="126" cy="48" r="13" fill={hairShadow} opacity="0.35" /></g>;
+      case 'hr8': return <g><path d="M44 106 Q43 72 60 57 Q80 42 100 42 Q120 42 140 57 Q157 72 156 106 Q148 88 140 78 Q124 52 100 50 Q76 52 60 78 Q52 88 44 106Z" fill={hair} /><path d="M91 46 Q96 8 100 4 Q104 8 109 46Z" fill={hair} /><line x1="100" y1="46" x2="100" y2="7" stroke={hairHighlight} strokeWidth="1.5" opacity="0.6" /></g>;
+      case 'hr9': return <g><path d="M44 106 Q43 72 60 57 Q80 42 100 42 Q120 42 140 57 Q157 72 156 106 Q148 88 140 78 Q124 52 100 50 Q76 52 60 78 Q52 88 44 106Z" fill={hair} /><path d="M50 70 Q70 58 92 86 Q112 58 132 74" stroke={hairShadow} strokeWidth="2.5" fill="none" opacity="0.5" /><path d="M39 100 Q60 78 82 105" stroke={hair} strokeWidth="5" fill="none" /></g>;
+      case 'hr10': return <g><path d="M44 106 Q43 72 60 57 Q80 45 100 45 Q120 45 140 57 Q157 72 156 106 Q150 92 140 82 Q124 56 100 54 Q76 56 60 82 Q50 92 44 108Z" fill={hair} /><path d="M60 60 Q80 48 100 50 Q120 48 140 60" stroke={hairHighlight} strokeWidth="2" fill="none" opacity="0.5" /></g>;
+      case 'hr11': return <g><path d="M44 106 Q43 72 60 57 Q80 42 100 42 Q120 42 140 57 Q157 72 156 106 Q148 88 140 78 Q124 52 100 50 Q76 52 60 78 Q52 88 44 106Z" fill={hair} /><path d="M54 96 Q49 130 54 175" stroke={hair} strokeWidth="14" fill="none" strokeDasharray="7 3" /><path d="M146 96 Q151 130 146 175" stroke={hair} strokeWidth="14" fill="none" strokeDasharray="7 3" /><line x1="47" y1="165" x2="61" y2="165" stroke="#00d4ff" strokeWidth="3" /><line x1="139" y1="165" x2="153" y2="165" stroke="#00d4ff" strokeWidth="3" /></g>;
+      case 'hr12': return <g><path d="M44 106 Q43 72 60 57 Q80 42 100 42 Q120 42 140 57 Q157 72 156 106 Q148 88 140 78 Q124 52 100 50 Q76 52 60 78 Q52 88 44 106Z" fill={hair} /><rect x="42" y="95" width="22" height="45" rx="11" fill={hair} /><rect x="136" y="95" width="22" height="45" rx="11" fill={hair} /><line x1="48" y1="97" x2="50" y2="137" stroke={hairHighlight} strokeWidth="1" opacity="0.45" /><line x1="150" y1="97" x2="148" y2="137" stroke={hairHighlight} strokeWidth="1" opacity="0.45" /></g>;
+      default: // hr1 Short Wavy
+        return <g><path d="M44 106 Q43 72 60 57 Q80 42 100 42 Q120 42 140 57 Q157 72 156 106 Q148 88 140 78 Q124 52 100 50 Q76 52 60 78 Q52 88 44 106Z" fill={hair} /><path d="M44 106 Q50 80 60 68 Q76 54 100 52 Q124 54 140 68 Q150 80 156 106" fill="none" stroke={hairHighlight} strokeWidth="1.5" opacity="0.45" /></g>;
+    }
+  };
+
+  // Beard renderer
+  const getBeard = () => {
+    const bc = darken(hair, 0.05);
+    switch (avatar.beardStyle) {
+      case 'bd0': return null;
+      case 'bd1': // Stubble
+        return <g opacity="0.5">{[80,88,96,104,112,120,75,84,100,116].map((x,i) => <circle key={i} cx={x} cy={138+((i%3)*4)} r="1.2" fill={bc} opacity="0.5" />)}</g>;
+      case 'bd2': // Goatee
+        return <g><path d="M90 138 Q100 155 110 138 Q100 165 90 138Z" fill={bc} opacity="0.85" /></g>;
+      case 'bd3': // Full Beard
+        return <g><path d="M60 125 Q58 150 70 162 Q84 175 100 178 Q116 175 130 162 Q142 150 140 125 Q120 140 100 140 Q80 140 60 125Z" fill={bc} opacity="0.88" /></g>;
+      case 'bd4': // Moustache
+        return <g><path d="M85 133 Q93 128 100 132 Q107 128 115 133 Q107 138 100 134 Q93 138 85 133Z" fill={bc} opacity="0.85" /></g>;
+      case 'bd5': // Chinstrap
+        return <g><path d="M60 120 Q56 148 66 162 Q74 170 100 172 Q126 170 134 162 Q144 148 140 120" stroke={bc} strokeWidth="5" fill="none" opacity="0.85" /></g>;
+      case 'bd6': // Circle
+        return <g><path d="M85 134 Q93 130 100 132 Q107 130 115 134 Q110 148 100 152 Q90 148 85 134Z" fill={bc} opacity="0.85" /></g>;
+      case 'bd7': // Van Dyke
+        return <g><path d="M85 133 Q93 128 100 131 Q107 128 115 133 Q107 137 100 134 Q93 137 85 133Z" fill={bc} opacity="0.8" /><path d="M91 140 Q100 158 109 140 Q100 168 91 140Z" fill={bc} opacity="0.85" /></g>;
+      case 'bd8': // Balbo
+        return <g><path d="M88 133 Q94 130 100 132 Q106 130 112 133 Q106 137 100 135 Q94 137 88 133Z" fill={bc} opacity="0.8" /><path d="M82 135 Q86 145 100 148 Q114 145 118 135 Q100 155 82 135Z" fill={bc} opacity="0.8" /></g>;
+      default: return null;
+    }
+  };
+
+  // Body/Outfit
+  const getBody = () => {
+    const outfitColors: Record<string, { main: string; accent: string }> = {
+      of1: { main: '#1a0a1a', accent: '#ff0055' },
+      of2: { main: '#2d0d2d', accent: '#e60039' },
+      of3: { main: '#0d0d18', accent: '#ff0055' },
+      of4: { main: '#18181b', accent: '#ff0055' },
+      of5: { main: '#101015', accent: '#00d4ff' },
+      of6: { main: '#333333', accent: '#ff4400' },
+      of7: { main: '#0d1a2d', accent: '#00d4ff' },
+      of8: { main: '#1a1a24', accent: '#00ff66' },
+      of9: { main: '#1a0a00', accent: '#ffd700' },
+    };
+    const { main, accent } = outfitColors[avatar.outfitStyle] || outfitColors.of1;
+
+    // Body type scale
+    const bodyScale = avatar.bodyType === 'bt1' ? 0.88 : avatar.bodyType === 'bt3' ? 1.13 : avatar.bodyType === 'bt4' ? 0.82 : 1;
+    const tx = (1 - bodyScale) * 100;
+
+    return (
+      <g transform={`translate(${tx}, 0) scale(${bodyScale}, 1)`}>
+        {/* Torso */}
+        <path d="M30 310 L30 184 Q40 170 62 166 L82 163 Q91 174 100 177 Q109 174 118 163 L138 166 Q160 170 170 184 L170 310Z" fill={main} />
+        {/* Arms */}
+        <rect x="16" y="175" width="22" height="80" rx="11" fill={skin} />
+        <rect x="162" y="175" width="22" height="80" rx="11" fill={skin} />
+        {/* Hands */}
+        <ellipse cx="27" cy="256" rx="11" ry="9" fill={skin} />
+        <ellipse cx="173" cy="256" rx="11" ry="9" fill={skin} />
+        {/* Legs */}
+        <rect x="55" y="308" width="32" height="100" rx="14" fill={darken(main, 0.12)} />
+        <rect x="113" y="308" width="32" height="100" rx="14" fill={darken(main, 0.12)} />
+        {/* Feet */}
+        <ellipse cx="71" cy="408" rx="20" ry="10" fill={darken(main, 0.3)} />
+        <ellipse cx="129" cy="408" rx="20" ry="10" fill={darken(main, 0.3)} />
+        {/* Collar */}
+        <path d="M82 163 Q100 174 118 163" fill="none" stroke={accent} strokeWidth="1.5" opacity="0.8" />
+        {/* Outfit detail */}
+        {avatar.outfitStyle === 'of1' && <text x="100" y="218" textAnchor="middle" fontSize="10" fill={accent} fontFamily="monospace" fontWeight="bold" opacity="0.8">CYBER</text>}
+        {avatar.outfitStyle === 'of2' && <rect x="82" y="235" width="36" height="22" rx="4" fill={darken(main, 0.15)} />}
+        {avatar.outfitStyle === 'of3' && [195,210,225,240].map((y,i) => <circle key={i} cx="100" cy={y} r="2.5" fill={accent} opacity="0.8" />)}
+        {avatar.outfitStyle === 'of4' && <><rect x="60" y="192" width="28" height="50" rx="3" fill={darken(main, 0.3)} opacity="0.8" /><rect x="112" y="192" width="28" height="50" rx="3" fill={darken(main, 0.3)} opacity="0.8" /></>}
+        {avatar.outfitStyle === 'of5' && <><path d="M82 195 L118 195 L120 215 L100 218 L80 215Z" fill="none" stroke={accent} strokeWidth="1.5" /><circle cx="100" cy="205" r="5" fill={accent} opacity="0.7" /></>}
+        {avatar.outfitStyle === 'of7' && <><path d="M62 166 L30 184" stroke={accent} strokeWidth="2.5" opacity="0.9" /><path d="M138 166 L170 184" stroke={accent} strokeWidth="2.5" opacity="0.9" /></>}
+        {avatar.outfitStyle === 'of9' && <><ellipse cx="48" cy="178" rx="22" ry="14" fill={darken(main, 0.2)} /><ellipse cx="152" cy="178" rx="22" ry="14" fill={darken(main, 0.2)} /><ellipse cx="48" cy="176" rx="14" ry="8" fill={accent} opacity="0.6" /><ellipse cx="152" cy="176" rx="14" ry="8" fill={accent} opacity="0.6" /></>}
+      </g>
+    );
+  };
+
+  // Ear renderer
+  const getEars = () => {
+    switch (avatar.earStyle) {
+      case 'ea2': return <g><ellipse cx="44" cy="110" rx="8" ry="10" fill={skin} /><ellipse cx="156" cy="110" rx="8" ry="10" fill={skin} /><ellipse cx="44" cy="110" rx="5" ry="7" fill={skinShadow} opacity="0.22" /><ellipse cx="156" cy="110" rx="5" ry="7" fill={skinShadow} opacity="0.22" /></g>;
+      case 'ea3': return <g><ellipse cx="43" cy="110" rx="12" ry="16" fill={skin} /><ellipse cx="157" cy="110" rx="12" ry="16" fill={skin} /><ellipse cx="43" cy="110" rx="8" ry="11" fill={skinShadow} opacity="0.2" /><ellipse cx="157" cy="110" rx="8" ry="11" fill={skinShadow} opacity="0.2" /></g>;
+      case 'ea4': return <g><path d="M34 95 Q36 108 35 122 Q44 126 45 110 Q46 96 40 90Z" fill={skin} /><path d="M166 95 Q164 108 165 122 Q156 126 155 110 Q154 96 160 90Z" fill={skin} /><ellipse cx="40" cy="110" rx="5" ry="8" fill={skinShadow} opacity="0.2" /><ellipse cx="160" cy="110" rx="5" ry="8" fill={skinShadow} opacity="0.2" /></g>;
+      case 'ea5': return <g><ellipse cx="44" cy="110" rx="10" ry="13" fill={skin} /><ellipse cx="156" cy="110" rx="10" ry="13" fill={skin} /><ellipse cx="44" cy="110" rx="6" ry="8" fill={skinShadow} opacity="0.25" /><ellipse cx="156" cy="110" rx="6" ry="8" fill={skinShadow} opacity="0.25" /><circle cx="44" cy="120" r="4" fill="#ffd700" /><circle cx="156" cy="120" r="4" fill="#ffd700" /></g>;
+      case 'ea6': return <g><ellipse cx="44" cy="110" rx="10" ry="13" fill={skin} /><ellipse cx="156" cy="110" rx="10" ry="13" fill={skin} /><ellipse cx="44" cy="110" rx="6" ry="8" fill={skinShadow} opacity="0.25" /><ellipse cx="156" cy="110" rx="6" ry="8" fill={skinShadow} opacity="0.25" /><circle cx="44" cy="122" r="3" fill="#c0c0c0" /><circle cx="156" cy="122" r="3" fill="#c0c0c0" /></g>;
+      default: return <g><ellipse cx="44" cy="110" rx="10" ry="13" fill={skin} /><ellipse cx="156" cy="110" rx="10" ry="13" fill={skin} /><ellipse cx="44" cy="110" rx="6" ry="8" fill={skinShadow} opacity="0.25" /><ellipse cx="156" cy="110" rx="6" ry="8" fill={skinShadow} opacity="0.25" /></g>;
+    }
+  };
+
+  const svgH = mini ? 80 : 420;
+  const viewBox = mini ? "20 36 160 120" : "0 0 200 420";
+
+  return (
+    <svg
+      viewBox={viewBox}
+      width={size}
+      height={mini ? size * 0.55 : size * 1.6}
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ filter: mini ? 'none' : 'drop-shadow(0 12px 36px rgba(0,0,0,0.35))' }}
+    >
+      <defs>
+        <radialGradient id="headGrad" cx="38%" cy="32%" r="65%">
+          <stop offset="0%" stopColor={skinHighlight} />
+          <stop offset="100%" stopColor={skinShadow} />
+        </radialGradient>
+        <filter id="softBlur" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="1.5" />
+        </filter>
+      </defs>
+
+      {/* Body */}
+      {!mini && getBody()}
+
+      {/* Neck */}
+      {!mini && <>
+        <rect x="86" y="154" width="28" height="26" rx="8" fill={skin} />
+        <rect x="89" y="154" width="7" height="22" rx="3.5" fill={skinShadow} opacity="0.3" />
+      </>}
+
+      {/* Ears (behind face) */}
+      {getEars()}
+
+      {/* Head - 3D illusion base */}
+      {(() => {
+        const p = getFacePath();
+        // Replace fill with gradient for 3D depth
+        return React.cloneElement(p as React.ReactElement<React.SVGProps<SVGElement>>, { fill: 'url(#headGrad)' });
+      })()}
+
+      {/* Forehead plane highlight */}
+      <ellipse cx="100" cy="78" rx="32" ry="18" fill={skinHighlight} opacity="0.22" />
+
+      {/* Cheek volume shading */}
+      <ellipse cx="70" cy="120" rx="14" ry="20" fill={skinShadow} opacity="0.12" />
+      <ellipse cx="130" cy="120" rx="14" ry="20" fill={skinShadow} opacity="0.12" />
+
+      {/* Cheek blush */}
+      <ellipse cx="72" cy="126" rx="13" ry="7" fill="#ff8fab" opacity="0.18" />
+      <ellipse cx="128" cy="126" rx="13" ry="7" fill="#ff8fab" opacity="0.18" />
+
+      {/* Chin shadow */}
+      <ellipse cx="100" cy="157" rx="24" ry="9" fill={skinShadow} opacity="0.14" />
+
+      {/* Brows */}
+      {getBrows()}
+
+      {/* Eyes */}
+      {getEyes()}
+
+      {/* Nose */}
+      {getNose()}
+
+      {/* Lips */}
+      {getLips()}
+
+      {/* Beard */}
+      {getBeard()}
+
+      {/* Hair (on top of face) */}
+      {getHair()}
+    </svg>
+  );
+};
+
+// ─── Mini Face Thumbnail ──────────────────────────────────────────────────────
+
+const MiniAvatar: React.FC<{ avatar: AvatarState }> = ({ avatar }) => (
+  <AvatarSVG avatar={avatar} size={64} mini={true} />
+);
+
+// ─── Thumbnail Grid Option ────────────────────────────────────────────────────
+
+interface ThumbCardProps {
+  isSelected: boolean;
+  onSelect: () => void;
+  label: string;
+  locked?: boolean;
+  children: React.ReactNode;
+  canDeselect?: boolean;
+  onDeselect?: () => void;
+}
+
+const ThumbCard: React.FC<ThumbCardProps> = ({ isSelected, onSelect, label, locked, children }) => (
+  <motion.button
+    onClick={onSelect}
+    whileTap={{ scale: locked ? 1 : 0.93 }}
+    className={`relative flex flex-col items-center gap-1.5 p-2 rounded-2xl border-2 transition-all cursor-pointer w-full
+      ${locked ? 'opacity-50 border-gray-200/30 bg-gray-100/10' :
+        isSelected ? 'border-[#e8c84a] bg-[#fff9e0] shadow-[0_0_0_3px_rgba(232,200,74,0.25)]' :
+        'border-transparent bg-gray-100/60 hover:bg-gray-200/70'
+      }`}
+  >
+    <div className="flex items-center justify-center w-full h-14 rounded-xl overflow-hidden bg-gray-50/80">
+      {children}
+    </div>
+    <span className="text-[10px] font-semibold text-gray-600 leading-tight text-center line-clamp-1">{label}</span>
+    {isSelected && (
+      <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[#e8c84a] flex items-center justify-center shadow-sm">
+        <div className="w-2 h-2 rounded-full bg-white" />
+      </div>
+    )}
+    {locked && (
+      <div className="absolute top-1 right-1">
+        <span className="text-[9px]">🔒</span>
+      </div>
+    )}
+  </motion.button>
+);
+
+// ─── Color Grid ───────────────────────────────────────────────────────────────
+
+const ColorGrid: React.FC<{
+  colors: ColorOption[];
+  selected: string;
+  onSelect: (c: ColorOption) => void;
+}> = ({ colors, selected, onSelect }) => (
+  <div className="grid grid-cols-5 gap-3 p-1">
+    {colors.map(c => (
+      <button
+        key={c.id}
+        title={c.label}
+        onClick={() => onSelect(c)}
+        className={`w-12 h-12 rounded-full border-4 transition-all cursor-pointer hover:scale-110 mx-auto
+          ${selected === c.id ? 'border-[#e8c84a] scale-110 shadow-[0_0_10px_rgba(232,200,74,0.6)]' : 'border-transparent shadow-md'}`}
+        style={{ backgroundColor: c.hex }}
+      />
+    ))}
+  </div>
+);
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function AvatarCustomizerPage() {
   const router = useRouter();
 
-  // Avatar state
-  const [skinTone, setSkinTone] = useState(SKIN_TONES[2]);
-  const [faceStructure, setFaceStructure] = useState(FACE_STRUCTURES[0]);
-  const [bodyBuild, setBodyBuild] = useState(BODY_BUILDS[1]);
-  const [eyeStyle, setEyeStyle] = useState(EYE_STYLES[0]);
-  const [eyeColor, setEyeColor] = useState(EYE_COLORS[0]);
-  const [browStyle, setBrowStyle] = useState(BROW_STYLES[0]);
-  const [hairStyle, setHairStyle] = useState(HAIR_STYLES[0]);
-  const [hairColor, setHairColor] = useState(HAIR_COLORS[0]);
-  const [outfitStyle, setOutfitStyle] = useState(OUTFIT_STYLES[0]);
-  const [accessoryStyle, setAccessoryStyle] = useState(ACCESSORY_STYLES[0]);
+  // Avatar state + history for undo/redo
+  const [avatar, setAvatar] = useState<AvatarState>(DEFAULT_AVATAR);
+  const [history, setHistory] = useState<AvatarState[]>([DEFAULT_AVATAR]);
+  const [histIdx, setHistIdx] = useState(0);
 
-  const [activeTab, setActiveTab] = useState<Tab>('structure');
-  const [lockAlert, setLockAlert] = useState<string | null>(null);
+  // UI state
+  const [mainTab, setMainTab] = useState<MainTab>('avatar');
+  const [subCat, setSubCat] = useState<AvatarSubCategory>('eyes');
   const [isSaving, setIsSaving] = useState(false);
+  const [isRotating, setIsRotating] = useState(false);
 
-  const handleLocked = (item: StyleOption) => {
-    if (item.locked) {
-      setLockAlert(`LOCKED — Requires ${item.cost?.toLocaleString()} PTS`);
-      setTimeout(() => setLockAlert(null), 3000);
-      return true;
+  const subScrollRef = useRef<HTMLDivElement>(null);
+
+  const pushHistory = useCallback((next: AvatarState) => {
+    setHistory(prev => {
+      const sliced = prev.slice(0, histIdx + 1);
+      return [...sliced, next];
+    });
+    setHistIdx(prev => prev + 1);
+    setAvatar(next);
+  }, [histIdx]);
+
+  const undo = () => {
+    if (histIdx > 0) {
+      const newIdx = histIdx - 1;
+      setHistIdx(newIdx);
+      setAvatar(history[newIdx]);
     }
-    return false;
+  };
+  const redo = () => {
+    if (histIdx < history.length - 1) {
+      const newIdx = histIdx + 1;
+      setHistIdx(newIdx);
+      setAvatar(history[newIdx]);
+    }
+  };
+
+  const update = (patch: Partial<AvatarState>) => {
+    pushHistory({ ...avatar, ...patch });
   };
 
   const handleSave = () => {
@@ -812,444 +709,305 @@ export default function AvatarCustomizerPage() {
     setTimeout(() => router.push('/dashboard'), 1200);
   };
 
-  return (
-    <div className="min-h-screen bg-[#020005] text-white font-sans relative overflow-x-hidden select-none"
-      style={{ fontFamily: "'Inter', 'Outfit', sans-serif" }}>
-      {/* Ambient glows */}
-      <div className="absolute top-0 left-1/3 w-[700px] h-[700px] bg-[#ff0055]/12 rounded-full blur-3xl pointer-events-none z-0" />
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-[#e60039]/10 rounded-full blur-3xl pointer-events-none z-0" />
+  // Preview mini avatar with a single override applied
+  const previewWith = (patch: Partial<AvatarState>): AvatarState => ({ ...avatar, ...patch });
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-6 relative z-10 space-y-5">
+  // Sub-category icon scroll to active
+  const scrollSubToActive = (id: AvatarSubCategory) => {
+    setSubCat(id);
+    setTimeout(() => {
+      const el = document.getElementById(`subcat-${id}`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }, 50);
+  };
 
-        {/* ── Header ── */}
-        <header className="flex items-center justify-between border-b border-[#ff0055]/25 pb-4">
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard"
-              className="p-2.5 rounded-xl bg-[#0e0414] border border-[#ff0055]/30 text-[#ff0055] hover:bg-[#ff0055] hover:text-white transition-all shadow-[0_0_10px_rgba(255,0,85,0.2)]">
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-            <div>
-              <p className="text-[10px] font-mono font-bold text-[#ff0055] tracking-widest uppercase mb-0.5">
-                CHARACTER STUDIO
-              </p>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-pink-200 to-[#ff0055]">
-                Avatar Creator
-              </h1>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#120315] border border-[#ff0055]/40 font-mono text-xs text-[#ff0055]">
-            <Zap className="w-4 h-4" />
-            <span>4,560 PTS</span>
-          </div>
-        </header>
-
-        {/* ── Lock Alert ── */}
-        <AnimatePresence>
-          {lockAlert && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-              className="p-3.5 rounded-xl bg-red-950/90 border border-red-500 text-xs font-mono text-red-300 flex items-center gap-2.5 shadow-[0_0_20px_rgba(239,68,68,0.25)]">
-              <Lock className="w-4 h-4 text-red-400 shrink-0" />
-              <span>{lockAlert}</span>
-              <span className="ml-auto text-[10px] text-zinc-500">EARN PTS IN ARENA</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ── Main 2-col Grid ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
-
-          {/* ── LEFT: Avatar Preview ── */}
-          <div className="lg:col-span-2 bg-[#0a030d]/90 rounded-3xl border-2 border-[#ff0055]/45 p-6 backdrop-blur-xl shadow-[0_0_50px_rgba(255,0,85,0.2)] flex flex-col items-center gap-5 min-h-[540px] relative overflow-hidden">
-            {/* Corner scanline accents */}
-            <div className="absolute top-0 left-0 w-16 h-16 border-t-2 border-l-2 border-[#ff0055]/50 rounded-tl-3xl pointer-events-none" />
-            <div className="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-[#ff0055]/50 rounded-tr-3xl pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-16 h-16 border-b-2 border-l-2 border-[#ff0055]/50 rounded-bl-3xl pointer-events-none" />
-            <div className="absolute bottom-0 right-0 w-16 h-16 border-b-2 border-r-2 border-[#ff0055]/50 rounded-br-3xl pointer-events-none" />
-
-            <div className="w-full flex items-center justify-between text-[10px] font-mono text-[#ff0055]">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#ff0055] animate-pulse" />
-                LIVE PREVIEW
-              </span>
-              <span className="text-zinc-500">CHARACTER // RENDER</span>
-            </div>
-
-            {/* SVG avatar with glow */}
-            <div className="relative flex items-center justify-center flex-1 w-full">
-              {/* Podium glow */}
-              <div className="absolute bottom-0 w-52 h-10 rounded-full blur-xl"
-                style={{ backgroundColor: `${skinTone.hex}44` }} />
-              <div className="absolute bottom-2 w-44 h-6 rounded-full"
-                style={{
-                  backgroundColor: `${skinTone.hex}22`,
-                  boxShadow: `0 0 30px ${skinTone.hex}66`,
-                }} />
-
-              <motion.div
-                key={`${skinTone.id}-${eyeStyle.id}-${hairStyle.id}-${outfitStyle.id}`}
-                initial={{ scale: 0.92, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.35, ease: 'easeOut' }}>
-                <AvatarFace
-                  skinColor={skinTone.hex}
-                  faceStructure={faceStructure.id}
-                  bodyBuild={bodyBuild.id}
-                  eyeStyle={eyeStyle.id}
-                  eyeColor={eyeColor.hex}
-                  browStyle={browStyle.id}
-                  hairStyle={hairStyle.id}
-                  hairColor={hairColor.hex}
-                  outfitStyle={outfitStyle.id}
-                  accessoryStyle={accessoryStyle.id}
-                />
-              </motion.div>
-            </div>
-
-            {/* Summary chips */}
-            <div className="w-full grid grid-cols-2 gap-2 text-[10px] font-mono">
-              {[
-                { label: 'Skin', value: skinTone.label },
-                { label: 'Eyes', value: `${eyeStyle.label}` },
-                { label: 'Hair', value: hairStyle.label },
-                { label: 'Outfit', value: outfitStyle.label },
-              ].map(({ label, value }) => (
-                <div key={label} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-[#050008] border border-zinc-800">
-                  <span className="text-zinc-500">{label}</span>
-                  <span className="text-white font-semibold truncate max-w-[80px] text-right">{value}</span>
-                </div>
+  // Render thumbnail grid for each sub-category
+  const renderGrid = () => {
+    switch (subCat) {
+      case 'eyes':
+        return (
+          <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-2">
+              {EYE_STYLES.map(opt => (
+                <ThumbCard key={opt.id} isSelected={avatar.eyeStyle === opt.id} onSelect={() => update({ eyeStyle: opt.id })} label={opt.label}>
+                  <MiniAvatar avatar={previewWith({ eyeStyle: opt.id })} />
+                </ThumbCard>
               ))}
             </div>
+            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider pt-1">Eye Color</p>
+            <ColorGrid colors={EYE_COLORS} selected={avatar.eyeColor} onSelect={c => update({ eyeColor: c.id })} />
           </div>
-
-          {/* ── RIGHT: Customizer Panel ── */}
-          <div className="lg:col-span-3 space-y-4">
-
-            {/* Tab Bar */}
-            <div className="flex gap-1.5 p-1.5 rounded-2xl bg-[#0a030d]/90 border border-[#ff0055]/25 backdrop-blur-xl">
-              {TABS.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 py-2.5 px-2 rounded-xl text-[11px] font-mono font-bold uppercase tracking-wide flex items-center justify-center gap-1 transition-all cursor-pointer whitespace-nowrap ${activeTab === tab.id
-                    ? 'bg-[#ff0055] text-white shadow-[0_0_18px_rgba(255,0,85,0.6)]'
-                    : 'text-zinc-400 hover:text-white hover:bg-zinc-900/60'
-                  }`}>
-                  {tab.icon}
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </button>
+        );
+      case 'brows':
+        return (
+          <div className="grid grid-cols-3 gap-2">
+            {BROW_STYLES.map(opt => (
+              <ThumbCard key={opt.id} isSelected={avatar.browStyle === opt.id} onSelect={() => update({ browStyle: opt.id })} label={opt.label}>
+                <MiniAvatar avatar={previewWith({ browStyle: opt.id })} />
+              </ThumbCard>
+            ))}
+          </div>
+        );
+      case 'nose':
+        return (
+          <div className="grid grid-cols-3 gap-2">
+            {NOSE_STYLES.map(opt => (
+              <ThumbCard key={opt.id} isSelected={avatar.noseStyle === opt.id} onSelect={() => update({ noseStyle: opt.id })} label={opt.label}>
+                <MiniAvatar avatar={previewWith({ noseStyle: opt.id })} />
+              </ThumbCard>
+            ))}
+          </div>
+        );
+      case 'face':
+        return (
+          <div className="grid grid-cols-3 gap-2">
+            {FACE_SHAPES.map(opt => (
+              <ThumbCard key={opt.id} isSelected={avatar.faceShape === opt.id} onSelect={() => update({ faceShape: opt.id })} label={opt.label}>
+                <MiniAvatar avatar={previewWith({ faceShape: opt.id })} />
+              </ThumbCard>
+            ))}
+          </div>
+        );
+      case 'lips':
+        return (
+          <div className="grid grid-cols-3 gap-2">
+            {LIPS_STYLES.map(opt => (
+              <ThumbCard key={opt.id} isSelected={avatar.lipsStyle === opt.id} onSelect={() => update({ lipsStyle: opt.id })} label={opt.label}>
+                <MiniAvatar avatar={previewWith({ lipsStyle: opt.id })} />
+              </ThumbCard>
+            ))}
+          </div>
+        );
+      case 'ears':
+        return (
+          <div className="grid grid-cols-3 gap-2">
+            {EAR_STYLES.map(opt => (
+              <ThumbCard key={opt.id} isSelected={avatar.earStyle === opt.id} onSelect={() => update({ earStyle: opt.id })} label={opt.label}>
+                <MiniAvatar avatar={previewWith({ earStyle: opt.id })} />
+              </ThumbCard>
+            ))}
+          </div>
+        );
+      case 'beard':
+        return (
+          <div className="grid grid-cols-3 gap-2">
+            {BEARD_STYLES.map(opt => (
+              <ThumbCard key={opt.id} isSelected={avatar.beardStyle === opt.id} onSelect={() => update({ beardStyle: opt.id })} label={opt.label}>
+                <MiniAvatar avatar={previewWith({ beardStyle: opt.id })} />
+              </ThumbCard>
+            ))}
+          </div>
+        );
+      case 'hair':
+        return (
+          <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-2">
+              {HAIR_STYLES.map(opt => (
+                <ThumbCard key={opt.id} isSelected={avatar.hairStyle === opt.id} onSelect={() => update({ hairStyle: opt.id })} label={opt.label}>
+                  <MiniAvatar avatar={previewWith({ hairStyle: opt.id })} />
+                </ThumbCard>
               ))}
             </div>
-
-            {/* Panel Content */}
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
-                className="bg-[#0a030d]/90 rounded-3xl border border-[#ff0055]/25 p-5 backdrop-blur-xl shadow-xl space-y-5">
-
-                {/* Section title */}
-                <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-                  <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-[#ff0055]" />
-                    {activeTab === 'structure' && 'Face & Body Structure'}
-                    {activeTab === 'eyes' && 'Eye Shape & Color'}
-                    {activeTab === 'hair' && 'Hair Style & Color'}
-                    {activeTab === 'outfit' && 'Choose Outfit'}
-                    {activeTab === 'accessories' && 'Choose Accessory'}
-                  </h3>
-                  <span className="text-[10px] font-mono text-zinc-600">LIVE SYNC ON</span>
-                </div>
-
-                {/* ── STRUCTURE TAB ── */}
-                {activeTab === 'structure' && (
-                  <div className="space-y-5">
-                    <div>
-                      <p className="text-[10px] text-zinc-500 font-mono mb-2 uppercase tracking-wider">Face Structure</p>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {FACE_STRUCTURES.map(opt => (
-                          <StyleCard
-                            key={opt.id}
-                            item={opt}
-                            isSelected={faceStructure.id === opt.id}
-                            onSelect={() => { if (!handleLocked(opt)) setFaceStructure(opt); }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-zinc-500 font-mono mb-2 uppercase tracking-wider">Body Build</p>
-                      <div className="grid grid-cols-3 gap-3">
-                        {BODY_BUILDS.map(opt => (
-                          <StyleCard
-                            key={opt.id}
-                            item={opt}
-                            isSelected={bodyBuild.id === opt.id}
-                            onSelect={() => { if (!handleLocked(opt)) setBodyBuild(opt); }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-zinc-500 font-mono mb-2 uppercase tracking-wider">Skin Tone</p>
-                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                        {SKIN_TONES.map(tone => (
-                          <button key={tone.id} onClick={() => setSkinTone(tone)}
-                            className={`group flex flex-col items-center gap-2 p-2 rounded-2xl border-2 transition-all cursor-pointer ${skinTone.id === tone.id
-                              ? 'border-[#ff0055] shadow-[0_0_16px_rgba(255,0,85,0.4)] bg-[#1e0720]'
-                              : 'border-zinc-800 hover:border-[#ff0055]/50 bg-[#050008]'
-                            }`}>
-                            <div className="w-10 h-10 rounded-full border-2 border-white/20 shadow-lg transition-transform group-hover:scale-105"
-                              style={{ backgroundColor: tone.hex }} />
-                            <span className="text-[9px] font-mono text-zinc-400 group-hover:text-white transition-colors text-center leading-tight">{tone.label}</span>
-                            {skinTone.id === tone.id && (
-                              <div className="w-4 h-4 rounded-full bg-[#ff0055] flex items-center justify-center">
-                                <div className="w-2 h-2 rounded-full bg-white" />
-                              </div>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* ── EYES TAB ── */}
-                {activeTab === 'eyes' && (
-                  <div className="space-y-5">
-                    {/* Eye shapes */}
-                    <div>
-                      <p className="text-[10px] text-zinc-500 font-mono mb-3 uppercase tracking-wider">Eye Shape</p>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {EYE_STYLES.map(opt => (
-                          <StyleCard
-                            key={opt.id}
-                            item={opt}
-                            isSelected={eyeStyle.id === opt.id}
-                            onSelect={() => { if (!handleLocked(opt)) setEyeStyle(opt); }}
-                            renderPreview={
-                              <svg viewBox="0 0 40 20" width="40" height="20">
-                                {opt.id === 'e1' && <><ellipse cx="12" cy="10" rx="9" ry="9" fill="#fff" /><ellipse cx="28" cy="10" rx="9" ry="9" fill="#fff" /><ellipse cx="12" cy="10" rx="5" ry="5" fill={eyeColor.hex} /><ellipse cx="28" cy="10" rx="5" ry="5" fill={eyeColor.hex} /></>}
-                                {opt.id === 'e2' && <><path d="M3 10 Q12 2 21 10 Q12 18 3 10Z" fill="#fff" /><path d="M19 10 Q28 2 37 10 Q28 18 19 10Z" fill="#fff" /><ellipse cx="12" cy="10" rx="5" ry="5" fill={eyeColor.hex} /><ellipse cx="28" cy="10" rx="5" ry="5" fill={eyeColor.hex} /></>}
-                                {opt.id === 'e3' && <><path d="M3 12 Q12 2 21 8 Q16 16 5 15Z" fill="#fff" /><path d="M19 8 Q28 2 37 12 Q35 15 24 16Z" fill="#fff" /><ellipse cx="11" cy="9" rx="4" ry="4" fill={eyeColor.hex} /><ellipse cx="27" cy="9" rx="4" ry="4" fill={eyeColor.hex} /></>}
-                                {opt.id === 'e4' && <><ellipse cx="12" cy="12" rx="9" ry="6" fill="#fff" /><ellipse cx="28" cy="12" rx="9" ry="6" fill="#fff" /><ellipse cx="12" cy="12" rx="5" ry="3.5" fill={eyeColor.hex} /><ellipse cx="28" cy="12" rx="5" ry="3.5" fill={eyeColor.hex} /></>}
-                                {opt.id === 'e5' && <><ellipse cx="12" cy="10" rx="11" ry="10" fill="#fff" /><ellipse cx="28" cy="10" rx="11" ry="10" fill="#fff" /><ellipse cx="12" cy="10" rx="6" ry="6" fill={eyeColor.hex} /><ellipse cx="28" cy="10" rx="6" ry="6" fill={eyeColor.hex} /></>}
-                                {opt.id === 'e6' && <><ellipse cx="12" cy="10" rx="9" ry="9" fill="#fff" /><ellipse cx="28" cy="10" rx="9" ry="9" fill="#fff" /><text x="12" y="14" textAnchor="middle" fontSize="10">⭐</text><text x="28" y="14" textAnchor="middle" fontSize="10">⭐</text></>}
-                              </svg>
-                            }
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    {/* Eye color + Brow */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-[10px] text-zinc-500 font-mono mb-2 uppercase tracking-wider">Eye Color</p>
-                        <ColorSwatches colors={EYE_COLORS} selected={eyeColor.id} onSelect={setEyeColor} />
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-zinc-500 font-mono mb-2 uppercase tracking-wider">Eyebrow Style</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          {BROW_STYLES.map(opt => (
-                            <button key={opt.id}
-                              onClick={() => { if (!handleLocked(opt)) setBrowStyle(opt); }}
-                              className={`py-2 px-3 rounded-xl border text-[10px] font-mono transition-all cursor-pointer flex items-center justify-between gap-1 ${browStyle.id === opt.id
-                                ? 'bg-[#1e0720] border-[#ff0055] text-white shadow-[0_0_10px_rgba(255,0,85,0.3)]'
-                                : 'bg-[#050008] border-zinc-800 text-zinc-400 hover:border-[#ff0055]/50'
-                              } ${opt.locked ? 'opacity-50' : ''}`}>
-                              {opt.label}
-                              {opt.locked && <Lock className="w-3 h-3 text-red-400" />}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* ── HAIR TAB ── */}
-                {activeTab === 'hair' && (
-                  <div className="space-y-5">
-                    <div>
-                      <p className="text-[10px] text-zinc-500 font-mono mb-3 uppercase tracking-wider">Hair Style</p>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        {HAIR_STYLES.map(opt => (
-                          <StyleCard
-                            key={opt.id}
-                            item={opt}
-                            isSelected={hairStyle.id === opt.id}
-                            onSelect={() => { if (!handleLocked(opt)) setHairStyle(opt); }}
-                            renderPreview={
-                              <svg viewBox="0 0 40 30" width="40" height="30">
-                                <circle cx="20" cy="18" r="10" fill="#e8a87c" />
-                                <HairPreview style={opt.id} color={hairColor.hex} />
-                              </svg>
-                            }
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-zinc-500 font-mono mb-2 uppercase tracking-wider">Hair Color</p>
-                      <ColorSwatches colors={HAIR_COLORS} selected={hairColor.id} onSelect={setHairColor} />
-                    </div>
-                  </div>
-                )}
-
-                {/* ── OUTFIT TAB ── */}
-                {activeTab === 'outfit' && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {OUTFIT_STYLES.map(opt => (
-                      <StyleCard
-                        key={opt.id}
-                        item={opt}
-                        isSelected={outfitStyle.id === opt.id}
-                        onSelect={() => { if (!handleLocked(opt)) setOutfitStyle(opt); }}
-                        renderPreview={
-                          <svg viewBox="0 0 40 30" width="40" height="30">
-                            <OutfitPreview style={opt.id} />
-                          </svg>
-                        }
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {/* ── ACCESSORIES TAB ── */}
-                {activeTab === 'accessories' && (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {ACCESSORY_STYLES.map(opt => (
-                      <StyleCard
-                        key={opt.id}
-                        item={opt}
-                        isSelected={accessoryStyle.id === opt.id}
-                        onSelect={() => { if (!handleLocked(opt)) setAccessoryStyle(opt); }}
-                      />
-                    ))}
-                  </div>
-                )}
-
-              </motion.div>
-            </AnimatePresence>
-
-            {/* Save Button */}
-            <div className="flex justify-end">
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-[#ff0055] via-[#e60039] to-[#ff0055] text-white font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-3 shadow-[0_0_30px_rgba(255,0,85,0.5)] hover:scale-105 active:scale-95 border border-white/20 transition-all cursor-pointer disabled:opacity-60">
-                {isSaving ? (
-                  <>
-                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    SAVING AVATAR...
-                  </>
-                ) : (
-                  <>
-                    <ShieldCheck className="w-5 h-5" />
-                    SAVE CHARACTER →
-                  </>
-                )}
-              </button>
-            </div>
+            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider pt-1">Hair Color</p>
+            <ColorGrid colors={HAIR_COLORS} selected={avatar.hairColor} onSelect={c => update({ hairColor: c.id })} />
           </div>
-        </div>
+        );
+      case 'skin':
+        return (
+          <div className="space-y-3">
+            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Skin Tone</p>
+            <ColorGrid colors={SKIN_TONES} selected={avatar.skinTone} onSelect={c => update({ skinTone: c.id })} />
+          </div>
+        );
+      case 'body':
+        return (
+          <div className="grid grid-cols-2 gap-3">
+            {BODY_TYPES.map(opt => (
+              <ThumbCard key={opt.id} isSelected={avatar.bodyType === opt.id} onSelect={() => update({ bodyType: opt.id })} label={opt.label}>
+                <MiniAvatar avatar={previewWith({ bodyType: opt.id })} />
+              </ThumbCard>
+            ))}
+          </div>
+        );
+      default: return null;
+    }
+  };
+
+  // Fashion tab content
+  const renderFashion = () => (
+    <div className="space-y-3">
+      <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider px-1">Outfit Style</p>
+      <div className="grid grid-cols-3 gap-2">
+        {OUTFIT_STYLES.map(opt => (
+          <ThumbCard key={opt.id} isSelected={avatar.outfitStyle === opt.id} onSelect={() => { if (!opt.locked) update({ outfitStyle: opt.id }); }} label={opt.label} locked={opt.locked}>
+            <MiniAvatar avatar={previewWith({ outfitStyle: opt.id })} />
+          </ThumbCard>
+        ))}
       </div>
     </div>
   );
-}
 
-// ─── Reusable Style Card ───────────────────────────────────────────────────────
-
-interface StyleCardProps {
-  item: StyleOption;
-  isSelected: boolean;
-  onSelect: () => void;
-  renderPreview?: React.ReactNode;
-}
-
-const StyleCard: React.FC<StyleCardProps> = ({ item, isSelected, onSelect, renderPreview }) => (
-  <motion.button
-    onClick={onSelect}
-    whileHover={{ scale: item.locked ? 1 : 1.03 }}
-    whileTap={{ scale: item.locked ? 1 : 0.97 }}
-    className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col items-center gap-2 relative text-center w-full ${item.locked
-      ? 'bg-[#050008]/50 border-zinc-800 opacity-55'
-      : isSelected
-      ? 'bg-[#1e0720] border-2 border-[#ff0055] shadow-[0_0_18px_rgba(255,0,85,0.35)]'
-      : 'bg-[#050008] border-zinc-800 hover:border-[#ff0055]/50'
-    }`}>
-    {renderPreview && (
-      <div className="flex items-center justify-center h-8">{renderPreview}</div>
-    )}
-    <span className="text-[10px] font-mono font-semibold text-white leading-tight">{item.label}</span>
-    {item.locked && (
-      <div className="absolute top-1.5 right-1.5 p-1 rounded-md bg-red-950/80 border border-red-800">
-        <Lock className="w-3 h-3 text-red-400" />
-      </div>
-    )}
-    {isSelected && !item.locked && (
-      <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[#ff0055] flex items-center justify-center">
-        <div className="w-2 h-2 rounded-full bg-white" />
-      </div>
-    )}
-  </motion.button>
-);
-
-// ─── Color Swatches ────────────────────────────────────────────────────────────
-
-interface ColorItem { id: string; hex: string; label: string; }
-
-const ColorSwatches: React.FC<{ colors: ColorItem[]; selected: string; onSelect: (c: ColorItem) => void }> = ({
-  colors, selected, onSelect
-}) => (
-  <div className="flex flex-wrap gap-2">
-    {colors.map(c => (
-      <button
-        key={c.id}
-        title={c.label}
-        onClick={() => onSelect(c)}
-        className={`w-8 h-8 rounded-full border-2 transition-all cursor-pointer hover:scale-110 ${selected === c.id
-          ? 'border-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.4)]'
-          : 'border-zinc-700 hover:border-zinc-400'
-        }`}
-        style={{ backgroundColor: c.hex }}
-      />
-    ))}
-  </div>
-);
-
-// ─── Small Previews ────────────────────────────────────────────────────────────
-
-const HairPreview: React.FC<{ style: string; color: string }> = ({ style, color }) => {
-  if (style === 'h1') return <path d="M10 18 Q10 6 20 4 Q30 6 30 18 Q28 12 20 11 Q12 12 10 18Z" fill={color} />;
-  if (style === 'h2') return <><path d="M10 18 Q10 6 20 4 Q30 6 30 18 Q28 12 20 11 Q12 12 10 18Z" fill={color} /><rect x="9" y="14" width="5" height="16" rx="2.5" fill={color} /><rect x="26" y="14" width="5" height="16" rx="2.5" fill={color} /></>;
-  if (style === 'h3') return <circle cx="20" cy="11" r="11" fill={color} />;
-  if (style === 'h4') return <path d="M10 18 Q10 6 20 4 Q30 6 30 18 Q22 9 10 18Z" fill={color} />;
-  if (style === 'h5') return <><path d="M10 18 Q10 6 20 4 Q30 6 30 18 Q28 12 20 11 Q12 12 10 18Z" fill={color} /><path d="M19 4 Q16 0 18 -4 Q20 -6 22 -4 Q24 0 21 4Z" fill={color} /></>;
-  if (style === 'h6') return <path d="M10 19 Q10 8 20 7 Q30 8 30 19 Q28 14 20 13 Q12 14 10 19Z" fill={color} />;
-  if (style === 'h7') return <><path d="M10 18 Q10 6 20 4 Q30 6 30 18Z" fill={color} /><circle cx="13" cy="6" r="5" fill={color} /><circle cx="27" cy="6" r="5" fill={color} /></>;
-  if (style === 'h8') return <><path d="M10 18 Q10 6 20 4 Q30 6 30 18Z" fill={color} /><path d="M18 4 Q19 -2 20 -5 Q21 -2 22 4Z" fill={color} /></>;
-  if (style === 'h9') return <><path d="M10 18 Q10 6 20 4 Q30 6 30 18 Q28 12 20 11 Q12 12 10 18Z" fill={color} /><path d="M10 12 Q20 18 30 12" stroke={color} strokeWidth="2" fill="none" /></>;
-  if (style === 'h10') return <><path d="M10 18 Q10 6 20 4 Q30 6 30 18 Q28 12 20 11 Q12 12 10 18Z" fill={color} /><path d="M15 8 Q20 5 25 8" stroke="#fff" strokeWidth="1" fill="none" opacity="0.5" /></>;
-  if (style === 'h11') return <><path d="M10 18 Q10 6 20 4 Q30 6 30 18Z" fill={color} /><line x1="12" y1="15" x2="12" y2="25" stroke={color} strokeWidth="3" /><line x1="28" y1="15" x2="28" y2="25" stroke={color} strokeWidth="3" /></>;
-  return null;
-};
-
-const OutfitPreview: React.FC<{ style: string }> = ({ style }) => {
-  const colors: Record<string, string> = { o1: '#1a0a1a', o2: '#2d0d2d', o3: '#0d0d18', o4: '#18181b', o5: '#0d1a2d', o6: '#1a0a00', o7: '#101015', o8: '#333333', o9: '#1a1a24' };
-  const c = colors[style] || '#1a0a1a';
   return (
-    <g>
-      <path d={`M5 30 L5 18 Q10 12 15 11 L20 12 L25 11 Q30 12 35 18 L35 30Z`} fill={c} />
-      {style === 'o6' && <><ellipse cx="10" cy="14" rx="5" ry="3" fill="#ff0055" opacity="0.6" /><ellipse cx="30" cy="14" rx="5" ry="3" fill="#ff0055" opacity="0.6" /></>}
-      {style === 'o5' && <><line x1="5" y1="18" x2="15" y2="11" stroke="#00d4ff" strokeWidth="1.5" /><line x1="35" y1="18" x2="25" y2="11" stroke="#00d4ff" strokeWidth="1.5" /></>}
-      {style === 'o3' && <line x1="20" y1="12" x2="20" y2="30" stroke="#ff0055" strokeWidth="0.8" opacity="0.5" />}
-      {style === 'o7' && <><line x1="15" y1="15" x2="25" y2="15" stroke="#00d4ff" strokeWidth="1" /><circle cx="20" cy="22" r="2" fill="#00d4ff" /></>}
-      {style === 'o8' && <rect x="15" y="18" width="10" height="4" fill="#ff4400" />}
-      {style === 'o9' && <><line x1="10" y1="15" x2="30" y2="25" stroke="#000" strokeWidth="2" /><line x1="30" y1="15" x2="10" y2="25" stroke="#000" strokeWidth="2" /></>}
-    </g>
+    <div
+      className="fixed inset-0 flex flex-col select-none overflow-hidden"
+      style={{ background: 'linear-gradient(170deg, #dce3ec 0%, #c8d4e0 45%, #bfcfdf 100%)' }}
+    >
+      {/* ── Top Bar ── */}
+      <div className="flex-shrink-0 flex items-center justify-between px-4 pt-safe pt-3 pb-2 z-30">
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="w-10 h-10 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow-md text-gray-600 hover:bg-white transition-all active:scale-90"
+          aria-label="Close"
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 2L16 16M16 2L2 16" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /></svg>
+        </button>
+
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="px-6 py-2 rounded-full bg-white/90 backdrop-blur text-gray-800 font-bold text-sm shadow-md hover:bg-white transition-all active:scale-90 disabled:opacity-60"
+        >
+          {isSaving ? (
+            <span className="flex items-center gap-1.5">
+              <span className="w-3.5 h-3.5 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
+              Saving…
+            </span>
+          ) : 'Save'}
+        </button>
+      </div>
+
+      {/* ── Avatar Preview ── */}
+      <div className="flex-1 relative flex flex-col items-center justify-end pb-4 min-h-0">
+        {/* Subtle radial stage glow */}
+        <div
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-72 h-24 rounded-full blur-2xl opacity-40 pointer-events-none"
+          style={{ backgroundColor: getSkinColor(avatar.skinTone) }}
+        />
+        {/* Ellipse shadow under feet */}
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-40 h-5 rounded-full bg-black/20 blur-md pointer-events-none" />
+
+        <motion.div
+          key={JSON.stringify(avatar)}
+          initial={{ scale: 0.96, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+          className="relative z-10"
+          style={{ animation: 'avatarBob 3s ease-in-out infinite' }}
+        >
+          <AvatarSVG avatar={avatar} size={210} />
+        </motion.div>
+
+        {/* Undo / Redo */}
+        <div className="absolute bottom-5 left-4 flex gap-2 z-20">
+          <button
+            onClick={undo}
+            disabled={histIdx <= 0}
+            className="w-10 h-10 rounded-full bg-white/80 backdrop-blur flex items-center justify-center shadow-md text-gray-600 hover:bg-white transition-all active:scale-90 disabled:opacity-35"
+            aria-label="Undo"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 6H10a4 4 0 0 1 0 8H7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M3 6L6 3M3 6L6 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </button>
+          <button
+            onClick={redo}
+            disabled={histIdx >= history.length - 1}
+            className="w-10 h-10 rounded-full bg-white/80 backdrop-blur flex items-center justify-center shadow-md text-gray-600 hover:bg-white transition-all active:scale-90 disabled:opacity-35"
+            aria-label="Redo"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13 6H6a4 4 0 0 0 0 8H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M13 6L10 3M13 6L10 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </button>
+        </div>
+      </div>
+
+      {/* ── Bottom Sheet ── */}
+      <div
+        className="flex-shrink-0 rounded-t-3xl shadow-2xl z-20"
+        style={{
+          background: 'rgba(255,255,255,0.97)',
+          backdropFilter: 'blur(20px)',
+          maxHeight: '52vh',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-2.5 pb-1 flex-shrink-0">
+          <div className="w-10 h-1 rounded-full bg-gray-300" />
+        </div>
+
+        {/* ── Main Tabs ── */}
+        <div className="flex border-b border-gray-100 flex-shrink-0">
+          {(['fashion', 'wardrobe', 'avatar'] as MainTab[]).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setMainTab(tab)}
+              className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex flex-col items-center gap-1
+                ${mainTab === tab ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              <span className="text-base">
+                {tab === 'fashion' ? '🏪' : tab === 'wardrobe' ? '🤍' : '🧑'}
+              </span>
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Avatar Sub-category Icon Row ── */}
+        {mainTab === 'avatar' && (
+          <div
+            ref={subScrollRef}
+            className="flex-shrink-0 flex gap-0 overflow-x-auto border-b border-gray-100 px-1"
+            style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+          >
+            {AVATAR_SUB_CATEGORIES.map(cat => (
+              <button
+                id={`subcat-${cat.id}`}
+                key={cat.id}
+                onClick={() => scrollSubToActive(cat.id)}
+                className={`flex-shrink-0 flex flex-col items-center gap-0.5 px-3 py-2.5 relative cursor-pointer transition-all
+                  ${subCat === cat.id ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+              >
+                <span className="text-xl">{cat.icon}</span>
+                <span className="text-[9px] font-semibold">{cat.label}</span>
+                {subCat === cat.id && (
+                  <motion.div layoutId="subcat-indicator" className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-gray-900" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* ── Tab Content (scrollable) ── */}
+        <div className="flex-1 overflow-y-auto px-4 py-3" style={{ scrollbarWidth: 'none' }}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${mainTab}-${subCat}`}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+            >
+              {mainTab === 'avatar' && renderGrid()}
+              {mainTab === 'fashion' && renderFashion()}
+              {mainTab === 'wardrobe' && (
+                <div className="flex flex-col items-center justify-center py-10 text-center gap-3">
+                  <span className="text-4xl">🧺</span>
+                  <p className="text-sm font-semibold text-gray-500">Your wardrobe is empty</p>
+                  <p className="text-xs text-gray-400">Purchase outfits from the Fashion tab</p>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Bob animation */}
+      <style jsx global>{`
+        @keyframes avatarBob {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-6px); }
+        }
+        ::-webkit-scrollbar { display: none; }
+      `}</style>
+    </div>
   );
-};
+}
