@@ -401,12 +401,54 @@ const AvatarSVG: React.FC<AvatarSVGProps> = ({ avatar, size = 260, mini = false 
   // Nose renderer
   const getNose = () => {
     switch (avatar.noseStyle) {
-      case 'ns2': return <g><line x1="100" y1="110" x2="100" y2="125" stroke={skinShadow} strokeWidth="1.8" strokeLinecap="round" opacity="0.5" /><ellipse cx="95" cy="125" rx="5" ry="2.5" fill={skinShadow} opacity="0.2" /><ellipse cx="105" cy="125" rx="5" ry="2.5" fill={skinShadow} opacity="0.2" /></g>;
-      case 'ns3': return <g><path d="M96 115 Q100 125 104 115" stroke={skinShadow} strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.55" /><ellipse cx="94" cy="124" rx="6" ry="3" fill={skinShadow} opacity="0.22" /><ellipse cx="106" cy="124" rx="6" ry="3" fill={skinShadow} opacity="0.22" /></g>;
-      case 'ns4': return <g><path d="M100 110 Q100 120 100 126" stroke={skinShadow} strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.5" /><ellipse cx="100" cy="126" rx="3" ry="2" fill={skinShadow} opacity="0.25" /></g>;
-      case 'ns5': return <g><path d="M97 115 Q100 120 103 115" stroke={skinShadow} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.45" /><ellipse cx="97" cy="123" rx="4.5" ry="2.5" fill={skinShadow} opacity="0.2" /><ellipse cx="103" cy="123" rx="4.5" ry="2.5" fill={skinShadow} opacity="0.2" /></g>;
-      case 'ns6': return <g><path d="M100 108 Q102 118 100 126" stroke={skinShadow} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.5" /><path d="M96 123 Q100 128 104 123" stroke={skinShadow} strokeWidth="1.5" fill="none" opacity="0.4" /></g>;
-      default:    return <g><path d="M97 113 Q100 123 103 113" stroke={skinShadow} strokeWidth="1.8" fill="none" strokeLinecap="round" opacity="0.5" /><ellipse cx="95" cy="123" rx="4" ry="2.5" fill={skinShadow} opacity="0.18" /><ellipse cx="105" cy="123" rx="4" ry="2.5" fill={skinShadow} opacity="0.18" /></g>;
+      case 'ns2': // Straight Long Nose
+        return <g>
+          <path d="M 97 100 L 97 125 L 103 125 L 103 100 Z" fill={skinShadow} opacity="0.2" />
+          <path d="M 95 125 Q 100 129 105 125 Q 100 127 95 125 Z" fill={skinShadow} opacity="0.6" />
+          <path d="M 93 123 Q 90 127 95 127 Q 95 124 93 123 Z" fill={skinShadow} opacity="0.7" />
+          <path d="M 107 123 Q 110 127 105 127 Q 105 124 107 123 Z" fill={skinShadow} opacity="0.7" />
+          <rect x="99" y="105" width="2" height="15" rx="1" fill="#ffffff" opacity="0.2" />
+        </g>;
+      case 'ns3': // Wide Button Nose
+        return <g>
+          <path d="M 95 110 C 92 120, 94 125, 100 126 C 106 125, 108 120, 105 110" fill="none" stroke={skinShadow} strokeWidth="2" opacity="0.3" />
+          <path d="M 92 122 C 92 127, 108 127, 108 122 C 105 125, 95 125, 92 122 Z" fill={skinShadow} opacity="0.5" />
+          <path d="M 88 122 C 85 126, 92 128, 94 125 Z" fill={skinShadow} opacity="0.8" />
+          <path d="M 112 122 C 115 126, 108 128, 106 125 Z" fill={skinShadow} opacity="0.8" />
+          <circle cx="100" cy="120" r="3" fill="#ffffff" opacity="0.25" />
+        </g>;
+      case 'ns4': // Upturned Nose (Cute)
+        return <g>
+          <path d="M 97 105 Q 98 115 95 120 Q 100 124 105 120 Q 102 115 103 105" fill={skinShadow} opacity="0.2" />
+          <path d="M 94 119 C 96 124, 104 124, 106 119 C 103 122, 97 122, 94 119 Z" fill={skinShadow} opacity="0.5" />
+          <circle cx="92" cy="122" r="1.5" fill={skinShadow} opacity="0.6" />
+          <circle cx="108" cy="122" r="1.5" fill={skinShadow} opacity="0.6" />
+          <ellipse cx="100" cy="116" rx="3" ry="2" fill="#ffffff" opacity="0.35" />
+        </g>;
+      case 'ns5': // Angular / Aquiline Nose
+        return <g>
+          <path d="M 98 100 L 95 115 L 98 126 L 102 126 L 105 115 L 102 100 Z" fill={skinShadow} opacity="0.2" />
+          <path d="M 95 125 L 100 128 L 105 125 Z" fill={skinShadow} opacity="0.6" />
+          <path d="M 93 122 L 91 125 L 95 126 Z" fill={skinShadow} opacity="0.8" />
+          <path d="M 107 122 L 109 125 L 105 126 Z" fill={skinShadow} opacity="0.8" />
+          <path d="M 99 105 L 98 115 L 99 122 L 101 122 L 102 115 Z" fill="#ffffff" opacity="0.2" />
+        </g>;
+      case 'ns6': // Broad / Flat Nose
+        return <g>
+          <path d="M 94 105 Q 92 118 90 123 Q 100 128 110 123 Q 108 118 106 105" fill={skinShadow} opacity="0.2" />
+          <path d="M 90 123 Q 100 128 110 123 Q 100 125 90 123 Z" fill={skinShadow} opacity="0.5" />
+          <ellipse cx="88" cy="124" rx="3" ry="2" fill={skinShadow} opacity="0.7" />
+          <ellipse cx="112" cy="124" rx="3" ry="2" fill={skinShadow} opacity="0.7" />
+          <ellipse cx="100" cy="120" rx="5" ry="3" fill="#ffffff" opacity="0.2" />
+        </g>;
+      default:    // ns1 Classic Pointy Nose
+        return <g>
+          <path d="M 96 100 Q 94 115 95 122 Q 100 125 105 122 Q 106 115 104 100" fill={skinShadow} opacity="0.3" />
+          <path d="M 92 120 C 92 128, 108 128, 108 120 C 105 122, 95 122, 92 120 Z" fill={skinShadow} opacity="0.6" />
+          <path d="M 90 120 C 88 125, 93 126, 95 124 C 95 122, 93 120, 90 120 Z" fill={skinShadow} opacity="0.7" />
+          <path d="M 110 120 C 112 125, 107 126, 105 124 C 105 122, 107 120, 110 120 Z" fill={skinShadow} opacity="0.7" />
+          <ellipse cx="100" cy="118" rx="2" ry="5" fill="#ffffff" opacity="0.25" />
+        </g>;
     }
   };
 
