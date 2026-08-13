@@ -193,6 +193,9 @@ const OUTFIT_STYLES: Option[] = [
   { id: 'of7', label: 'Neon Jacket', locked: true, cost: 1800 },
   { id: 'of8', label: 'Techwear', locked: true, cost: 2200 },
   { id: 'of9', label: 'Vanguard Armor', locked: true, cost: 3500 },
+  { id: 'of10', label: 'Neon Samurai', locked: true, cost: 4200 },
+  { id: 'of11', label: 'Mecha Suit', locked: true, cost: 5000 },
+  { id: 'of12', label: 'Hacker Cloak', locked: true, cost: 6000 },
 ];
 
 // ─── Default Avatar State ──────────────────────────────────────────────────────
@@ -578,6 +581,9 @@ const AvatarSVG: React.FC<AvatarSVGProps> = ({ avatar, size = 260, mini = false 
       of7: { main: '#0d1a2d', accent: '#00d4ff' },
       of8: { main: '#1a1a24', accent: '#00ff66' },
       of9: { main: '#1a0a00', accent: '#ffd700' },
+      of10: { main: '#110022', accent: '#00ffcc' },
+      of11: { main: '#3a3a45', accent: '#ffaa00' },
+      of12: { main: '#0f172a', accent: '#ff00aa' },
     };
     const { main, accent } = outfitColors[avatar.outfitStyle] || outfitColors.of1;
 
@@ -608,6 +614,141 @@ const AvatarSVG: React.FC<AvatarSVGProps> = ({ avatar, size = 260, mini = false 
       Q ${shoulderL} 160 86 160 Z
     `;
 
+    const renderOutfit = () => {
+      const baseShirt = (
+        <g>
+          <path d={torsoPath} fill={main} />
+          {isFemale && <path d={`M 75 210 Q 86 222 100 216 Q 114 222 125 210`} stroke={darken(main, 0.18)} strokeWidth="2" fill="none" opacity="0.6" />}
+        </g>
+      );
+      
+      const standardSleeves = (
+        <g>
+          <path d={`M ${shoulderL + 4} 175 Q ${shoulderL - 8} 205 ${shoulderL - 10} 215`} stroke={main} strokeWidth={armW + 2} strokeLinecap="round" fill="none" />
+          <path d={`M ${shoulderR - 4} 175 Q ${shoulderR + 8} 205 ${shoulderR + 10} 215`} stroke={main} strokeWidth={armW + 2} strokeLinecap="round" fill="none" />
+        </g>
+      );
+
+      switch (avatar.outfitStyle) {
+        case 'of2': // Corporate Suit
+          return <g>
+            {baseShirt}
+            {standardSleeves}
+            <path d={`M 86 160 L 100 210 L 114 160 Z`} fill="#e0e0e0" />
+            <path d={`M 97 180 L 100 230 L 103 180 Z M 95 170 L 105 170 L 100 185 Z`} fill={accent} />
+            <path d={`M 86 160 L 70 250 L 100 210 Z`} fill={darken(main, 0.1)} />
+            <path d={`M 114 160 L 130 250 L 100 210 Z`} fill={darken(main, 0.1)} />
+          </g>;
+        case 'of3': // Streetwear Hoodie
+          return <g>
+            <path d={`M ${shoulderL - 10} 160 C ${shoulderL - 10} 250, ${hipL - 10} 320, 100 320 C ${hipR + 10} 320, ${shoulderR + 10} 250, ${shoulderR + 10} 160 Z`} fill={main} />
+            <path d={`M ${shoulderL + 5} 175 Q ${shoulderL - 25} 220 ${shoulderL - 10} 265`} stroke={main} strokeWidth={armW + 8} strokeLinecap="round" fill="none" />
+            <path d={`M ${shoulderR - 5} 175 Q ${shoulderR + 25} 220 ${shoulderR + 10} 265`} stroke={main} strokeWidth={armW + 8} strokeLinecap="round" fill="none" />
+            <path d={`M 70 160 C 70 140, 130 140, 130 160 C 140 190, 60 190, 70 160 Z`} fill={darken(main, 0.15)} />
+            <path d={`M 90 180 Q 85 200 88 220 M 110 180 Q 115 200 112 220`} stroke={accent} strokeWidth="2" fill="none" />
+            <path d={`M 60 260 L 140 260 L 145 310 L 55 310 Z`} fill={darken(main, 0.05)} />
+          </g>;
+        case 'of4': // Tactical Vest
+          return <g>
+            {baseShirt}
+            {standardSleeves}
+            <rect x="70" y="170" width="60" height="40" rx="4" fill={darken(main, 0.2)} />
+            <rect x="70" y="215" width="60" height="35" rx="4" fill={darken(main, 0.2)} />
+            <rect x="75" y="255" width="50" height="35" rx="4" fill={darken(main, 0.2)} />
+            <path d="M 70 160 L 70 315 M 130 160 L 130 315" stroke={accent} strokeWidth="5" opacity="0.8" />
+            <path d="M 50 195 L 150 195 M 50 240 L 150 240" stroke={accent} strokeWidth="4" opacity="0.6" />
+          </g>;
+        case 'of5': // Netrunner Suit
+          return <g>
+            {baseShirt}
+            <path d={`M ${shoulderL + 4} 175 Q ${shoulderL - 16} 220 ${shoulderL - 8} 265`} stroke={main} strokeWidth={armW + 1} strokeLinecap="round" fill="none" />
+            <path d={`M ${shoulderR - 4} 175 Q ${shoulderR + 16} 220 ${shoulderR + 8} 265`} stroke={main} strokeWidth={armW + 1} strokeLinecap="round" fill="none" />
+            <path d="M 100 160 L 100 310 M 70 200 L 100 220 L 130 200 M 60 250 L 100 270 L 140 250" stroke={accent} strokeWidth="2" fill="none" />
+            <circle cx="100" cy="220" r="4" fill={accent} />
+            <circle cx="100" cy="270" r="4" fill={accent} />
+            <circle cx="70" cy="200" r="3" fill={accent} />
+            <circle cx="130" cy="200" r="3" fill={accent} />
+          </g>;
+        case 'of6': // Punk Vest (Sleeveless)
+          return <g>
+            {baseShirt}
+            <path d={`M 86 160 L 95 315 L ${hipL} 315 C ${hipL} 300 ${waistL} 280 ${waistL} 255 C ${waistL} 230 ${shoulderL} 210 ${shoulderL} 175 Q ${shoulderL} 160 86 160 Z`} fill={darken(main, 0.2)} />
+            <path d={`M 114 160 L 105 315 L ${hipR} 315 C ${hipR} 300 ${waistR} 280 ${waistR} 255 C ${waistR} 230 ${shoulderR} 210 ${shoulderR} 175 Q ${shoulderR} 160 114 160 Z`} fill={darken(main, 0.2)} />
+            <circle cx={shoulderL + 8} cy="175" r="3" fill={accent} />
+            <circle cx={shoulderL + 12} cy="185" r="3" fill={accent} />
+            <circle cx={shoulderR - 8} cy="175" r="3" fill={accent} />
+            <circle cx={shoulderR - 12} cy="185" r="3" fill={accent} />
+            <rect x="75" y="230" width="12" height="18" fill={accent} opacity="0.8" transform="rotate(10 81 239)" />
+            <rect x="110" y="240" width="16" height="16" fill={accent} opacity="0.8" transform="rotate(-15 118 248)" />
+          </g>;
+        case 'of7': // Techwear Poncho
+          return <g>
+            {standardSleeves}
+            {baseShirt}
+            <path d={`M 70 160 Q 140 160 160 180 Q 170 250 140 330 L 50 280 Q 40 220 70 160 Z`} fill={darken(main, 0.1)} />
+            <path d={`M 80 160 L 130 320 M 150 200 L 100 280`} stroke={accent} strokeWidth="4" opacity="0.8" />
+            <polygon points="120,230 130,240 110,250" fill={accent} />
+          </g>;
+        case 'of8': // Minimalist Tee
+          return <g>
+            {baseShirt}
+            <path d={`M ${shoulderL + 4} 175 Q ${shoulderL - 6} 190 ${shoulderL - 7} 195`} stroke={main} strokeWidth={armW + 2} strokeLinecap="round" fill="none" />
+            <path d={`M ${shoulderR - 4} 175 Q ${shoulderR + 6} 190 ${shoulderR + 7} 195`} stroke={main} strokeWidth={armW + 2} strokeLinecap="round" fill="none" />
+            <circle cx="100" cy="200" r="14" stroke={accent} strokeWidth="3" fill="none" />
+            <line x1="92" y1="200" x2="108" y2="200" stroke={accent} strokeWidth="4" />
+          </g>;
+        case 'of9': // Racer Jacket
+          return <g>
+            {baseShirt}
+            {standardSleeves}
+            <ellipse cx={shoulderL + 5} cy="175" rx="15" ry="10" fill={darken(main, 0.2)} />
+            <ellipse cx={shoulderR - 5} cy="175" rx="15" ry="10" fill={darken(main, 0.2)} />
+            <path d={`M 85 160 L 85 315 M 115 160 L 115 315`} stroke={accent} strokeWidth="4" />
+            <path d={`M 100 160 L 100 315`} stroke="#ccc" strokeWidth="2" strokeDasharray="4 2" />
+          </g>;
+        case 'of10': // Neon Samurai
+          return <g>
+            {baseShirt}
+            <path d={`M ${shoulderL + 5} 175 L ${shoulderL - 40} 270 L ${shoulderL - 5} 270 L ${shoulderL - 5} 190 Z`} fill={main} />
+            <path d={`M ${shoulderR - 5} 175 L ${shoulderR + 40} 270 L ${shoulderR + 5} 270 L ${shoulderR + 5} 190 Z`} fill={main} />
+            <path d={`M 70 160 L 100 230 L 130 160`} stroke={darken(main, 0.15)} strokeWidth="8" fill="none" />
+            <path d={`M 75 160 L 100 220 L 125 160`} stroke={accent} strokeWidth="3" fill="none" opacity="0.9" />
+            <rect x="65" y="235" width="70" height="25" fill={darken(main, 0.3)} />
+            <rect x="70" y="240" width="60" height="15" fill={accent} opacity="0.6" />
+          </g>;
+        case 'of11': // Mecha Suit
+          return <g>
+            <path d={`M ${shoulderL + 10} 150 L ${shoulderL - 25} 190 L ${shoulderL - 10} 220 L ${shoulderL} 170 Z`} fill={darken(main, 0.2)} />
+            <path d={`M ${shoulderR - 10} 150 L ${shoulderR + 25} 190 L ${shoulderR + 10} 220 L ${shoulderR} 170 Z`} fill={darken(main, 0.2)} />
+            <path d={`M ${shoulderL + 10} 150 L ${shoulderL - 25} 190`} stroke={accent} strokeWidth="3" />
+            <path d={`M ${shoulderR - 10} 150 L ${shoulderR + 25} 190`} stroke={accent} strokeWidth="3" />
+            <path d={`M ${shoulderL - 15} 200 L ${shoulderL - 15} 270`} stroke={main} strokeWidth={armW + 10} strokeLinecap="round" />
+            <path d={`M ${shoulderR + 15} 200 L ${shoulderR + 15} 270`} stroke={main} strokeWidth={armW + 10} strokeLinecap="round" />
+            <path d={`M 75 160 L 125 160 L 135 200 L 100 240 L 65 200 Z`} fill={main} stroke={darken(main, 0.3)} strokeWidth="4" />
+            <circle cx="100" cy="200" r="16" fill={darken(main, 0.4)} />
+            <circle cx="100" cy="200" r="8" fill={accent} />
+            <path d={`M ${hipL} 315 L 75 250 L 125 250 L ${hipR} 315 Z`} fill={darken(main, 0.1)} />
+          </g>;
+        case 'of12': // Hacker Cloak
+          return <g>
+            {baseShirt}
+            <path d={`M 60 165 C 80 135, 120 135, 140 165 C 130 180, 70 180, 60 165 Z`} fill={darken(main, 0.2)} />
+            <path d={`M 65 170 C 40 200, 20 280, 30 330 L 170 330 C 180 280, 160 200, 135 170 C 120 220, 80 220, 65 170 Z`} fill={main} />
+            <path d={`M 65 170 C 80 220, 120 220, 135 170 L 140 330 L 60 330 Z`} fill={darken(main, 0.3)} opacity="0.6" />
+            <path d={`M 65 170 C 80 220, 120 220, 135 170`} stroke={accent} strokeWidth="4" fill="none" opacity="0.9" />
+          </g>;
+        default: // of1 Cyber Jacket
+          return <g>
+            {baseShirt}
+            {standardSleeves}
+            <path d="M 75 150 Q 100 160 125 150 L 115 165 Q 100 175 85 165 Z" fill={darken(main, 0.2)} />
+            <path d="M 80 180 L 120 180 L 110 230 L 90 230 Z" fill={darken(main, 0.1)} />
+            <text x="100" y="215" textAnchor="middle" fontSize="12" fill={accent} fontFamily="monospace" fontWeight="bold" opacity="0.9">CYBER</text>
+            <path d="M 70 250 L 130 250 M 70 270 L 130 270" stroke={accent} strokeWidth="2" opacity="0.6" />
+          </g>;
+      }
+    };
+
     return (
       <g transform={`translate(${tx}, 0) scale(${bodyScale}, 1)`}>
         {/* Arms (Skin) */}
@@ -626,29 +767,7 @@ const AvatarSVG: React.FC<AvatarSVGProps> = ({ avatar, size = 260, mini = false 
         <ellipse cx={hipL} cy="415" rx={legW/2 + 4} ry="12" fill={darken(main, 0.3)} />
         <ellipse cx={hipR} cy="415" rx={legW/2 + 4} ry="12" fill={darken(main, 0.3)} />
 
-        {/* Sleeves (Outfit) */}
-        <path d={`M ${shoulderL + 4} 175 Q ${shoulderL - 8} 205 ${shoulderL - 10} 215`} stroke={main} strokeWidth={armW + 2} strokeLinecap="round" fill="none" />
-        <path d={`M ${shoulderR - 4} 175 Q ${shoulderR + 8} 205 ${shoulderR + 10} 215`} stroke={main} strokeWidth={armW + 2} strokeLinecap="round" fill="none" />
-
-        {/* Torso (Outfit) */}
-        <path d={torsoPath} fill={main} />
-        
-        {/* Female Chest detail */}
-        {isFemale && <>
-          <path d={`M 75 210 Q 86 222 100 216 Q 114 222 125 210`} stroke={darken(main, 0.18)} strokeWidth="2" fill="none" opacity="0.6" />
-        </>}
-
-        {/* Collar detail */}
-        <path d="M 86 160 Q 100 172 114 160" fill="none" stroke={accent} strokeWidth="2.5" opacity="0.9" />
-
-        {/* Outfit accents based on style */}
-        {avatar.outfitStyle === 'of1' && <text x="100" y="210" textAnchor="middle" fontSize="12" fill={accent} fontFamily="monospace" fontWeight="bold" opacity="0.8">CYBER</text>}
-        {avatar.outfitStyle === 'of2' && <rect x="80" y="230" width="40" height="24" rx="6" fill={darken(main, 0.15)} />}
-        {avatar.outfitStyle === 'of3' && [190, 210, 230, 250].map((y,i) => <circle key={i} cx="100" cy={y} r="3" fill={accent} opacity="0.8" />)}
-        {avatar.outfitStyle === 'of4' && <><rect x="65" y="185" width="30" height="55" rx="4" fill={darken(main, 0.3)} opacity="0.8" /><rect x="105" y="185" width="30" height="55" rx="4" fill={darken(main, 0.3)} opacity="0.8" /></>}
-        {avatar.outfitStyle === 'of5' && <><path d="M 80 190 L 120 190 L 125 215 L 100 220 L 75 215 Z" fill="none" stroke={accent} strokeWidth="2" /><circle cx="100" cy="205" r="6" fill={accent} opacity="0.8" /></>}
-        {avatar.outfitStyle === 'of7' && <><path d="M 60 170 L 30 190" stroke={accent} strokeWidth="3" opacity="0.9" /><path d="M 140 170 L 170 190" stroke={accent} strokeWidth="3" opacity="0.9" /></>}
-        {avatar.outfitStyle === 'of9' && <><ellipse cx="48" cy="180" rx="24" ry="16" fill={darken(main, 0.2)} /><ellipse cx="152" cy="180" rx="24" ry="16" fill={darken(main, 0.2)} /><ellipse cx="48" cy="180" rx="14" ry="8" fill={accent} opacity="0.7" /><ellipse cx="152" cy="180" rx="14" ry="8" fill={accent} opacity="0.7" /></>}
+        {renderOutfit()}
       </g>
     );
   };
