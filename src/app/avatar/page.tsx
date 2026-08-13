@@ -420,25 +420,99 @@ const AvatarSVG: React.FC<AvatarSVGProps> = ({ avatar, size = 260, mini = false 
     }
   };
 
-  // Hair renderer — base cap: M43 108 to Q157 72 157 108 eliminates the ~2px skin gap
-  // Inner return path traces slightly inside the head so fill covers scalp fully
-  const CAP = `M39 112 Q39 65 60 50 Q80 35 100 35 Q120 35 141 50 Q161 65 161 112 Q150 88 140 76 Q124 48 100 46 Q76 48 60 76 Q50 88 39 112Z`;
+  // Hair renderer — Redesigned to fit all head shapes perfectly
+  const CAP = `M32 115 Q32 50 60 35 Q80 20 100 20 Q120 20 140 35 Q168 50 168 115 Q150 95 140 85 Q125 58 100 55 Q75 58 60 85 Q50 95 32 115Z`;
+  
   const getHair = () => {
-    const hs = avatar.hairStyle;
-    switch (hs) {
-      case 'hr2': return <g><path d={CAP} fill={hair} /><rect x="38" y="97" width="22" height="94" rx="11" fill={hair} /><rect x="140" y="97" width="22" height="94" rx="11" fill={hair} /><line x1="49" y1="100" x2="51" y2="188" stroke={hairHighlight} strokeWidth="1.5" opacity="0.45" /><line x1="148" y1="100" x2="150" y2="188" stroke={hairHighlight} strokeWidth="1.5" opacity="0.45" /></g>;
-      case 'hr3': return <g><circle cx="100" cy="62" r="54" fill={hair} />{[[67,52],[80,42],[95,36],[112,40],[128,52],[140,65],[138,80],[62,68],[100,32],[115,30]].map(([cx, cy], i) => <circle key={i} cx={cx} cy={cy} r="12" fill={hairShadow} opacity="0.4" />)}<circle cx="100" cy="62" r="49" fill="none" stroke={hairHighlight} strokeWidth="1.5" opacity="0.25" /></g>;
-      case 'hr4': return <g><path d={CAP} fill={hair} /><path d="M52 78 Q80 54 132 62 Q110 48 100 46 Q75 48 52 78Z" fill={hairShadow} opacity="0.5" /><path d="M52 78 Q82 57 130 63" stroke={hairHighlight} strokeWidth="2" fill="none" opacity="0.6" /></g>;
-      case 'hr5': return <g><path d={CAP} fill={hair} /><ellipse cx="100" cy="52" rx="10" ry="8" fill={hairShadow} /><path d="M95 52 Q86 40 90 18 Q95 8 100 6 Q105 8 110 18 Q114 40 105 52Z" fill={hair} /><line x1="100" y1="48" x2="100" y2="10" stroke={hairHighlight} strokeWidth="1.5" opacity="0.5" /></g>;
-      case 'hr6': return <g><path d="M40 110 Q40 75 62 58 Q80 42 100 42 Q120 42 138 58 Q160 75 160 110 Q150 90 140 80 Q124 52 100 50 Q76 52 60 80 Q50 90 40 110Z" fill={hair} /></g>;
-      case 'hr7': return <g><path d={CAP} fill={hair} /><circle cx="72" cy="46" r="21" fill={hair} /><circle cx="128" cy="46" r="21" fill={hair} /><circle cx="72" cy="46" r="14" fill={hairShadow} opacity="0.4" /><circle cx="128" cy="46" r="14" fill={hairShadow} opacity="0.4" /></g>;
-      case 'hr8': return <g><path d={CAP} fill={hair} /><path d="M91 46 Q96 8 100 4 Q104 8 109 46Z" fill={hair} /><line x1="100" y1="46" x2="100" y2="7" stroke={hairHighlight} strokeWidth="1.5" opacity="0.6" /></g>;
-      case 'hr9': return <g><path d={CAP} fill={hair} /><path d="M50 70 Q70 58 92 86 Q112 58 132 74" stroke={hairShadow} strokeWidth="2.5" fill="none" opacity="0.5" /><path d="M38 100 Q60 78 82 105" stroke={hair} strokeWidth="6" fill="none" /></g>;
-      case 'hr10': return <g><path d={CAP} fill={hair} /><path d="M60 60 Q80 48 100 50 Q120 48 140 60" stroke={hairHighlight} strokeWidth="2" fill="none" opacity="0.5" /></g>;
-      case 'hr11': return <g><path d={CAP} fill={hair} /><path d="M54 96 Q49 132 54 178" stroke={hair} strokeWidth="14" fill="none" strokeDasharray="7 3" /><path d="M146 96 Q151 132 146 178" stroke={hair} strokeWidth="14" fill="none" strokeDasharray="7 3" /><line x1="47" y1="168" x2="61" y2="168" stroke="#00d4ff" strokeWidth="3" /><line x1="139" y1="168" x2="153" y2="168" stroke="#00d4ff" strokeWidth="3" /></g>;
-      case 'hr12': return <g><path d={CAP} fill={hair} /><rect x="42" y="94" width="23" height="48" rx="11.5" fill={hair} /><rect x="135" y="94" width="23" height="48" rx="11.5" fill={hair} /><line x1="48" y1="96" x2="50" y2="140" stroke={hairHighlight} strokeWidth="1" opacity="0.45" /><line x1="150" y1="96" x2="148" y2="140" stroke={hairHighlight} strokeWidth="1" opacity="0.45" /></g>;
+    switch (avatar.hairStyle) {
+      case 'hr2': // Long Straight
+        return <g>
+          <path d="M32 115 Q32 40 100 25 Q168 40 168 115 L172 240 Q160 250 145 240 L135 115 L65 115 L55 240 Q40 250 28 240 Z" fill={hair} />
+          <path d={CAP} fill={hair} />
+          <path d="M50 80 Q50 180 50 220 M150 80 Q150 180 150 220" stroke={hairHighlight} strokeWidth="3" fill="none" opacity="0.3" />
+        </g>;
+      case 'hr3': // Afro / Curly
+        return <g>
+          <path d="M 40 105 C 20 90, 30 50, 60 40 C 70 10, 130 10, 140 40 C 170 50, 180 90, 160 105 C 165 120, 140 130, 135 115 C 135 80, 120 55, 100 55 C 80 55, 65 80, 65 115 C 60 130, 35 120, 40 105 Z" fill={hair} />
+          <path d={CAP} fill={hair} />
+          <circle cx="70" cy="45" r="8" fill={hairHighlight} opacity="0.2" />
+          <circle cx="100" cy="30" r="10" fill={hairHighlight} opacity="0.2" />
+          <circle cx="130" cy="45" r="8" fill={hairHighlight} opacity="0.2" />
+        </g>;
+      case 'hr4': // Pixie
+        return <g>
+          <path d={CAP} fill={hair} />
+          <path d="M30 95 Q35 50 80 30 Q110 20 145 45 Q165 60 170 95 Q150 75 140 70 Q125 58 100 55 Q75 58 60 85 Q45 95 30 95Z" fill={hair} />
+          <path d="M70 40 Q90 50 110 40" stroke={hairHighlight} strokeWidth="2" fill="none" opacity="0.4" />
+        </g>;
+      case 'hr5': // Top Knot
+        return <g>
+          <path d={CAP} fill={hair} />
+          <circle cx="100" cy="20" r="18" fill={hair} />
+          <path d="M 85 20 C 85 -5, 115 -5, 115 20 Z" fill={hairShadow} />
+          <path d="M90 60 Q100 35 100 20 Q100 35 110 60" stroke={hairHighlight} strokeWidth="1.5" fill="none" opacity="0.4" />
+        </g>;
+      case 'hr6': // Bob
+        return <g>
+          <path d="M30 115 Q30 30 100 20 Q170 30 170 115 Q175 150 160 160 Q140 160 135 130 Q125 55 100 55 Q75 55 65 130 Q60 160 40 160 Q25 150 30 115 Z" fill={hair} />
+          <path d="M 45 60 Q 45 120 45 140 M 155 60 Q 155 120 155 140" stroke={hairHighlight} strokeWidth="2" fill="none" opacity="0.3" />
+        </g>;
+      case 'hr7': // Space Buns
+        return <g>
+          <path d={CAP} fill={hair} />
+          <circle cx="55" cy="35" r="22" fill={hair} />
+          <circle cx="145" cy="35" r="22" fill={hair} />
+          <circle cx="55" cy="35" r="12" fill={hairShadow} opacity="0.5" />
+          <circle cx="145" cy="35" r="12" fill={hairShadow} opacity="0.5" />
+        </g>;
+      case 'hr8': // Slicked Back
+        return <g>
+          <path d={CAP} fill={hair} />
+          <path d="M35 100 Q40 40 100 25 Q160 40 165 100 Q150 70 140 65 Q125 55 100 55 Q75 55 60 65 Q50 70 35 100Z" fill={hair} />
+          <path d="M 60 50 Q 80 35 100 35 Q 120 35 140 50" stroke={hairHighlight} strokeWidth="2" fill="none" opacity="0.4" />
+          <path d="M 70 60 Q 100 45 130 60" stroke={hairHighlight} strokeWidth="2" fill="none" opacity="0.4" />
+        </g>;
+      case 'hr9': // Dreadlocks
+        return <g>
+          <path d={CAP} fill={hair} />
+          <g stroke={hair} strokeWidth="12" strokeLinecap="round" fill="none">
+            <path d="M 45 90 Q 35 150 40 210" />
+            <path d="M 65 100 Q 55 160 60 220" />
+            <path d="M 135 100 Q 145 160 140 220" />
+            <path d="M 155 90 Q 165 150 160 210" />
+          </g>
+          <g stroke={hairShadow} strokeWidth="12" strokeLinecap="round" strokeDasharray="8 6" fill="none" opacity="0.5">
+            <path d="M 45 90 Q 35 150 40 210" />
+            <path d="M 65 100 Q 55 160 60 220" />
+            <path d="M 135 100 Q 145 160 140 220" />
+            <path d="M 155 90 Q 165 150 160 210" />
+          </g>
+        </g>;
+      case 'hr10': // Buzz Cut
+        return <g>
+          <path d="M35 110 Q35 50 100 35 Q165 50 165 110 Q150 90 140 80 Q125 60 100 60 Q75 60 60 80 Q50 90 35 110Z" fill={hair} />
+          <path d="M 50 60 Q 100 45 150 60 M 60 70 Q 100 55 140 70 M 70 80 Q 100 65 130 80" stroke={hairShadow} strokeWidth="3" strokeDasharray="2 6" fill="none" opacity="0.6" />
+        </g>;
+      case 'hr11': // Mohawk
+        return <g>
+          <path d={CAP} fill={hair} />
+          <path d="M 85 55 L 80 10 L 100 5 L 120 10 L 115 55 Z" fill={hair} />
+          <path d="M 90 50 L 85 15 L 100 10 L 115 15 L 110 50 Z" fill={hairHighlight} />
+        </g>;
+      case 'hr12': // Pigtails
+        return <g>
+          <path d={CAP} fill={hair} />
+          <path d="M 50 90 Q 20 120 25 180 Q 40 190 55 180 Q 60 140 60 90 Z" fill={hair} />
+          <path d="M 150 90 Q 180 120 175 180 Q 160 190 145 180 Q 140 140 140 90 Z" fill={hair} />
+          <rect x="42" y="85" width="20" height="8" rx="4" fill="#ff0055" />
+          <rect x="138" y="85" width="20" height="8" rx="4" fill="#00d4ff" />
+        </g>;
       default: // hr1 Short Wavy
-        return <g><path d={CAP} fill={hair} /><path d="M43 108 Q50 80 60 68 Q76 54 100 52 Q124 54 140 68 Q150 80 157 108" fill="none" stroke={hairHighlight} strokeWidth="1.5" opacity="0.45" /></g>;
+        return <g>
+          <path d={CAP} fill={hair} />
+          <path d="M40 100 Q45 70 65 50 Q85 30 110 40 Q130 45 145 65 Q160 90 160 115 Q150 90 140 85 Q125 58 100 55 Q75 58 60 85 Q50 95 40 100Z" fill={hair} />
+          <path d="M50 70 Q70 40 100 45 Q120 50 140 70" fill="none" stroke={hairHighlight} strokeWidth="2" opacity="0.4" />
+        </g>;
     }
   };
 
