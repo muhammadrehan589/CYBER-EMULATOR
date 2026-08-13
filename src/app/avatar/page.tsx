@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -35,7 +35,7 @@ interface ColorOption {
 }
 
 interface AvatarState {
-  gender: 'male' | 'female' | 'nonbinary';
+  gender: 'male' | 'female';
   skinTone: string;
   faceShape: string;
   bodyType: string;
@@ -78,10 +78,9 @@ const BODY_TYPES: Option[] = [
   { id: 'bt4', label: 'Petite' },
 ];
 
-const GENDER_OPTIONS: { id: 'male' | 'female' | 'nonbinary'; label: string; icon: string; desc: string }[] = [
+const GENDER_OPTIONS: { id: 'male' | 'female'; label: string; icon: string; desc: string }[] = [
   { id: 'male',     label: 'Male',       icon: '♂',  desc: 'Broad shoulders, angular jaw' },
   { id: 'female',   label: 'Female',     icon: '♀',  desc: 'Softer curves, fuller lips' },
-  { id: 'nonbinary',label: 'Non-Binary', icon: '⚧',  desc: 'Your own unique shape' },
 ];
 
 const EYE_STYLES: Option[] = [
@@ -423,16 +422,16 @@ const AvatarSVG: React.FC<AvatarSVGProps> = ({ avatar, size = 260, mini = false 
 
   // Hair renderer — base cap: M43 108 to Q157 72 157 108 eliminates the ~2px skin gap
   // Inner return path traces slightly inside the head so fill covers scalp fully
-  const CAP = `M43 108 Q43 72 60 57 Q80 42 100 42 Q120 42 140 57 Q157 72 157 108 Q150 89 140 79 Q124 52 100 50 Q76 52 60 79 Q50 89 43 108Z`;
+  const CAP = `M39 112 Q39 65 60 50 Q80 35 100 35 Q120 35 141 50 Q161 65 161 112 Q150 88 140 76 Q124 48 100 46 Q76 48 60 76 Q50 88 39 112Z`;
   const getHair = () => {
     const hs = avatar.hairStyle;
     switch (hs) {
-      case 'hr2': return <g><path d={CAP} fill={hair} /><rect x="42" y="97" width="19" height="94" rx="9.5" fill={hair} /><rect x="139" y="97" width="19" height="94" rx="9.5" fill={hair} /><line x1="49" y1="100" x2="51" y2="188" stroke={hairHighlight} strokeWidth="1" opacity="0.45" /><line x1="148" y1="100" x2="150" y2="188" stroke={hairHighlight} strokeWidth="1" opacity="0.45" /></g>;
-      case 'hr3': return <g><circle cx="100" cy="62" r="52" fill={hair} />{[[67,52],[80,42],[95,36],[112,40],[128,52],[140,65],[138,80],[62,68],[100,32],[115,30]].map(([cx, cy], i) => <circle key={i} cx={cx} cy={cy} r="10" fill={hairShadow} opacity="0.3" />)}<circle cx="100" cy="62" r="47" fill="none" stroke={hairHighlight} strokeWidth="1.5" opacity="0.25" /></g>;
-      case 'hr4': return <g><path d={CAP} fill={hair} /><path d="M55 75 Q80 54 132 62 Q110 48 100 46 Q75 48 55 75Z" fill={hairShadow} opacity="0.4" /><path d="M55 75 Q82 57 130 63" stroke={hairHighlight} strokeWidth="1.5" fill="none" opacity="0.5" /></g>;
-      case 'hr5': return <g><path d={CAP} fill={hair} /><ellipse cx="100" cy="52" rx="9" ry="7" fill={hairShadow} /><path d="M95 52 Q86 40 90 18 Q95 8 100 6 Q105 8 110 18 Q114 40 105 52Z" fill={hair} /><line x1="100" y1="48" x2="100" y2="10" stroke={hairHighlight} strokeWidth="1.2" opacity="0.5" /></g>;
-      case 'hr6': return <g><path d="M43 108 Q43 78 63 62 Q80 46 100 46 Q120 46 137 62 Q157 78 157 108 Q150 92 140 82 Q124 56 100 54 Q76 56 60 82 Q50 92 43 108Z" fill={hair} /></g>;
-      case 'hr7': return <g><path d={CAP} fill={hair} /><circle cx="74" cy="48" r="19" fill={hair} /><circle cx="126" cy="48" r="19" fill={hair} /><circle cx="74" cy="48" r="13" fill={hairShadow} opacity="0.35" /><circle cx="126" cy="48" r="13" fill={hairShadow} opacity="0.35" /></g>;
+      case 'hr2': return <g><path d={CAP} fill={hair} /><rect x="38" y="97" width="22" height="94" rx="11" fill={hair} /><rect x="140" y="97" width="22" height="94" rx="11" fill={hair} /><line x1="49" y1="100" x2="51" y2="188" stroke={hairHighlight} strokeWidth="1.5" opacity="0.45" /><line x1="148" y1="100" x2="150" y2="188" stroke={hairHighlight} strokeWidth="1.5" opacity="0.45" /></g>;
+      case 'hr3': return <g><circle cx="100" cy="62" r="54" fill={hair} />{[[67,52],[80,42],[95,36],[112,40],[128,52],[140,65],[138,80],[62,68],[100,32],[115,30]].map(([cx, cy], i) => <circle key={i} cx={cx} cy={cy} r="12" fill={hairShadow} opacity="0.4" />)}<circle cx="100" cy="62" r="49" fill="none" stroke={hairHighlight} strokeWidth="1.5" opacity="0.25" /></g>;
+      case 'hr4': return <g><path d={CAP} fill={hair} /><path d="M52 78 Q80 54 132 62 Q110 48 100 46 Q75 48 52 78Z" fill={hairShadow} opacity="0.5" /><path d="M52 78 Q82 57 130 63" stroke={hairHighlight} strokeWidth="2" fill="none" opacity="0.6" /></g>;
+      case 'hr5': return <g><path d={CAP} fill={hair} /><ellipse cx="100" cy="52" rx="10" ry="8" fill={hairShadow} /><path d="M95 52 Q86 40 90 18 Q95 8 100 6 Q105 8 110 18 Q114 40 105 52Z" fill={hair} /><line x1="100" y1="48" x2="100" y2="10" stroke={hairHighlight} strokeWidth="1.5" opacity="0.5" /></g>;
+      case 'hr6': return <g><path d="M40 110 Q40 75 62 58 Q80 42 100 42 Q120 42 138 58 Q160 75 160 110 Q150 90 140 80 Q124 52 100 50 Q76 52 60 80 Q50 90 40 110Z" fill={hair} /></g>;
+      case 'hr7': return <g><path d={CAP} fill={hair} /><circle cx="72" cy="46" r="21" fill={hair} /><circle cx="128" cy="46" r="21" fill={hair} /><circle cx="72" cy="46" r="14" fill={hairShadow} opacity="0.4" /><circle cx="128" cy="46" r="14" fill={hairShadow} opacity="0.4" /></g>;
       case 'hr8': return <g><path d={CAP} fill={hair} /><path d="M91 46 Q96 8 100 4 Q104 8 109 46Z" fill={hair} /><line x1="100" y1="46" x2="100" y2="7" stroke={hairHighlight} strokeWidth="1.5" opacity="0.6" /></g>;
       case 'hr9': return <g><path d={CAP} fill={hair} /><path d="M50 70 Q70 58 92 86 Q112 58 132 74" stroke={hairShadow} strokeWidth="2.5" fill="none" opacity="0.5" /><path d="M38 100 Q60 78 82 105" stroke={hair} strokeWidth="6" fill="none" /></g>;
       case 'hr10': return <g><path d={CAP} fill={hair} /><path d="M60 60 Q80 48 100 50 Q120 48 140 60" stroke={hairHighlight} strokeWidth="2" fill="none" opacity="0.5" /></g>;
@@ -484,26 +483,22 @@ const AvatarSVG: React.FC<AvatarSVGProps> = ({ avatar, size = 260, mini = false 
     const { main, accent } = outfitColors[avatar.outfitStyle] || outfitColors.of1;
 
     const isFemale = avatar.gender === 'female';
-    const isNB     = avatar.gender === 'nonbinary';
 
     // Body type overall x-scale
     const bodyScale = avatar.bodyType === 'bt1' ? 0.88 : avatar.bodyType === 'bt3' ? 1.13 : avatar.bodyType === 'bt4' ? 0.82 : 1;
     const tx = (1 - bodyScale) * 100;
 
-    // Gender-specific torso path:
-    // Male:   straight sides, wide shoulders (30-170 at top, 30-170 at bottom)
-    // Female: nipped waist at y~240, wider hips
-    // NB:     slight waist taper
+    // Gender-specific torso path: Bitmoji style proportions
+    // Male: broad strong shoulders, slight taper
+    // Female: narrow shoulders, prominent waist pinch, wider hips
     const torsoPath = isFemale
-      ? 'M38 310 L34 190 Q42 172 64 168 L84 165 Q92 175 100 178 Q108 175 116 165 L136 168 Q158 172 166 190 L162 310 Q138 288 100 290 Q62 288 38 310Z'
-      : isNB
-      ? 'M32 310 L30 186 Q40 170 62 166 L82 163 Q91 174 100 177 Q109 174 118 163 L138 166 Q160 170 170 186 L168 310 Q136 296 100 297 Q64 296 32 310Z'
-      : 'M30 310 L30 184 Q40 170 62 166 L82 163 Q91 174 100 177 Q109 174 118 163 L138 166 Q160 170 170 184 L170 310Z';
+      ? 'M44 310 L38 195 Q45 178 68 172 L86 168 Q94 178 100 182 Q106 178 114 168 L132 172 Q155 178 162 195 L156 310 Q138 290 100 292 Q62 290 44 310Z'
+      : 'M30 310 L28 184 Q40 166 60 164 L82 161 Q91 174 100 177 Q109 174 118 161 L140 164 Q160 166 172 184 L170 310 Q135 296 100 297 Q65 296 30 310Z';
 
     // Arm length/width female slightly slimmer
-    const armW = isFemale ? 17 : 22;
-    const armX1 = isFemale ? 19 : 16;
-    const armX2 = isFemale ? 164 : 162;
+    const armW = isFemale ? 16 : 24;
+    const armX1 = isFemale ? 22 : 10;
+    const armX2 = isFemale ? 162 : 166;
 
     return (
       <g transform={`translate(${tx}, 0) scale(${bodyScale}, 1)`}>
@@ -643,24 +638,25 @@ interface ThumbCardProps {
   children: React.ReactNode;
   canDeselect?: boolean;
   onDeselect?: () => void;
+  onDelete?: (e: React.MouseEvent) => void;
 }
 
-const ThumbCard: React.FC<ThumbCardProps> = ({ isSelected, onSelect, label, locked, children }) => (
-  <motion.button
+const ThumbCard: React.FC<ThumbCardProps> = ({ isSelected, onSelect, label, locked, children, onDelete }) => (
+  <motion.div
     onClick={onSelect}
     whileTap={{ scale: locked ? 1 : 0.93 }}
-    className={`relative flex flex-col items-center gap-1.5 p-2 rounded-2xl border-2 transition-all cursor-pointer w-full
-      ${locked ? 'opacity-50 border-gray-200/30 bg-gray-100/10' :
-        isSelected ? 'border-[#e8c84a] bg-[#fff9e0] shadow-[0_0_0_3px_rgba(232,200,74,0.25)]' :
-        'border-transparent bg-gray-100/60 hover:bg-gray-200/70'
+    className={`relative flex flex-col items-center gap-1.5 p-2 rounded-2xl border transition-all cursor-pointer w-full
+      ${locked ? 'opacity-50 border-[#ff0055]/10 bg-[#050008]' :
+        isSelected ? 'border-[#ff0055] bg-[#ff0055]/10 shadow-[0_0_15px_rgba(255,0,85,0.3)]' :
+        'border-zinc-800 bg-[#0a030d] hover:border-[#ff0055]/40'
       }`}
   >
-    <div className="flex items-center justify-center w-full h-14 rounded-xl overflow-hidden bg-gray-50/80">
+    <div className="flex items-center justify-center w-full h-14 rounded-xl overflow-hidden bg-black/50">
       {children}
     </div>
-    <span className="text-[10px] font-semibold text-gray-600 leading-tight text-center line-clamp-1">{label}</span>
+    <span className="text-[10px] font-mono font-semibold text-zinc-300 leading-tight text-center line-clamp-1">{label}</span>
     {isSelected && (
-      <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[#e8c84a] flex items-center justify-center shadow-sm">
+      <div className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[#ff0055] flex items-center justify-center shadow-sm">
         <div className="w-2 h-2 rounded-full bg-white" />
       </div>
     )}
@@ -669,7 +665,16 @@ const ThumbCard: React.FC<ThumbCardProps> = ({ isSelected, onSelect, label, lock
         <span className="text-[9px]">🔒</span>
       </div>
     )}
-  </motion.button>
+    {onDelete && (
+      <button 
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(e); }}
+        className="absolute top-1 left-1 w-5 h-5 rounded-full bg-red-500/80 hover:bg-red-500 text-white flex items-center justify-center shadow-sm transition-colors z-10"
+        title="Delete Design"
+      >
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M3 3L13 13M13 3L3 13" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /></svg>
+      </button>
+    )}
+  </motion.div>
 );
 
 // ─── Color Grid ───────────────────────────────────────────────────────────────
@@ -685,8 +690,8 @@ const ColorGrid: React.FC<{
         key={c.id}
         title={c.label}
         onClick={() => onSelect(c)}
-        className={`w-12 h-12 rounded-full border-4 transition-all cursor-pointer hover:scale-110 mx-auto
-          ${selected === c.id ? 'border-[#e8c84a] scale-110 shadow-[0_0_10px_rgba(232,200,74,0.6)]' : 'border-transparent shadow-md'}`}
+        className={`w-12 h-12 rounded-full border-2 transition-all cursor-pointer hover:scale-110 mx-auto
+          ${selected === c.id ? 'border-[#ff0055] scale-110 shadow-[0_0_15px_rgba(255,0,85,0.6)]' : 'border-transparent shadow-md'}`}
         style={{ backgroundColor: c.hex }}
       />
     ))}
@@ -708,6 +713,17 @@ export default function AvatarCustomizerPage() {
   const [subCat, setSubCat] = useState<AvatarSubCategory>('gender');
   const [isSaving, setIsSaving] = useState(false);
   const [isRotating, setIsRotating] = useState(false);
+  const [showSaveMessage, setShowSaveMessage] = useState(false);
+  const [savedWardrobe, setSavedWardrobe] = useState<AvatarState[]>([]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('cyberWardrobe');
+    if (stored) {
+      try {
+        setSavedWardrobe(JSON.parse(stored));
+      } catch (e) {}
+    }
+  }, []);
 
   const subScrollRef = useRef<HTMLDivElement>(null);
 
@@ -741,7 +757,24 @@ export default function AvatarCustomizerPage() {
 
   const handleSave = () => {
     setIsSaving(true);
-    setTimeout(() => router.push('/dashboard'), 1200);
+    
+    const newWardrobe = [...savedWardrobe, avatar];
+    setSavedWardrobe(newWardrobe);
+    localStorage.setItem('cyberWardrobe', JSON.stringify(newWardrobe));
+
+    setShowSaveMessage(true);
+    setTimeout(() => {
+      setShowSaveMessage(false);
+      setIsSaving(false);
+      setMainTab('wardrobe');
+    }, 2500);
+  };
+
+  const handleDeleteDesign = (e: React.MouseEvent, idx: number) => {
+    e.stopPropagation();
+    const newWardrobe = savedWardrobe.filter((_, i) => i !== idx);
+    setSavedWardrobe(newWardrobe);
+    localStorage.setItem('cyberWardrobe', JSON.stringify(newWardrobe));
   };
 
   // Preview mini avatar with a single override applied
@@ -762,7 +795,7 @@ export default function AvatarCustomizerPage() {
       case 'gender':
         return (
           <div className="space-y-3">
-            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider text-center pb-1">
+            <p className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider text-center pb-1">
               Choose your avatar style
             </p>
             <div className="grid grid-cols-3 gap-3">
@@ -771,17 +804,17 @@ export default function AvatarCustomizerPage() {
                   key={g.id}
                   whileTap={{ scale: 0.94 }}
                   onClick={() => update({ gender: g.id })}
-                  className={`flex flex-col items-center gap-2 py-4 px-2 rounded-2xl border-2 transition-all cursor-pointer
+                  className={`flex flex-col items-center gap-2 py-4 px-2 rounded-2xl border transition-all cursor-pointer
                     ${ avatar.gender === g.id
-                      ? 'border-[#e8c84a] bg-[#fffaed] shadow-[0_0_0_3px_rgba(232,200,74,0.22)]'
-                      : 'border-transparent bg-gray-100/70 hover:bg-gray-200/70'
+                      ? 'border-[#ff0055] bg-[#ff0055]/10 shadow-[0_0_15px_rgba(255,0,85,0.3)]'
+                      : 'border-zinc-800 bg-[#0a030d] hover:border-[#ff0055]/40'
                     }`}
                 >
                   <span className="text-3xl">{g.icon}</span>
-                  <span className="text-xs font-bold text-gray-700">{g.label}</span>
-                  <span className="text-[9px] text-gray-400 text-center leading-tight">{g.desc}</span>
+                  <span className="text-xs font-mono font-bold text-white">{g.label}</span>
+                  <span className="text-[9px] text-zinc-400 font-mono text-center leading-tight">{g.desc}</span>
                   {avatar.gender === g.id && (
-                    <div className="w-4 h-4 rounded-full bg-[#e8c84a] flex items-center justify-center mt-1">
+                    <div className="w-4 h-4 rounded-full bg-[#ff0055] flex items-center justify-center mt-1">
                       <div className="w-2 h-2 rounded-full bg-white" />
                     </div>
                   )}
@@ -800,7 +833,7 @@ export default function AvatarCustomizerPage() {
                 </ThumbCard>
               ))}
             </div>
-            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider pt-1">Eye Color</p>
+            <p className="text-[10px] font-mono font-semibold text-zinc-500 uppercase tracking-wider pt-1">Eye Color</p>
             <ColorGrid colors={EYE_COLORS} selected={avatar.eyeColor} onSelect={c => update({ eyeColor: c.id })} />
           </div>
         );
@@ -874,14 +907,14 @@ export default function AvatarCustomizerPage() {
                 </ThumbCard>
               ))}
             </div>
-            <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider pt-1">Hair Color</p>
+            <p className="text-[10px] font-mono font-semibold text-zinc-500 uppercase tracking-wider pt-1">Hair Color</p>
             <ColorGrid colors={HAIR_COLORS} selected={avatar.hairColor} onSelect={c => update({ hairColor: c.id })} />
           </div>
         );
       case 'skin':
         return (
           <div className="space-y-3">
-            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Skin Tone</p>
+            <p className="text-[11px] font-mono font-semibold text-zinc-500 uppercase tracking-wider">Skin Tone</p>
             <ColorGrid colors={SKIN_TONES} selected={avatar.skinTone} onSelect={c => update({ skinTone: c.id })} />
           </div>
         );
@@ -902,7 +935,7 @@ export default function AvatarCustomizerPage() {
   // Fashion tab content
   const renderFashion = () => (
     <div className="space-y-3">
-      <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider px-1">Outfit Style</p>
+      <p className="text-[11px] font-mono font-semibold text-zinc-500 uppercase tracking-wider px-1">Outfit Style</p>
       <div className="grid grid-cols-3 gap-2">
         {OUTFIT_STYLES.map(opt => (
           <ThumbCard key={opt.id} isSelected={avatar.outfitStyle === opt.id} onSelect={() => { if (!opt.locked) update({ outfitStyle: opt.id }); }} label={opt.label} locked={opt.locked}>
@@ -915,14 +948,32 @@ export default function AvatarCustomizerPage() {
 
   return (
     <div
-      className="fixed inset-0 flex flex-col select-none overflow-hidden"
-      style={{ background: 'linear-gradient(170deg, #dce3ec 0%, #c8d4e0 45%, #bfcfdf 100%)' }}
+      className="fixed inset-0 flex flex-col select-none overflow-hidden bg-black text-white"
     >
+      {/* Ambient glow matching dashboard */}
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#ff0055]/15 rounded-full blur-3xl pointer-events-none z-0" />
+      <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-[#e60039]/15 rounded-full blur-3xl pointer-events-none z-0" />
+
+      {/* Save Success Message Overlay */}
+      <AnimatePresence>
+        {showSaveMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: -20, x: '-50%' }}
+            className="absolute top-20 left-1/2 z-50 bg-[#ff0055]/20 border border-[#ff0055]/40 text-white px-5 py-3 rounded-xl text-xs sm:text-sm font-mono backdrop-blur-md shadow-[0_0_15px_rgba(255,0,85,0.4)] whitespace-nowrap text-center"
+          >
+            <span className="text-[#ff0055] font-bold mr-2">SUCCESS:</span>
+            Your changes have been saved and you can see it in the Wardrobe.
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── Top Bar ── */}
-      <div className="flex-shrink-0 flex items-center justify-between px-4 pt-safe pt-3 pb-2 z-30">
+      <div className="flex-shrink-0 flex items-center justify-between px-4 pt-safe pt-3 pb-2 z-30 relative">
         <button
           onClick={() => router.push('/dashboard')}
-          className="w-10 h-10 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow-md text-gray-600 hover:bg-white transition-all active:scale-90"
+          className="p-2.5 rounded-xl bg-[#0e0414] border border-[#ff0055]/30 text-[#ff0055] hover:bg-[#ff0055] hover:text-white transition-all shadow-[0_0_10px_rgba(255,0,85,0.2)]"
           aria-label="Close"
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 2L16 16M16 2L2 16" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /></svg>
@@ -931,13 +982,13 @@ export default function AvatarCustomizerPage() {
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="px-6 py-2 rounded-full bg-white/90 backdrop-blur text-gray-800 font-bold text-sm shadow-md hover:bg-white transition-all active:scale-90 disabled:opacity-60"
+          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#ff0055] to-[#e60039] hover:from-[#e60039] hover:to-[#ff0055] text-white font-extrabold text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(255,0,85,0.5)] border border-white/20 transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2"
         >
           {isSaving ? (
-            <span className="flex items-center gap-1.5">
-              <span className="w-3.5 h-3.5 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
+            <>
+              <span className="w-3.5 h-3.5 border-2 border-white/60 border-t-transparent rounded-full animate-spin" />
               Saving…
-            </span>
+            </>
           ) : 'Save'}
         </button>
       </div>
@@ -968,7 +1019,7 @@ export default function AvatarCustomizerPage() {
           <button
             onClick={undo}
             disabled={histIdx <= 0}
-            className="w-10 h-10 rounded-full bg-white/80 backdrop-blur flex items-center justify-center shadow-md text-gray-600 hover:bg-white transition-all active:scale-90 disabled:opacity-35"
+            className="w-10 h-10 rounded-xl bg-[#0e0414] border border-[#ff0055]/30 flex items-center justify-center shadow-[0_0_10px_rgba(255,0,85,0.2)] text-[#ff0055] hover:bg-[#ff0055] hover:text-white transition-all active:scale-90 disabled:opacity-35"
             aria-label="Undo"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 6H10a4 4 0 0 1 0 8H7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M3 6L6 3M3 6L6 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -976,7 +1027,7 @@ export default function AvatarCustomizerPage() {
           <button
             onClick={redo}
             disabled={histIdx >= history.length - 1}
-            className="w-10 h-10 rounded-full bg-white/80 backdrop-blur flex items-center justify-center shadow-md text-gray-600 hover:bg-white transition-all active:scale-90 disabled:opacity-35"
+            className="w-10 h-10 rounded-xl bg-[#0e0414] border border-[#ff0055]/30 flex items-center justify-center shadow-[0_0_10px_rgba(255,0,85,0.2)] text-[#ff0055] hover:bg-[#ff0055] hover:text-white transition-all active:scale-90 disabled:opacity-35"
             aria-label="Redo"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13 6H6a4 4 0 0 0 0 8H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M13 6L10 3M13 6L10 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -986,9 +1037,9 @@ export default function AvatarCustomizerPage() {
 
       {/* ── Bottom Sheet ── */}
       <div
-        className="flex-shrink-0 rounded-t-3xl shadow-2xl z-20"
+        className="flex-shrink-0 rounded-t-3xl shadow-[0_-10px_40px_rgba(255,0,85,0.15)] z-20 relative border-t border-[#ff0055]/30"
         style={{
-          background: 'rgba(255,255,255,0.97)',
+          background: 'rgba(10, 3, 13, 0.85)',
           backdropFilter: 'blur(20px)',
           maxHeight: '52vh',
           display: 'flex',
@@ -996,18 +1047,18 @@ export default function AvatarCustomizerPage() {
         }}
       >
         {/* Drag handle */}
-        <div className="flex justify-center pt-2.5 pb-1 flex-shrink-0">
-          <div className="w-10 h-1 rounded-full bg-gray-300" />
+        <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
+          <div className="w-12 h-1.5 rounded-full bg-[#ff0055]/40" />
         </div>
 
         {/* ── Main Tabs ── */}
-        <div className="flex border-b border-gray-100 flex-shrink-0">
+        <div className="flex border-b border-[#ff0055]/30 flex-shrink-0">
           {(['fashion', 'wardrobe', 'avatar'] as MainTab[]).map(tab => (
             <button
               key={tab}
               onClick={() => setMainTab(tab)}
-              className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex flex-col items-center gap-1
-                ${mainTab === tab ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+              className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex flex-col items-center gap-1 font-mono
+                ${mainTab === tab ? 'text-[#ff0055] border-b-2 border-[#ff0055] bg-[#ff0055]/10' : 'text-zinc-500 hover:text-zinc-300'}`}
             >
               <span className="text-base">
                 {tab === 'fashion' ? '🏪' : tab === 'wardrobe' ? '🤍' : '🧑'}
@@ -1021,7 +1072,7 @@ export default function AvatarCustomizerPage() {
         {mainTab === 'avatar' && (
           <div
             ref={subScrollRef}
-            className="flex-shrink-0 flex gap-0 overflow-x-auto border-b border-gray-100 px-1"
+            className="flex-shrink-0 flex gap-0 overflow-x-auto border-b border-[#ff0055]/20 px-1"
             style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
           >
             {AVATAR_SUB_CATEGORIES.map(cat => (
@@ -1029,13 +1080,13 @@ export default function AvatarCustomizerPage() {
                 id={`subcat-${cat.id}`}
                 key={cat.id}
                 onClick={() => scrollSubToActive(cat.id)}
-                className={`flex-shrink-0 flex flex-col items-center gap-0.5 px-3 py-2.5 relative cursor-pointer transition-all
-                  ${subCat === cat.id ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+                className={`flex-shrink-0 flex flex-col items-center gap-0.5 px-3 py-2.5 relative cursor-pointer transition-all font-mono
+                  ${subCat === cat.id ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
               >
                 <span className="text-xl">{cat.icon}</span>
                 <span className="text-[9px] font-semibold">{cat.label}</span>
                 {subCat === cat.id && (
-                  <motion.div layoutId="subcat-indicator" className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-gray-900" />
+                  <motion.div layoutId="subcat-indicator" className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-[#ff0055]" />
                 )}
               </button>
             ))}
@@ -1055,11 +1106,30 @@ export default function AvatarCustomizerPage() {
               {mainTab === 'avatar' && renderGrid()}
               {mainTab === 'fashion' && renderFashion()}
               {mainTab === 'wardrobe' && (
-                <div className="flex flex-col items-center justify-center py-10 text-center gap-3">
-                  <span className="text-4xl">🧺</span>
-                  <p className="text-sm font-semibold text-gray-500">Your wardrobe is empty</p>
-                  <p className="text-xs text-gray-400">Purchase outfits from the Fashion tab</p>
-                </div>
+                savedWardrobe.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center gap-3">
+                    <span className="text-4xl">🧺</span>
+                    <p className="text-sm font-semibold text-zinc-400 font-mono">Your wardrobe is empty</p>
+                    <p className="text-xs text-zinc-500 font-mono">Save avatars to add them to your wardrobe</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-[11px] font-mono font-semibold text-zinc-500 uppercase tracking-wider px-1">Saved Designs</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {savedWardrobe.map((savedAvatar, idx) => (
+                        <ThumbCard 
+                          key={idx} 
+                          isSelected={JSON.stringify(avatar) === JSON.stringify(savedAvatar)} 
+                          onSelect={() => pushHistory(savedAvatar)} 
+                          onDelete={(e) => handleDeleteDesign(e, idx)}
+                          label={`Design ${idx + 1}`}
+                        >
+                          <MiniAvatar avatar={savedAvatar} />
+                        </ThumbCard>
+                      ))}
+                    </div>
+                  </div>
+                )
               )}
             </motion.div>
           </AnimatePresence>
