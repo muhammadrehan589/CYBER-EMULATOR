@@ -483,54 +483,73 @@ const AvatarSVG: React.FC<AvatarSVGProps> = ({ avatar, size = 260, mini = false 
     const { main, accent } = outfitColors[avatar.outfitStyle] || outfitColors.of1;
 
     const isFemale = avatar.gender === 'female';
-
-    // Body type overall x-scale
     const bodyScale = avatar.bodyType === 'bt1' ? 0.88 : avatar.bodyType === 'bt3' ? 1.13 : avatar.bodyType === 'bt4' ? 0.82 : 1;
     const tx = (1 - bodyScale) * 100;
 
-    // Gender-specific torso path: Bitmoji style proportions
-    // Male: broad strong shoulders, slight taper
-    // Female: narrow shoulders, prominent waist pinch, wider hips
-    const torsoPath = isFemale
-      ? 'M44 310 L38 195 Q45 178 68 172 L86 168 Q94 178 100 182 Q106 178 114 168 L132 172 Q155 178 162 195 L156 310 Q138 290 100 292 Q62 290 44 310Z'
-      : 'M30 310 L28 184 Q40 166 60 164 L82 161 Q91 174 100 177 Q109 174 118 161 L140 164 Q160 166 172 184 L170 310 Q135 296 100 297 Q65 296 30 310Z';
+    // Organic measurements
+    const armW = isFemale ? 18 : 24;
+    const legW = isFemale ? 30 : 36;
+    const shoulderL = isFemale ? 52 : 40;
+    const shoulderR = isFemale ? 148 : 160;
+    const waistL = isFemale ? 72 : 62;
+    const waistR = isFemale ? 128 : 138;
+    const hipL = isFemale ? 58 : 64;
+    const hipR = isFemale ? 142 : 136;
 
-    // Arm length/width female slightly slimmer
-    const armW = isFemale ? 16 : 24;
-    const armX1 = isFemale ? 22 : 10;
-    const armX2 = isFemale ? 162 : 166;
+    // Smooth, contoured torso
+    const torsoPath = `
+      M 86 160 
+      Q 100 172 114 160 
+      Q ${shoulderR} 160 ${shoulderR} 175 
+      C ${shoulderR} 210 ${waistR} 230 ${waistR} 255
+      C ${waistR} 280 ${hipR} 300 ${hipR} 315
+      L ${hipL} 315
+      C ${hipL} 300 ${waistL} 280 ${waistL} 255
+      C ${waistL} 230 ${shoulderL} 210 ${shoulderL} 175
+      Q ${shoulderL} 160 86 160 Z
+    `;
 
     return (
       <g transform={`translate(${tx}, 0) scale(${bodyScale}, 1)`}>
-        {/* Torso */}
-        <path d={torsoPath} fill={main} />
-        {/* Female chest curve */}
-        {isFemale && <>
-          <ellipse cx="86" cy="210" rx="14" ry="11" fill={darken(main, 0.18)} opacity="0.6" />
-          <ellipse cx="114" cy="210" rx="14" ry="11" fill={darken(main, 0.18)} opacity="0.6" />
-        </>}
-        {/* Arms */}
-        <rect x={armX1} y="175" width={armW} height="80" rx={armW/2} fill={skin} />
-        <rect x={armX2} y="175" width={armW} height="80" rx={armW/2} fill={skin} />
+        {/* Arms (Skin) */}
+        <path d={`M ${shoulderL + 4} 175 Q ${shoulderL - 16} 220 ${shoulderL - 8} 265`} stroke={skin} strokeWidth={armW} strokeLinecap="round" fill="none" />
+        <path d={`M ${shoulderR - 4} 175 Q ${shoulderR + 16} 220 ${shoulderR + 8} 265`} stroke={skin} strokeWidth={armW} strokeLinecap="round" fill="none" />
+        
         {/* Hands */}
-        <ellipse cx={armX1 + armW/2} cy="256" rx={armW/2} ry="8" fill={skin} />
-        <ellipse cx={armX2 + armW/2} cy="256" rx={armW/2} ry="8" fill={skin} />
-        {/* Legs — female hip wider */}
-        <rect x={isFemale ? 50 : 55} y="308" width={isFemale ? 34 : 32} height="100" rx="14" fill={darken(main, 0.12)} />
-        <rect x={isFemale ? 116 : 113} y="308" width={isFemale ? 34 : 32} height="100" rx="14" fill={darken(main, 0.12)} />
+        <ellipse cx={shoulderL - 8} cy="275" rx={armW/2 + 1} ry={armW/2 + 4} fill={skin} />
+        <ellipse cx={shoulderR + 8} cy="275" rx={armW/2 + 1} ry={armW/2 + 4} fill={skin} />
+
+        {/* Legs (Pants) */}
+        <path d={`M ${hipL + 12} 310 Q ${hipL + 4} 360 ${hipL + 4} 405`} stroke={darken(main, 0.12)} strokeWidth={legW} strokeLinecap="round" fill="none" />
+        <path d={`M ${hipR - 12} 310 Q ${hipR - 4} 360 ${hipR - 4} 405`} stroke={darken(main, 0.12)} strokeWidth={legW} strokeLinecap="round" fill="none" />
+
         {/* Feet */}
-        <ellipse cx={isFemale ? 67 : 71} cy="408" rx="18" ry="9" fill={darken(main, 0.3)} />
-        <ellipse cx={isFemale ? 133 : 129} cy="408" rx="18" ry="9" fill={darken(main, 0.3)} />
-        {/* Collar */}
-        <path d="M82 163 Q100 174 118 163" fill="none" stroke={accent} strokeWidth="1.5" opacity="0.8" />
-        {/* Outfit detail */}
-        {avatar.outfitStyle === 'of1' && <text x="100" y="218" textAnchor="middle" fontSize="10" fill={accent} fontFamily="monospace" fontWeight="bold" opacity="0.8">CYBER</text>}
-        {avatar.outfitStyle === 'of2' && <rect x="82" y="235" width="36" height="22" rx="4" fill={darken(main, 0.15)} />}
-        {avatar.outfitStyle === 'of3' && [195,210,225,240].map((y,i) => <circle key={i} cx="100" cy={y} r="2.5" fill={accent} opacity="0.8" />)}
-        {avatar.outfitStyle === 'of4' && <><rect x="60" y="192" width="28" height="50" rx="3" fill={darken(main, 0.3)} opacity="0.8" /><rect x="112" y="192" width="28" height="50" rx="3" fill={darken(main, 0.3)} opacity="0.8" /></>}
-        {avatar.outfitStyle === 'of5' && <><path d="M82 195 L118 195 L120 215 L100 218 L80 215Z" fill="none" stroke={accent} strokeWidth="1.5" /><circle cx="100" cy="205" r="5" fill={accent} opacity="0.7" /></>}
-        {avatar.outfitStyle === 'of7' && <><path d="M62 166 L30 184" stroke={accent} strokeWidth="2.5" opacity="0.9" /><path d="M138 166 L170 184" stroke={accent} strokeWidth="2.5" opacity="0.9" /></>}
-        {avatar.outfitStyle === 'of9' && <><ellipse cx="48" cy="178" rx="22" ry="14" fill={darken(main, 0.2)} /><ellipse cx="152" cy="178" rx="22" ry="14" fill={darken(main, 0.2)} /><ellipse cx="48" cy="176" rx="14" ry="8" fill={accent} opacity="0.6" /><ellipse cx="152" cy="176" rx="14" ry="8" fill={accent} opacity="0.6" /></>}
+        <ellipse cx={hipL} cy="415" rx={legW/2 + 4} ry="12" fill={darken(main, 0.3)} />
+        <ellipse cx={hipR} cy="415" rx={legW/2 + 4} ry="12" fill={darken(main, 0.3)} />
+
+        {/* Sleeves (Outfit) */}
+        <path d={`M ${shoulderL + 4} 175 Q ${shoulderL - 8} 205 ${shoulderL - 10} 215`} stroke={main} strokeWidth={armW + 2} strokeLinecap="round" fill="none" />
+        <path d={`M ${shoulderR - 4} 175 Q ${shoulderR + 8} 205 ${shoulderR + 10} 215`} stroke={main} strokeWidth={armW + 2} strokeLinecap="round" fill="none" />
+
+        {/* Torso (Outfit) */}
+        <path d={torsoPath} fill={main} />
+        
+        {/* Female Chest detail */}
+        {isFemale && <>
+          <path d={`M 75 210 Q 86 222 100 216 Q 114 222 125 210`} stroke={darken(main, 0.18)} strokeWidth="2" fill="none" opacity="0.6" />
+        </>}
+
+        {/* Collar detail */}
+        <path d="M 86 160 Q 100 172 114 160" fill="none" stroke={accent} strokeWidth="2.5" opacity="0.9" />
+
+        {/* Outfit accents based on style */}
+        {avatar.outfitStyle === 'of1' && <text x="100" y="210" textAnchor="middle" fontSize="12" fill={accent} fontFamily="monospace" fontWeight="bold" opacity="0.8">CYBER</text>}
+        {avatar.outfitStyle === 'of2' && <rect x="80" y="230" width="40" height="24" rx="6" fill={darken(main, 0.15)} />}
+        {avatar.outfitStyle === 'of3' && [190, 210, 230, 250].map((y,i) => <circle key={i} cx="100" cy={y} r="3" fill={accent} opacity="0.8" />)}
+        {avatar.outfitStyle === 'of4' && <><rect x="65" y="185" width="30" height="55" rx="4" fill={darken(main, 0.3)} opacity="0.8" /><rect x="105" y="185" width="30" height="55" rx="4" fill={darken(main, 0.3)} opacity="0.8" /></>}
+        {avatar.outfitStyle === 'of5' && <><path d="M 80 190 L 120 190 L 125 215 L 100 220 L 75 215 Z" fill="none" stroke={accent} strokeWidth="2" /><circle cx="100" cy="205" r="6" fill={accent} opacity="0.8" /></>}
+        {avatar.outfitStyle === 'of7' && <><path d="M 60 170 L 30 190" stroke={accent} strokeWidth="3" opacity="0.9" /><path d="M 140 170 L 170 190" stroke={accent} strokeWidth="3" opacity="0.9" /></>}
+        {avatar.outfitStyle === 'of9' && <><ellipse cx="48" cy="180" rx="24" ry="16" fill={darken(main, 0.2)} /><ellipse cx="152" cy="180" rx="24" ry="16" fill={darken(main, 0.2)} /><ellipse cx="48" cy="180" rx="14" ry="8" fill={accent} opacity="0.7" /><ellipse cx="152" cy="180" rx="14" ry="8" fill={accent} opacity="0.7" /></>}
       </g>
     );
   };
