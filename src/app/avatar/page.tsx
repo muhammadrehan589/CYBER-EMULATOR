@@ -522,21 +522,46 @@ const AvatarSVG: React.FC<AvatarSVGProps> = ({ avatar, size = 260, mini = false 
     switch (avatar.beardStyle) {
       case 'bd0': return null;
       case 'bd1': // Stubble
-        return <g opacity="0.5">{[80,88,96,104,112,120,75,84,100,116].map((x,i) => <circle key={i} cx={x} cy={138+((i%3)*4)} r="1.2" fill={bc} opacity="0.5" />)}</g>;
+        return <g opacity="0.6">
+          <path d="M 45 135 Q 100 190 155 135 Q 145 155 100 175 Q 55 155 45 135 Z" fill={bc} />
+          <path d="M 75 128 Q 100 138 125 128 Q 130 135 100 145 Q 70 135 75 128 Z" fill={bc} />
+        </g>;
       case 'bd2': // Goatee
-        return <g><path d="M90 138 Q100 155 110 138 Q100 165 90 138Z" fill={bc} opacity="0.85" /></g>;
+        return <g>
+          <path d="M 85 150 C 90 180, 110 180, 115 150 C 110 160, 90 160, 85 150 Z" fill={bc} />
+          <path d="M 90 155 C 95 185, 105 185, 110 155" stroke={darken(bc, 0.2)} strokeWidth="2" fill="none" opacity="0.5" strokeLinecap="round" />
+        </g>;
       case 'bd3': // Full Beard
-        return <g><path d="M60 125 Q58 150 70 162 Q84 175 100 178 Q116 175 130 162 Q142 150 140 125 Q120 140 100 140 Q80 140 60 125Z" fill={bc} opacity="0.88" /></g>;
+        return <g>
+          <path d="M 40 115 C 35 150, 55 190, 100 190 C 145 190, 165 150, 160 115 C 145 135, 125 145, 100 145 C 75 145, 55 135, 40 115 Z" fill={bc} />
+          <path d="M 75 135 Q 100 125 125 135 Q 115 145 100 145 Q 85 145 75 135 Z" fill={bc} />
+          <path d="M 45 120 C 55 160, 75 180, 100 180 C 125 180, 145 160, 155 120" stroke={darken(bc, 0.2)} strokeWidth="5" fill="none" strokeLinecap="round" opacity="0.3" />
+        </g>;
       case 'bd4': // Moustache
-        return <g><path d="M85 133 Q93 128 100 132 Q107 128 115 133 Q107 138 100 134 Q93 138 85 133Z" fill={bc} opacity="0.85" /></g>;
+        return <g>
+          <path d="M 70 135 C 85 120, 115 120, 130 135 C 120 142, 110 145, 100 142 C 90 145, 80 142, 70 135 Z" fill={bc} />
+        </g>;
       case 'bd5': // Chinstrap
-        return <g><path d="M60 120 Q56 148 66 162 Q74 170 100 172 Q126 170 134 162 Q144 148 140 120" stroke={bc} strokeWidth="5" fill="none" opacity="0.85" /></g>;
+        return <g>
+          <path d="M 40 115 C 35 150, 55 185, 100 185 C 145 185, 165 150, 160 115" stroke={bc} strokeWidth="8" fill="none" strokeLinecap="round" />
+        </g>;
       case 'bd6': // Circle
-        return <g><path d="M85 134 Q93 130 100 132 Q107 130 115 134 Q110 148 100 152 Q90 148 85 134Z" fill={bc} opacity="0.85" /></g>;
+        return <g>
+          <path d="M 75 135 C 85 125, 115 125, 125 135 C 130 155, 115 165, 100 165 C 85 165, 70 155, 75 135 Z" fill={bc} />
+          <ellipse cx="100" cy="144" rx="16" ry="6" fill={skin} />
+        </g>;
       case 'bd7': // Van Dyke
-        return <g><path d="M85 133 Q93 128 100 131 Q107 128 115 133 Q107 137 100 134 Q93 137 85 133Z" fill={bc} opacity="0.8" /><path d="M91 140 Q100 158 109 140 Q100 168 91 140Z" fill={bc} opacity="0.85" /></g>;
+        return <g>
+          <path d="M 72 135 C 85 125, 115 125, 128 135 C 115 140, 105 135, 100 135 C 95 135, 85 140, 72 135 Z" fill={bc} />
+          <path d="M 85 150 C 90 175, 110 175, 115 150 C 110 155, 90 155, 85 150 Z" fill={bc} />
+          <path d="M 98 142 L 102 142 L 100 148 Z" fill={bc} />
+        </g>;
       case 'bd8': // Balbo
-        return <g><path d="M88 133 Q94 130 100 132 Q106 130 112 133 Q106 137 100 135 Q94 137 88 133Z" fill={bc} opacity="0.8" /><path d="M82 135 Q86 145 100 148 Q114 145 118 135 Q100 155 82 135Z" fill={bc} opacity="0.8" /></g>;
+        return <g>
+          <path d="M 75 135 C 90 125, 110 125, 125 135 C 110 138, 90 138, 75 135 Z" fill={bc} />
+          <path d="M 65 155 C 85 175, 115 175, 135 155 C 115 165, 85 165, 65 155 Z" fill={bc} />
+          <path d="M 95 144 L 105 144 L 100 152 Z" fill={bc} />
+        </g>;
       default: return null;
     }
   };
