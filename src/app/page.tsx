@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import QuizEngine from '@/components/quiz/QuizEngine';
-import LiveLeaderboard from '@/components/quiz/LiveLeaderboard';
 import { ArrowLeft } from 'lucide-react';
 import { useQuizStore } from '@/store/quizStore';
 import Link from 'next/link';
@@ -17,7 +16,7 @@ export default function Home() {
   };
 
   return (
-    <div className="h-screen w-screen bg-[#050505] text-white font-sans overflow-hidden flex flex-col items-center justify-center relative">
+    <div className="h-screen w-screen bg-[#050505] text-white font-sans overflow-y-auto flex flex-col items-center justify-center relative">
       
       {/* Background Neon Elements */}
       <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-[#ff003c]/10 rounded-full blur-[120px] pointer-events-none z-0" />
@@ -53,15 +52,10 @@ export default function Home() {
             <ArrowLeft className="w-4 h-4" /> Abort / Back
           </button>
           
-          <div className="w-full h-full p-6 pt-20 relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+          <div className="w-full h-full p-6 pt-20 relative z-10 flex justify-center max-w-7xl mx-auto">
             {/* Main Quiz Engine */}
-            <div className="lg:col-span-2 h-full bg-black/40 rounded-2xl border border-white/5 backdrop-blur-md shadow-2xl overflow-hidden relative">
+            <div className="w-full max-w-5xl h-full bg-black/40 rounded-2xl border border-white/5 backdrop-blur-md shadow-2xl overflow-hidden relative">
               <QuizEngine />
-            </div>
-
-            {/* Live Leaderboard */}
-            <div className="lg:col-span-1 h-full">
-              <LiveLeaderboard />
             </div>
           </div>
         </>

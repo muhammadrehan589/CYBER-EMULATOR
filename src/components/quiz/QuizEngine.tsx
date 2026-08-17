@@ -25,9 +25,8 @@ export default function QuizEngine() {
     if (!selectedOption) return;
 
     let pointsEarned = 0;
-    const choiceLetter = selectedOption.charAt(0);
     
-    if (choiceLetter === activeQuestion.correctAnswer) {
+    if (selectedOption === activeQuestion.correctAnswer) {
       pointsEarned = 10;
     }
     
@@ -36,7 +35,7 @@ export default function QuizEngine() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center w-full h-full p-6">
+    <div className="flex flex-col items-center justify-center w-full h-screen overflow-y-auto p-6">
       <div className="w-full max-w-md flex justify-between mb-8 text-gray-500 font-mono text-sm uppercase tracking-wider">
         <span>Unit {currentQuestionIndex + 1} / {questions.length}</span>
         <span className="text-[#ff0055]">Score {score}</span>
@@ -52,7 +51,7 @@ export default function QuizEngine() {
           {activeQuestion.question}
         </h2>
 
-        {activeQuestion.type === 'mcq' && (
+        {(activeQuestion.type === 'mcq' || activeQuestion.type === 'true_false') && (
           <div className="space-y-3 mb-8">
             {activeQuestion.options.map((option: string, index: number) => {
               const isSelected = selectedOption === option;
