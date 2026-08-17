@@ -73,7 +73,7 @@ export default function QuizEngine() {
         <span className="text-[#ff0055]">Score {score}</span>
       </div>
 
-      <div className="w-full bg-gray-900 border border-gray-800 p-6 rounded-lg shadow-xl text-white">
+      <div className="w-full h-auto max-w-4xl bg-gray-900 border border-gray-800 p-6 rounded-lg shadow-xl text-white">
         <div className="mb-4 text-xs font-mono text-[#ff0055] uppercase tracking-widest flex justify-between border-b border-gray-800 pb-2">
           <span>{activeQuestion.category}</span>
           <span>{activeQuestion.difficulty}</span>
@@ -122,7 +122,7 @@ export default function QuizEngine() {
         <button
           onClick={handleAction}
           disabled={!isSubmitted && !selectedOption}
-          className="w-full py-4 bg-[#ff0055] text-white font-black uppercase tracking-widest hover:bg-[#cc0044] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          className="w-full mt-8 py-4 bg-[#ff0055] text-white font-black uppercase tracking-widest hover:bg-[#cc0044] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           {isSubmitted ? 'NEXT QUESTION' : 'Submit Intel'}
         </button>

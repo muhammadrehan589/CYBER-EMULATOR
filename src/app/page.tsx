@@ -52,9 +52,9 @@ export default function Home() {
             <ArrowLeft className="w-4 h-4" /> Abort / Back
           </button>
           
-          <div className="w-full h-full p-6 pt-20 relative z-10 flex justify-center max-w-7xl mx-auto">
+          <div className="w-full min-h-screen p-6 pt-20 relative z-10 flex justify-center max-w-7xl mx-auto">
             {/* Main Quiz Engine */}
-            <div className="w-full max-w-5xl h-full bg-black/40 rounded-2xl border border-white/5 backdrop-blur-md shadow-2xl overflow-hidden relative">
+            <div className="w-full max-w-5xl h-auto bg-black/40 rounded-2xl border border-white/5 backdrop-blur-md shadow-2xl relative">
               <QuizEngine />
             </div>
           </div>
