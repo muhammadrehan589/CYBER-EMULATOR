@@ -19,6 +19,7 @@ interface QuizState {
   timer: number;
   sessionLogs: SessionLog[];
   advanceQuestion: (isCorrect: boolean, basePoints: number) => void;
+  resetStreak: () => void;
   addLog: (log: SessionLog) => void;
   setTimer: (time: number) => void;
   resetQuiz: () => void;
@@ -102,6 +103,7 @@ export const useQuizStore = create<QuizState>()(
           playedQuestions: newPlayed
         };
       }),
+      resetStreak: () => set({ streak: 0, multiplier: 1 }),
       addLog: (log) => set((state) => ({ sessionLogs: [...state.sessionLogs, log] })),
       setTimer: (time) => set({ timer: time }),
       resetQuiz: () => set({ 

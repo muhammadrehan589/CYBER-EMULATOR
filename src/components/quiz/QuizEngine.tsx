@@ -10,10 +10,11 @@ const questions = quizData.questions;
 
 export default function QuizEngine() {
   const router = useRouter();
-  const { currentQuestionIndex, advanceQuestion, score, multiplier } = useQuizStore();
+  const { currentQuestionIndex, advanceQuestion, score, multiplier, resetStreak } = useQuizStore();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
+  const [isTimeout, setIsTimeout] = useState(false);
   
   const [timeLeft, setTimeLeft] = useState<number>(30);
   
@@ -58,10 +59,12 @@ export default function QuizEngine() {
   // Timeout Trigger
   useEffect(() => {
     if (timeLeft === 0 && !isSubmitted && activeQuestion) {
+      resetStreak();
+      setIsTimeout(true);
       setIsCorrect(false);
       setIsSubmitted(true);
     }
-  }, [timeLeft, isSubmitted, activeQuestion]);
+  }, [timeLeft, isSubmitted, activeQuestion, resetStreak]);
 
   if (!mounted) return <div className="min-h-screen w-full bg-[#050505]" />;
 
@@ -93,6 +96,7 @@ export default function QuizEngine() {
     }
       
     setIsCorrect(correct);
+    setIsTimeout(false);
     setIsSubmitted(true);
   };
 
@@ -103,6 +107,7 @@ export default function QuizEngine() {
     } else {
       setSelectedOption(null);
       setIsSubmitted(false);
+      setIsTimeout(false);
       advanceQuestion(isCorrect, 10);
     }
   };
@@ -176,7 +181,7 @@ export default function QuizEngine() {
           {isSubmitted && (
             <div className={`mb-8 p-4 border rounded ${isCorrect ? 'bg-green-900/20 border-green-500' : 'bg-red-900/20 border-red-500'}`}>
               <h3 className={`text-lg font-black uppercase tracking-widest mb-2 ${isCorrect ? 'text-green-500' : 'text-red-500'}`}>
-                {isCorrect ? 'CORRECT' : 'INCORRECT'}
+                {isTimeout ? 'INCORRECT - TIME EXPIRED' : (isCorrect ? 'CORRECT' : 'INCORRECT')}
               </h3>
               <p className="text-gray-300 mb-2 font-bold">
                 Correct Answer: {activeQuestion.correctAnswer}
