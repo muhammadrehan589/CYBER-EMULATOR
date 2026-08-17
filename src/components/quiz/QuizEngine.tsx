@@ -28,12 +28,15 @@ export default function QuizEngine() {
   useEffect(() => {
     if (!activeQuestion) return;
     
-    const diff = activeQuestion.difficulty?.toLowerCase();
+    const diff = activeQuestion.difficulty?.toLowerCase() || '';
     let initialTime = 30;
-    if (diff === 'hard' || diff === 'difficult' || diff === 'expert') {
-      initialTime = Math.floor(Math.random() * (60 - 45 + 1)) + 45; // 45 to 60
-    } else {
-      initialTime = Math.floor(Math.random() * (30 - 15 + 1)) + 15; // 15 to 30
+    
+    if (diff.includes('hard') || diff.includes('expert') || diff.includes('difficult')) {
+      initialTime = 60;
+    } else if (diff.includes('medium')) {
+      initialTime = 45;
+    } else if (diff.includes('easy')) {
+      initialTime = 30;
     }
     
     setTimeLeft(initialTime);
