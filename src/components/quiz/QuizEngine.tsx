@@ -10,18 +10,60 @@ const questions = quizData.questions;
 
 export default function QuizEngine() {
   const router = useRouter();
-  const { currentQuestionIndex, advanceQuestion, score } = useQuizStore();
+  const { currentQuestionIndex, advanceQuestion, score, multiplier } = useQuizStore();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
+  
+  const [timeLeft, setTimeLeft] = useState<number>(30);
   
   // Hydration check since we use localStorage persist
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  if (!mounted) return <div className="min-h-screen w-full bg-[#050505]" />;
-
   const activeQuestion = questions[currentQuestionIndex];
+
+  // Timer Initialization
+  useEffect(() => {
+    if (!activeQuestion) return;
+    
+    const diff = activeQuestion.difficulty?.toLowerCase();
+    let initialTime = 30;
+    if (diff === 'hard' || diff === 'difficult' || diff === 'expert') {
+      initialTime = Math.floor(Math.random() * (60 - 45 + 1)) + 45; // 45 to 60
+    } else {
+      initialTime = Math.floor(Math.random() * (30 - 15 + 1)) + 15; // 15 to 30
+    }
+    
+    setTimeLeft(initialTime);
+  }, [currentQuestionIndex, activeQuestion]);
+
+  // Countdown Logic
+  useEffect(() => {
+    if (isSubmitted || !activeQuestion || timeLeft <= 0) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isSubmitted, activeQuestion, timeLeft]);
+
+  // Timeout Trigger
+  useEffect(() => {
+    if (timeLeft === 0 && !isSubmitted && activeQuestion) {
+      setIsCorrect(false);
+      setIsSubmitted(true);
+    }
+  }, [timeLeft, isSubmitted, activeQuestion]);
+
+  if (!mounted) return <div className="min-h-screen w-full bg-[#050505]" />;
 
   if (!activeQuestion) {
     return (
@@ -38,19 +80,26 @@ export default function QuizEngine() {
     );
   }
 
+  const submitAnswer = (selected: string | null) => {
+    const answer = activeQuestion.correctAnswer || '';
+    let correct = false;
+    
+    if (selected) {
+      correct = 
+        selected === answer || 
+        selected.startsWith(answer + '.') || 
+        selected.startsWith(answer + ')') ||
+        selected.includes(answer);
+    }
+      
+    setIsCorrect(correct);
+    setIsSubmitted(true);
+  };
+
   const handleAction = () => {
     if (!isSubmitted) {
       if (!selectedOption) return;
-      
-      const answer = activeQuestion.correctAnswer || '';
-      const correct = 
-        selectedOption === answer || 
-        selectedOption.startsWith(answer + '.') || 
-        selectedOption.startsWith(answer + ')') ||
-        selectedOption.includes(answer);
-        
-      setIsCorrect(correct);
-      setIsSubmitted(true);
+      submitAnswer(selectedOption);
     } else {
       setSelectedOption(null);
       setIsSubmitted(false);
@@ -78,13 +127,24 @@ export default function QuizEngine() {
 
         <div className="w-full flex justify-between mb-4 text-gray-500 font-mono text-sm uppercase tracking-wider">
           <span>Unit {currentQuestionIndex + 1} / {questions.length}</span>
-          <span className="text-[#ff0055]">Score {score}</span>
+          <div className="flex items-center gap-4">
+            {multiplier > 1 && (
+              <span className="text-[#ff9900] font-black animate-pulse">🔥 {multiplier}X ACTIVE</span>
+            )}
+            <span className="text-[#ff0055]">Score {score}</span>
+          </div>
         </div>
 
         <div className="w-full h-auto bg-gray-900 border border-gray-800 p-6 pb-8 rounded-lg shadow-xl text-white flex flex-col">
-          <div className="mb-4 text-xs font-mono text-[#ff0055] uppercase tracking-widest flex justify-between border-b border-gray-800 pb-2">
-            <span>{activeQuestion.category}</span>
-            <span>{activeQuestion.difficulty}</span>
+          <div className="mb-4 text-xs font-mono text-[#ff0055] uppercase tracking-widest flex items-center justify-between border-b border-gray-800 pb-2">
+            <div className="flex gap-4">
+              <span>{activeQuestion.category}</span>
+              <span className="text-gray-700">•</span>
+              <span>{activeQuestion.difficulty}</span>
+            </div>
+            <div className={`font-black text-lg ${timeLeft <= 5 && !isSubmitted ? 'text-red-500 animate-pulse drop-shadow-[0_0_8px_rgba(255,0,0,0.8)]' : 'text-gray-400'}`}>
+              00:{timeLeft.toString().padStart(2, '0')}
+            </div>
           </div>
           
           <h2 className="text-xl font-bold mb-6 leading-relaxed">
