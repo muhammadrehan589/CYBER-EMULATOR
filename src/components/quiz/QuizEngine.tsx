@@ -10,7 +10,7 @@ const questions = quizData.questions;
 
 export default function QuizEngine() {
   const router = useRouter();
-  const { currentQuestionIndex, advanceQuestion, incrementScore, score } = useQuizStore();
+  const { currentQuestionIndex, advanceQuestion, score } = useQuizStore();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -50,14 +50,11 @@ export default function QuizEngine() {
         selectedOption.includes(answer);
         
       setIsCorrect(correct);
-      if (correct) {
-        incrementScore(10);
-      }
       setIsSubmitted(true);
     } else {
       setSelectedOption(null);
       setIsSubmitted(false);
-      advanceQuestion();
+      advanceQuestion(isCorrect, 10);
     }
   };
 
