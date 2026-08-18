@@ -366,11 +366,11 @@ export default function Phase3RealtimeDashboard() {
 
               <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                 <button 
-                  onClick={() => handleScoreBoost('EMP-001', leaderboard.find((p) => p.empId === 'EMP-001')?.score || 9999)}
-                  className="px-8 py-4 rounded-2xl bg-gradient-to-r from-[#ff0055] via-[#e60039] to-[#ff0055] hover:shadow-[0_0_30px_#ff0055] text-white font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-3 shadow-lg border border-white/20 transition-all active:scale-95 cursor-pointer"
+                  onClick={() => window.location.href = '/'}
+                  className="px-10 py-5 rounded-2xl bg-[#0a0a0a] border border-red-500 hover:shadow-[0_0_40px_rgba(255,0,60,0.6)] hover:bg-[#ff003c] text-[#ff003c] hover:text-white font-mono font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 shadow-[0_0_15px_rgba(255,0,60,0.5)] transition-all active:scale-95 cursor-pointer"
                 >
-                  <PlusCircle className="w-5 h-5 fill-current" />
-                  BOOST ABDURREHMAN (+250 PTS)
+                  <span className="w-2 h-2 rounded-full bg-[#ff003c] animate-pulse group-hover:bg-white" />
+                  ENTER SIMULATION MATRIX
                 </button>
 
                 <div className="flex items-center gap-4 text-xs font-mono text-zinc-400 px-4 py-2 rounded-xl bg-[#050008] border border-zinc-800">

@@ -1,0 +1,1508 @@
+{
+    "metadata": {
+        "title": "Cybersecurity & Workplace Awareness Quiz",
+        "description": "A comprehensive quiz covering cybersecurity threats, phishing awareness, vendor fraud, password hygiene, social engineering, and general professional conduct. Designed to educate employees on recognizing and responding to real-world threats.",
+        "version": "1.0",
+        "totalQuestions": 100,
+        "categories": [
+            "Phishing Awareness",
+            "Email Security",
+            "Password Security",
+            "Social Engineering",
+            "Vendor Fraud & BEC",
+            "Web Security",
+            "Malware & Ransomware",
+            "Incident Response",
+            "Workplace Conduct",
+            "Professional Ethics",
+            "Data Protection",
+            "Cloud Security",
+            "Access Control Lists (ACL)",
+            "Identity and Access Management (IAM)",
+            "Network Security",
+            "Zero Trust and PAM",
+            "Active Directory"
+        ],
+        "difficulties": [
+            "easy",
+            "medium",
+            "difficult"
+        ]
+    },
+    "questions": [
+        {
+            "id": 1,
+            "category": "Phishing Awareness",
+            "difficulty": "easy",
+            "type": "mcq",
+            "question": "What is phishing?",
+            "options": [
+                "A. A technique used to catch fish using digital bait",
+                "B. A cyberattack where attackers trick users into revealing sensitive information by posing as a legitimate entity",
+                "C. A type of software that protects computers from viruses",
+                "D. A method of encrypting data to keep it secure"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Phishing is a cyberattack where attackers impersonate trusted entities â€” such as banks, vendors, or IT departments â€” to deceive victims into revealing passwords, financial details, or other sensitive information."
+        },
+        {
+            "id": 2,
+            "category": "Email Security",
+            "difficulty": "easy",
+            "type": "true_false",
+            "question": "You should click on a link in a suspicious email to check whether it is legitimate or not.",
+            "options": [
+                "True",
+                "False"
+            ],
+            "correctAnswer": "False",
+            "explanation": "Clicking on a link in a suspicious email can install malware, redirect you to a phishing site, or compromise your credentials. Always report suspicious emails to your IT/security team without clicking any links."
+        },
+        {
+            "id": 3,
+            "category": "Password Security",
+            "difficulty": "easy",
+            "type": "mcq",
+            "question": "Which of the following is considered the strongest password?",
+            "options": [
+                "A. password123",
+                "B. YourName@1990",
+                "C. C0mp@ny#2024!Secure",
+                "D. 12345678"
+            ],
+            "correctAnswer": "C",
+            "explanation": "A strong password uses a mix of uppercase and lowercase letters, numbers, and special characters. It should be at least 12 characters long and not contain easily guessable personal information."
+        },
+        {
+            "id": 4,
+            "category": "Web Security",
+            "difficulty": "easy",
+            "type": "mcq",
+            "question": "What does 'HTTPS' in a website URL primarily indicate?",
+            "options": [
+                "A. The website is government-owned and verified",
+                "B. The website uses a secure, encrypted connection between your browser and the server",
+                "C. The website is completely free from malware and phishing",
+                "D. The website has been approved as trusted by your company"
+            ],
+            "correctAnswer": "B",
+            "explanation": "HTTPS indicates that data transmitted between your browser and the website is encrypted. However, it does NOT mean the website itself is safe or legitimate â€” phishing sites frequently use HTTPS."
+        },
+        {
+            "id": 5,
+            "category": "Password Security",
+            "difficulty": "easy",
+            "type": "mcq",
+            "question": "What is the primary purpose of two-factor authentication (2FA)?",
+            "options": [
+                "A. To allow you to log in faster using a shortcut",
+                "B. To add an extra layer of security beyond just a password",
+                "C. To replace the need for a password entirely",
+                "D. To share your account access securely with a trusted colleague"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Two-factor authentication requires a second form of verification (e.g., a code sent to your phone) in addition to your password, making it significantly harder for attackers to access your account even if they have your password."
+        },
+        {
+            "id": 6,
+            "category": "Malware & Ransomware",
+            "difficulty": "easy",
+            "type": "mcq",
+            "question": "What is malware?",
+            "options": [
+                "A. A type of firewall used to protect company networks",
+                "B. Software intentionally designed to cause damage to a computer, network, or user",
+                "C. A tool used to back up and encrypt company data",
+                "D. A legitimate email attachment sent by the HR department"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Malware (malicious software) includes viruses, worms, trojans, ransomware, spyware, and adware â€” all designed to harm systems, steal data, or extort users."
+        },
+        {
+            "id": 7,
+            "category": "Social Engineering",
+            "difficulty": "easy",
+            "type": "true_false",
+            "question": "A legitimate bank, vendor, or IT department will never ask for your password via email or phone.",
+            "options": [
+                "True",
+                "False"
+            ],
+            "correctAnswer": "True",
+            "explanation": "Legitimate organizations never need your password. Any request for your password via email or phone is a red flag for a social engineering or phishing attack."
+        },
+        {
+            "id": 8,
+            "category": "Phishing Awareness",
+            "difficulty": "easy",
+            "type": "mcq",
+            "question": "What does phishing primarily rely on to succeed?",
+            "options": [
+                "A. Advanced hacking software and technical exploits",
+                "B. Human error and psychological manipulation",
+                "C. Physical theft of employee devices",
+                "D. Corrupted software installations in company systems"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Phishing exploits human psychology â€” creating urgency, fear, or trust â€” rather than technical vulnerabilities. Employee awareness is the single most effective defense against phishing."
+        },
+        {
+            "id": 9,
+            "category": "Password Security",
+            "difficulty": "easy",
+            "type": "true_false",
+            "question": "It is safe to use the same password for all your work accounts for ease of remembering.",
+            "options": [
+                "True",
+                "False"
+            ],
+            "correctAnswer": "False",
+            "explanation": "Reusing passwords across accounts means that if one account is compromised, all accounts using that password become vulnerable. Use a unique password for each account and consider a password manager."
+        },
+        {
+            "id": 10,
+            "category": "Email Security",
+            "difficulty": "easy",
+            "type": "mcq",
+            "question": "If you receive an email from an unknown sender with an unexpected attachment, you should:",
+            "options": [
+                "A. Open it immediately to see what it contains",
+                "B. Forward it to all colleagues to warn them about it",
+                "C. Delete it or report it to your IT/security team without opening it",
+                "D. Save the attachment to your desktop and scan it yourself later"
+            ],
+            "correctAnswer": "C",
+            "explanation": "Unexpected attachments from unknown senders are a primary vehicle for malware delivery. Never open them â€” report to IT immediately so the threat can be assessed and contained."
+        },
+        {
+            "id": 11,
+            "category": "Vendor Fraud & BEC",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "A vendor sends you an urgent email asking you to transfer funds to a new bank account. What should you do FIRST?",
+            "options": [
+                "A. Transfer the funds immediately to avoid delays and maintain vendor relations",
+                "B. Reply to the email asking for more details and documentation",
+                "C. Call the vendor on a known, pre-established phone number to verbally confirm the request",
+                "D. Forward the email to your manager and let them decide"
+            ],
+            "correctAnswer": "C",
+            "explanation": "Urgent payment requests to new bank accounts are a hallmark of Business Email Compromise (BEC) attacks. Always verify such requests by calling the vendor on a number from your official records â€” never use contact details from the suspicious email itself."
+        },
+        {
+            "id": 12,
+            "category": "Vendor Fraud & BEC",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "What is a Business Email Compromise (BEC) attack?",
+            "options": [
+                "A. A virus that corrupts company email servers and deletes all messages",
+                "B. A scam where attackers impersonate a trusted business contact to manipulate employees into transferring money or data",
+                "C. An unauthorized employee accessing other employees' company emails",
+                "D. A spam campaign targeting a company's external customers"
+            ],
+            "correctAnswer": "B",
+            "explanation": "BEC attacks involve criminals impersonating executives, vendors, or trusted partners â€” often using spoofed or compromised email accounts â€” to deceive employees into wiring funds or sharing sensitive data."
+        },
+        {
+            "id": 13,
+            "category": "Social Engineering",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "You receive a phone call from someone claiming to be from your company's IT support, asking for your login credentials to fix an urgent account issue. You should:",
+            "options": [
+                "A. Provide the credentials immediately to resolve the critical issue quickly",
+                "B. Ask for their employee ID, hang up, and call your IT department directly using the official company number to verify",
+                "C. Give them a fake password to test whether they are legitimate",
+                "D. Change your password immediately and then share the new one with them"
+            ],
+            "correctAnswer": "B",
+            "explanation": "This is a classic vishing (voice phishing) attack. IT departments never need your password. Always hang up and independently verify by calling IT through official channels â€” never use a callback number provided by the caller."
+        },
+        {
+            "id": 14,
+            "category": "Phishing Awareness",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "What is spear phishing?",
+            "options": [
+                "A. Phishing attacks sent in bulk to millions of random email addresses",
+                "B. Targeted phishing attacks customized with personal details for a specific individual or organization",
+                "C. Phishing attacks conducted exclusively through phone calls",
+                "D. Phishing attacks that occur over social media platforms using fake profiles"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Spear phishing is a highly targeted form of phishing where attackers research their victim and personalize the attack. These are significantly harder to detect than generic phishing emails."
+        },
+        {
+            "id": 15,
+            "category": "Web Security",
+            "difficulty": "medium",
+            "type": "true_false",
+            "question": "A padlock icon in your browser's address bar means the website is completely safe and cannot be a phishing site.",
+            "options": [
+                "True",
+                "False"
+            ],
+            "correctAnswer": "False",
+            "explanation": "The padlock icon only confirms that the connection is encrypted (HTTPS). It says nothing about the trustworthiness of the website itself. Cybercriminals routinely create phishing sites with valid HTTPS certificates."
+        },
+        {
+            "id": 16,
+            "category": "Malware & Ransomware",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "What is ransomware?",
+            "options": [
+                "A. Software that monitors employee internet usage and productivity",
+                "B. Malicious software that encrypts a victim's files and demands payment in exchange for the decryption key",
+                "C. A security tool used to recover and restore lost company data",
+                "D. An automated email filtering system that blocks spam and phishing attempts"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Ransomware encrypts files on infected systems and demands a ransom payment (often in cryptocurrency) for the decryption key. It can paralyze entire organizations and is often spread through phishing emails."
+        },
+        {
+            "id": 17,
+            "category": "Social Engineering",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "In cybersecurity, 'social engineering' refers to:",
+            "options": [
+                "A. Building positive social relationships with colleagues to improve team productivity",
+                "B. Psychologically manipulating people into divulging confidential information or performing actions that compromise security",
+                "C. Using corporate social media accounts for marketing and brand engagement",
+                "D. Training employees through interactive social activities and group exercises"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Social engineering exploits human psychology â€” using trust, urgency, fear, or authority â€” to bypass security controls without needing technical hacking tools. It is the foundation of phishing, vishing, and BEC attacks."
+        },
+        {
+            "id": 18,
+            "category": "Phishing Awareness",
+            "difficulty": "medium",
+            "type": "true_false",
+            "question": "Phishing emails always contain obvious spelling mistakes and poor grammar, making them easy to identify.",
+            "options": [
+                "True",
+                "False"
+            ],
+            "correctAnswer": "False",
+            "explanation": "Modern phishing attacks, especially spear phishing and BEC attacks, are often highly polished, grammatically correct, and convincingly mimic legitimate communications. Never rely on poor grammar alone as an indicator."
+        },
+        {
+            "id": 19,
+            "category": "Vendor Fraud & BEC",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "A senior manager receives an email from a familiar vendor's email address requesting urgent payment of an invoice with updated bank details. The most secure course of action is to:",
+            "options": [
+                "A. Pay immediately since the email address looks genuine and the request appears normal",
+                "B. Reply to the email asking the vendor to confirm their new bank details in writing",
+                "C. Call the vendor directly using a phone number from your company's official records â€” not from the email â€” to verbally verify the request",
+                "D. Ask a junior finance staff member to process the payment on your behalf"
+            ],
+            "correctAnswer": "C",
+            "explanation": "Email addresses can be spoofed or email accounts can be compromised. Attackers specifically target payment change requests. Always verify through an independent, pre-established communication channel â€” never use contact information provided in the suspicious email."
+        },
+        {
+            "id": 20,
+            "category": "Social Engineering",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "What is vishing?",
+            "options": [
+                "A. A visual phishing attack conducted through fake websites and pop-ups",
+                "B. A voice-based phishing attack where attackers call victims while pretending to be a trusted entity",
+                "C. A video-conferencing scam that specifically targets company executives",
+                "D. A type of malware that is spread through video file attachments"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Vishing (voice phishing) uses phone calls to manipulate victims into revealing sensitive information or taking harmful actions. Attackers often impersonate IT support, banks, government officials, or vendors."
+        },
+        {
+            "id": 21,
+            "category": "Incident Response",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "If you suspect you have clicked on a phishing link or been a victim of a cyberattack, you should:",
+            "options": [
+                "A. Keep it to yourself to avoid embarrassment and potential disciplinary action",
+                "B. Try to fix it yourself by changing your password and running an antivirus scan",
+                "C. Immediately report it to your IT/security team so they can assess and contain the damage",
+                "D. Wait 24 hours to see if anything bad actually happens before escalating"
+            ],
+            "correctAnswer": "C",
+            "explanation": "Delays in reporting significantly increase the damage from a cyberattack. Prompt reporting allows IT teams to isolate compromised systems, reset credentials, and prevent further spread. Reporting is never punished in organizations with a healthy security culture."
+        },
+        {
+            "id": 22,
+            "category": "Web Security",
+            "difficulty": "medium",
+            "type": "true_false",
+            "question": "Public Wi-Fi networks are safe for accessing company systems as long as the Wi-Fi network itself requires a password to join.",
+            "options": [
+                "True",
+                "False"
+            ],
+            "correctAnswer": "False",
+            "explanation": "A password on a public Wi-Fi network only controls who can join â€” it does not encrypt traffic between users on the same network. Attackers on the same network can still intercept data. Always use a VPN when accessing company systems on any public or untrusted network."
+        },
+        {
+            "id": 23,
+            "category": "Phishing Awareness",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "Which of the following is a common warning sign that an email may be a phishing attempt?",
+            "options": [
+                "A. The email is addressed to you using your full legal name",
+                "B. The email creates a strong sense of urgency and pressures you to click a link or provide personal information immediately",
+                "C. The email was sent during normal business hours",
+                "D. The email includes your company's official logo in the header"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Creating artificial urgency ('Act now or your account will be suspended!') is a core phishing tactic designed to pressure victims into bypassing rational judgment. Logos and names can be easily copied by attackers."
+        },
+        {
+            "id": 24,
+            "category": "Email Security",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "What is a man-in-the-middle (MITM) attack?",
+            "options": [
+                "A. An attack where a hacker physically intercepts printed mail between two corporate parties",
+                "B. An attack where a cybercriminal secretly intercepts and potentially alters digital communications between two parties without their knowledge",
+                "C. An attack where an employee secretly leaks company information to a competitor",
+                "D. An attack that specifically targets middle management employees in an organization"
+            ],
+            "correctAnswer": "B",
+            "explanation": "In a MITM attack, the attacker secretly positions themselves between two communicating parties â€” intercepting, reading, and potentially modifying messages in real time. This can happen on unsecured networks or through compromised email accounts."
+        },
+        {
+            "id": 25,
+            "category": "Phishing Awareness",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "Which of the following best describes domain spoofing?",
+            "options": [
+                "A. Registering a domain name visually similar to a legitimate one (e.g., 'c0mpany.com' or 'company-vendor.com') to deceive and redirect users",
+                "B. Legally changing a company's official domain name and redirecting old traffic",
+                "C. Blocking user access to a legitimate domain through firewall rules",
+                "D. Duplicating a company's website on the same hosting server for load balancing"
+            ],
+            "correctAnswer": "A",
+            "explanation": "Domain spoofing involves registering deceptive domain names that closely resemble legitimate ones â€” using character substitutions, hyphens, or subdomains. Attackers use these to send convincing phishing emails or create fake websites."
+        },
+        {
+            "id": 26,
+            "category": "Vendor Fraud & BEC",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "A senior manager received an email appearing to come from a trusted vendor, clicked a payment link embedded in the email, and transferred company funds. This scenario is MOST accurately described as:",
+            "options": [
+                "A. A brute-force attack targeting the company's financial systems",
+                "B. A vendor impersonation / Business Email Compromise (BEC) phishing attack",
+                "C. A denial-of-service attack on the company's payment gateway",
+                "D. A man-in-the-middle attack on the company's email server infrastructure"
+            ],
+            "correctAnswer": "B",
+            "explanation": "This is a classic BEC/vendor impersonation phishing attack. Attackers impersonate trusted vendors, send realistic-looking payment links or invoices, and redirect funds to accounts under their control. These attacks cost organizations billions annually."
+        },
+        {
+            "id": 27,
+            "category": "Phishing Awareness",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "What is the primary difference between phishing and pharming?",
+            "options": [
+                "A. Phishing uses emails while pharming requires physical access to the victim's device",
+                "B. Phishing tricks users into visiting a fake website via deceptive messages, while pharming silently redirects users from a legitimate URL to a fraudulent site without the user clicking anything suspicious",
+                "C. Pharming is a legal penetration testing technique while phishing is always illegal",
+                "D. Phishing exclusively targets individuals while pharming only targets large organizations"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Pharming corrupts DNS records or a device's host file so that even typing a correct, legitimate URL redirects the user to a fraudulent website. Unlike phishing, the victim does not need to click a suspicious link."
+        },
+        {
+            "id": 28,
+            "category": "Email Security",
+            "difficulty": "difficult",
+            "type": "true_false",
+            "question": "Email headers can be forged, making it technically possible for attackers to send an email that appears to come from a legitimate sender's verified email address.",
+            "options": [
+                "True",
+                "False"
+            ],
+            "correctAnswer": "True",
+            "explanation": "Email spoofing allows attackers to forge the 'From' field of an email to appear as any sender. While DMARC, DKIM, and SPF protocols help combat this, they are not universally enforced, and compromised accounts can send genuinely authenticated malicious emails."
+        },
+        {
+            "id": 29,
+            "category": "Malware & Ransomware",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "Which of the following best describes a 'zero-day' vulnerability?",
+            "options": [
+                "A. A security flaw that has already been identified and patched by the vendor on the day of discovery",
+                "B. A software vulnerability that is unknown to the vendor and has no available patch, leaving systems fully exposed",
+                "C. A security threat that is neutralized automatically within zero days by antivirus software",
+                "D. A type of phishing attack executed in the early morning hours to avoid detection"
+            ],
+            "correctAnswer": "B",
+            "explanation": "A zero-day vulnerability is a software flaw unknown to the vendor â€” meaning there is 'zero days' of protection available. Attackers can exploit it freely until the vendor discovers and patches it, making zero-days extremely dangerous."
+        },
+        {
+            "id": 30,
+            "category": "Password Security",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "Why is multi-factor authentication (MFA) critical in preventing account takeovers even when a password has already been compromised?",
+            "options": [
+                "A. MFA automatically generates longer passwords that are impossible to crack",
+                "B. MFA requires attackers to also compromise an additional verification method (such as a physical device or biometric) beyond just knowing the password",
+                "C. MFA automatically changes your password and notifies you if it detects theft",
+                "D. MFA terminates all active sessions across all devices when unusual login activity is detected"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Even if an attacker obtains your password through phishing or a data breach, MFA prevents unauthorized access because they would also need to compromise your second factor (phone, authenticator app, hardware key, etc.) â€” a significantly harder task."
+        },
+        {
+            "id": 31,
+            "category": "Malware & Ransomware",
+            "difficulty": "difficult",
+            "type": "true_false",
+            "question": "Installing antivirus software alone is sufficient to fully protect your organization against all phishing attacks.",
+            "options": [
+                "True",
+                "False"
+            ],
+            "correctAnswer": "False",
+            "explanation": "Phishing primarily attacks human psychology, not just software vulnerabilities. Antivirus tools cannot prevent a person from willingly entering credentials on a fake website. A layered defense â€” combining technical controls, employee training, and verification procedures â€” is required."
+        },
+        {
+            "id": 32,
+            "category": "Phishing Awareness",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "What is a watering hole attack?",
+            "options": [
+                "A. A cyberattack targeting critical water treatment or utility infrastructure systems",
+                "B. An attack where cybercriminals compromise websites frequently visited by a target group, then use those sites to infect visitors' devices",
+                "C. An attack where employees are lured to a specific physical location under false pretenses",
+                "D. A distributed denial-of-service (DDoS) attack targeting a company's public-facing website"
+            ],
+            "correctAnswer": "B",
+            "explanation": "In a watering hole attack, criminals identify websites their target audience regularly visits, compromise those sites, and embed malware. When targets visit the site, their devices are infected â€” without any phishing email needed."
+        },
+        {
+            "id": 33,
+            "category": "Vendor Fraud & BEC",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "In a sophisticated Business Email Compromise (BEC) attack, the attacker typically:",
+            "options": [
+                "A. Uses automated brute-force tools to crack the target's email password in minutes",
+                "B. Silently monitors email communications over time to learn patterns, then impersonates a trusted contact at a strategic financial moment to redirect transactions",
+                "C. Sends identical mass emails simultaneously to every employee in the company",
+                "D. Physically steals the executive's device to gain direct access to their email account"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Advanced BEC attacks often involve prolonged reconnaissance â€” attackers monitor compromised email accounts for weeks, learning communication patterns, active vendor relationships, and pending transactions before striking at the most opportune moment."
+        },
+        {
+            "id": 34,
+            "category": "Data Protection",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "Which of the following best describes the security 'principle of least privilege'?",
+            "options": [
+                "A. Granting all employees access to all company systems to maximize operational efficiency",
+                "B. Restricting each user's access rights to only the minimum necessary to perform their specific job role",
+                "C. Allowing senior employees to bypass standard security protocols due to their trusted status",
+                "D. Granting new employees temporary full system access until they complete their onboarding training"
+            ],
+            "correctAnswer": "B",
+            "explanation": "The principle of least privilege limits the potential damage of insider threats and reduces the attack surface if an account is compromised. If a phished employee has limited access, the attacker's ability to cause harm is also limited."
+        },
+        {
+            "id": 35,
+            "category": "Incident Response",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "What is the primary purpose of an organizational incident response plan?",
+            "options": [
+                "A. To formally identify and penalize employees who make security mistakes",
+                "B. To provide a structured, pre-defined approach for identifying, containing, eradicating, and recovering from security incidents",
+                "C. To maintain a comprehensive inventory of all software installations across company devices",
+                "D. To outline the annual budget allocation for purchasing cybersecurity tools and software"
+            ],
+            "correctAnswer": "B",
+            "explanation": "An incident response plan ensures that when a security incident occurs, the organization responds systematically and swiftly â€” minimizing damage, recovery time, and reputational harm. Ad-hoc responses without a plan are significantly less effective."
+        },
+        {
+            "id": 36,
+            "category": "Vendor Fraud & BEC",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "When a vendor proactively notifies your company of a change in their bank account details, the recommended verification process is to:",
+            "options": [
+                "A. Accept the change immediately since it arrived via the vendor's official email address",
+                "B. Call the vendor immediately using the phone number provided within the notification email to confirm",
+                "C. Cross-reference the request against prior communications, call the vendor on a pre-established official contact number, and follow your company's documented vendor change verification policy",
+                "D. Escalate directly to the CEO for final sign-off without conducting any independent verification"
+            ],
+            "correctAnswer": "C",
+            "explanation": "Bank detail changes are among the highest-risk transactions. Attackers specifically target these moments. A robust verification process â€” using pre-established contact channels and following company policy â€” is the only reliable defense."
+        },
+        {
+            "id": 37,
+            "category": "Data Protection",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "Which of the following best describes a strong organizational cybersecurity culture?",
+            "options": [
+                "A. Cybersecurity is solely the IT department's responsibility; other employees need not be involved",
+                "B. Employees are empowered to report suspicious activity without fear of blame, and security is a shared responsibility across all levels of the organization",
+                "C. Security procedures and protocols are kept confidential from most employees to prevent misuse",
+                "D. Cybersecurity training is conducted once during employee onboarding and does not need to be revisited"
+            ],
+            "correctAnswer": "B",
+            "explanation": "A strong security culture makes every employee a line of defense. Organizations where people fear reporting mistakes â€” or don't understand their role in security â€” are significantly more vulnerable to attacks."
+        },
+        {
+            "id": 38,
+            "category": "Social Engineering",
+            "difficulty": "difficult",
+            "type": "true_false",
+            "question": "When a request is marked as extremely urgent by a sender, it is best practice to bypass normal verification procedures in order to resolve it as quickly as possible.",
+            "options": [
+                "True",
+                "False"
+            ],
+            "correctAnswer": "False",
+            "explanation": "Artificial urgency is one of the most widely used social engineering tactics. Attackers deliberately create time pressure to prevent victims from thinking critically or following verification procedures. High urgency should increase â€” not decrease â€” your caution."
+        },
+        {
+            "id": 39,
+            "category": "Email Security",
+            "difficulty": "easy",
+            "type": "mcq",
+            "question": "What does 'BCC' stand for in email communication?",
+            "options": [
+                "A. Basic Carbon Copy",
+                "B. Blind Carbon Copy",
+                "C. Business Communication Channel",
+                "D. Backup Contact Copy"
+            ],
+            "correctAnswer": "B",
+            "explanation": "BCC (Blind Carbon Copy) allows you to send a copy of an email to recipients without other recipients being aware of it. It is commonly used to protect recipient privacy in mass communications."
+        },
+        {
+            "id": 40,
+            "category": "Data Protection",
+            "difficulty": "easy",
+            "type": "true_false",
+            "question": "It is acceptable to share confidential company information on personal social media accounts.",
+            "options": [
+                "True",
+                "False"
+            ],
+            "correctAnswer": "False",
+            "explanation": "Sharing confidential company information on social media can violate NDAs, company policy, and data protection regulations. It can also provide intelligence to attackers. Always adhere to your company's data classification and sharing policies."
+        },
+        {
+            "id": 41,
+            "category": "Workplace Conduct",
+            "difficulty": "easy",
+            "type": "mcq",
+            "question": "When you are unclear about a task assigned to you at work, the best course of action is to:",
+            "options": [
+                "A. Attempt it without asking and hope your interpretation is correct",
+                "B. Ignore it until you have enough time to research it on your own",
+                "C. Clarify the requirements by proactively asking your manager or the relevant stakeholder",
+                "D. Delegate it to a colleague without informing your manager"
+            ],
+            "correctAnswer": "C",
+            "explanation": "Proactive clarification prevents wasted effort, costly mistakes, and miscommunication. It demonstrates professionalism and accountability."
+        },
+        {
+            "id": 42,
+            "category": "Workplace Conduct",
+            "difficulty": "easy",
+            "type": "mcq",
+            "question": "What does 'KPI' stand for in a professional business context?",
+            "options": [
+                "A. Key Performance Indicator",
+                "B. Key Process Integration",
+                "C. Knowledge and Performance Index",
+                "D. Keystone Planning Initiative"
+            ],
+            "correctAnswer": "A",
+            "explanation": "A Key Performance Indicator (KPI) is a measurable value that demonstrates how effectively a company or individual is achieving key business objectives."
+        },
+        {
+            "id": 43,
+            "category": "Data Protection",
+            "difficulty": "easy",
+            "type": "true_false",
+            "question": "Regularly backing up important company files is a best practice for protecting organizational data.",
+            "options": [
+                "True",
+                "False"
+            ],
+            "correctAnswer": "True",
+            "explanation": "Regular backups ensure business continuity in the event of ransomware attacks, hardware failures, accidental deletion, or natural disasters. Backups should follow the 3-2-1 rule: 3 copies, 2 different media types, 1 offsite."
+        },
+        {
+            "id": 44,
+            "category": "Professional Ethics",
+            "difficulty": "easy",
+            "type": "mcq",
+            "question": "What is the primary purpose of a Non-Disclosure Agreement (NDA)?",
+            "options": [
+                "A. To formally outline employee salary, bonuses, and benefits",
+                "B. To legally protect confidential information shared between parties in a business relationship",
+                "C. To set mutually agreed payment schedules for vendor contracts",
+                "D. To assign intellectual property rights and ownership to the company"
+            ],
+            "correctAnswer": "B",
+            "explanation": "An NDA is a legally binding contract that prevents parties from sharing confidential information with unauthorized third parties. Violations can result in significant legal and financial consequences."
+        },
+        {
+            "id": 45,
+            "category": "Workplace Conduct",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "Which of the following best reflects professional workplace behavior?",
+            "options": [
+                "A. Sharing a colleague's personal grievances or performance issues with other team members",
+                "B. Presenting a team member's individual contribution as your own work in a client meeting",
+                "C. Maintaining confidentiality, respecting deadlines, and communicating transparently with stakeholders",
+                "D. Using company equipment and internet access for personal projects without seeking approval"
+            ],
+            "correctAnswer": "C",
+            "explanation": "Professional workplace behavior includes accountability, transparency, respect for confidentiality, and meeting commitments. It builds trust and creates a productive, ethical working environment."
+        },
+        {
+            "id": 46,
+            "category": "Professional Ethics",
+            "difficulty": "medium",
+            "type": "true_false",
+            "question": "Using company-owned equipment for personal use without explicit employer permission is always considered acceptable workplace behavior.",
+            "options": [
+                "True",
+                "False"
+            ],
+            "correctAnswer": "False",
+            "explanation": "Unauthorized use of company equipment can violate company policy, introduce security risks (e.g., personal browsing on work devices), and may have legal implications. Always obtain explicit approval before personal use."
+        },
+        {
+            "id": 47,
+            "category": "Professional Ethics",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "What does 'due diligence' mean in a professional business context?",
+            "options": [
+                "A. Ensuring all invoices are paid on or before their stated due date",
+                "B. Conducting thorough research, investigation, and verification before entering into a business agreement or making a significant decision",
+                "C. Distributing tasks equally and fairly among all available team members",
+                "D. Following all company policies and directives without questioning their rationale"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Due diligence involves comprehensive investigation to validate facts, risks, and opportunities before committing to a significant business decision â€” such as onboarding a new vendor, making an acquisition, or approving a large payment."
+        },
+        {
+            "id": 48,
+            "category": "Workplace Conduct",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "What is the primary purpose of a company's Code of Conduct?",
+            "options": [
+                "A. To specify the mandatory dress code and appearance standards for all employees",
+                "B. To establish clear behavioral standards, ethical guidelines, and values expected of all employees",
+                "C. To define the technical specifications and requirements for company software systems",
+                "D. To provide a catalogue of all products, services, and pricing offered by the company"
+            ],
+            "correctAnswer": "B",
+            "explanation": "A Code of Conduct defines the expected ethical and professional standards for all employees, helping to build a consistent, fair, and trustworthy organizational culture."
+        },
+        {
+            "id": 49,
+            "category": "Data Protection",
+            "difficulty": "medium",
+            "type": "true_false",
+            "question": "You should always verify the identity of any person requesting sensitive company information, even if they claim to be a colleague, manager, or executive.",
+            "options": [
+                "True",
+                "False"
+            ],
+            "correctAnswer": "True",
+            "explanation": "Identity verification is a critical security control. Attackers frequently impersonate executives ('CEO fraud') or senior managers to pressure employees into bypassing security procedures. Always verify through a separate, trusted communication channel."
+        },
+        {
+            "id": 50,
+            "category": "Vendor Fraud & BEC",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "When your company receives an unexpected invoice from a vendor, the safest best practice is to:",
+            "options": [
+                "A. Pay it promptly to maintain a positive vendor relationship and avoid late fees",
+                "B. Discard it as it is almost certainly a spam or junk email",
+                "C. Verify the invoice by cross-referencing with your internal purchase records and contacting the vendor through official, pre-established communication channels",
+                "D. Forward it directly to the finance department without any review or verification"
+            ],
+            "correctAnswer": "C",
+            "explanation": "Fraudulent invoice scams are a major source of financial loss for organizations. Always verify unexpected invoices against purchase orders and contact the vendor independently to confirm before processing any payment."
+        },
+        {
+            "id": 51,
+            "category": "Active Directory",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "In Active Directory, what is the primary purpose of a Domain Controller (DC)?",
+            "options": [
+                "A. To provide DNS resolution for external internet traffic",
+                "B. To authenticate users, authorize access to resources, and enforce security policies across the domain",
+                "C. To act as a file server for storing employee personal data",
+                "D. To monitor and filter inbound network traffic from the internet"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Domain Controllers are the core servers in an AD environment. They host the Active Directory database, authenticate user logins (via Kerberos/NTLM), and enforce Group Policy across all domain-joined computers."
+        },
+        {
+            "id": 52,
+            "category": "Active Directory",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "What is a Group Policy Object (GPO) used for in an Active Directory environment?",
+            "options": [
+                "A. To automatically assign static IP addresses to domain computers",
+                "B. To configure, manage, and enforce security settings, software installations, and user environments across multiple computers from a central location",
+                "C. To monitor the physical health and temperature of server hardware",
+                "D. To encrypt network traffic between two different Active Directory domains"
+            ],
+            "correctAnswer": "B",
+            "explanation": "GPOs allow administrators to enforce settings (like password complexity, disabled USB ports, or deployed software) across thousands of computers simultaneously, ensuring consistent security and configuration management."
+        },
+        {
+            "id": 53,
+            "category": "Access Control Lists (ACL)",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "When configuring a filesystem ACL, what happens if a user belongs to a group that has 'Allow Read' access, but the user's specific account has an explicit 'Deny Read' access rule?",
+            "options": [
+                "A. The 'Allow' permission overrides the 'Deny' permission because group policies are prioritized",
+                "B. The explicit 'Deny' permission always takes precedence, and the user will not be able to read the file",
+                "C. The system will prompt the administrator to resolve the conflict before the user can access the file",
+                "D. The permissions cancel each other out, resulting in a 'Write-Only' state"
+            ],
+            "correctAnswer": "B",
+            "explanation": "In Windows ACL evaluation, Explicit Deny always takes precedence over Explicit Allow or Inherited Allow. This ensures that an administrator can definitively block a specific user regardless of their group memberships."
+        },
+        {
+            "id": 54,
+            "category": "Cloud Security",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "Which of the following describes the principle of 'Least Privilege' in a cloud Identity and Access Management (IAM) context?",
+            "options": [
+                "A. Granting users the minimum level of access required to perform their specific job functions, and nothing more",
+                "B. Giving all employees read-only access to all cloud resources to promote transparency",
+                "C. Assigning permissions based solely on a user's seniority within the organization",
+                "D. Revoking all access privileges from users after normal business hours"
+            ],
+            "correctAnswer": "A",
+            "explanation": "Least privilege is a foundational security concept. By restricting access to only what is strictly necessary for a task, you minimize the potential damage (the blast radius) if an account is compromised or an insider goes rogue."
+        },
+        {
+            "id": 55,
+            "category": "Active Directory",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "What is the Kerberos protocol primarily used for in an Active Directory environment?",
+            "options": [
+                "A. Encrypting data stored on local hard drives",
+                "B. Securely authenticating users and services across the network without transmitting passwords in plaintext",
+                "C. Synchronizing time between domain controllers and client machines",
+                "D. Automatically deploying operating system updates to client computers"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Kerberos is the default authentication protocol for Active Directory. It uses a ticketing system (Ticket Granting Tickets) to prove identity securely over non-secure networks, preventing eavesdroppers from stealing plaintext passwords."
+        },
+        {
+            "id": 56,
+            "category": "Access Control Lists (ACL)",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "In AWS, what is the functional difference between a Network ACL (NACL) and a Security Group?",
+            "options": [
+                "A. NACLs operate at the subnet level and are stateless, while Security Groups operate at the instance level and are stateful",
+                "B. NACLs are stateful and operate at the instance level, while Security Groups operate at the subnet level and are stateless",
+                "C. NACLs can only allow traffic, whereas Security Groups can explicitly deny traffic",
+                "D. There is no difference; they are interchangeable terms for the same cloud firewall mechanism"
+            ],
+            "correctAnswer": "A",
+            "explanation": "NACLs wrap around entire subnets and are stateless (you must explicitly allow return traffic). Security Groups attach directly to instances (VMs) and are stateful (if inbound traffic is allowed, the outbound response is automatically allowed)."
+        },
+        {
+            "id": 57,
+            "category": "Cloud Security",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "What is the primary security benefit of using Role-Based Access Control (RBAC) in cloud environments?",
+            "options": [
+                "A. It automatically encrypts all user data during transmission",
+                "B. It simplifies access management by assigning permissions to functional roles rather than directly to individual users, making onboarding and offboarding more secure and consistent",
+                "C. It prevents Distributed Denial of Service (DDoS) attacks against cloud applications",
+                "D. It eliminates the need for Multi-Factor Authentication (MFA)"
+            ],
+            "correctAnswer": "B",
+            "explanation": "RBAC groups permissions logically. When a user joins the Finance team, they are assigned the Finance Role. When they leave, removing the role revokes all associated access instantly, preventing lingering permissions (permission creep)."
+        },
+        {
+            "id": 58,
+            "category": "Active Directory",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "Which built-in Active Directory group possesses the highest level of privileges across an entire AD Forest?",
+            "options": [
+                "A. Domain Admins",
+                "B. Enterprise Admins",
+                "C. Schema Admins",
+                "D. Local Administrators"
+            ],
+            "correctAnswer": "B",
+            "explanation": "While 'Domain Admins' have full control over a single domain, 'Enterprise Admins' have administrative control over the entire Active Directory Forest, which can contain multiple domains. It is the most powerful group in an AD environment."
+        },
+        {
+            "id": 59,
+            "category": "Access Control Lists (ACL)",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "When troubleshooting a network connection drop, you notice an implicit 'Deny All' rule at the bottom of a router's Access Control List. What is the purpose of this rule?",
+            "options": [
+                "A. To act as a placeholder until the administrator defines explicit allow rules",
+                "B. To ensure that any traffic not explicitly permitted by a higher-priority rule is automatically blocked",
+                "C. To log all allowed traffic for security auditing purposes",
+                "D. To prevent the router from processing packets when the CPU load is too high"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Most network ACLs operate on a 'default deny' principle. If a packet is evaluated against all explicit rules from top to bottom and matches none of them, the implicit 'Deny All' at the end drops the packet to ensure security."
+        },
+        {
+            "id": 60,
+            "category": "Cloud Security",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "Why is the 'Shared Responsibility Model' a critical concept in cloud security?",
+            "options": [
+                "A. It states that the cloud provider is fully responsible for all security incidents",
+                "B. It clarifies the division of security obligations: the provider secures the underlying infrastructure, while the customer is responsible for securing their data, IAM, and configurations in the cloud",
+                "C. It mandates that cloud customers must share their security audit logs with the provider",
+                "D. It implies that security costs are shared equally between the provider and the customer"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Understanding this model prevents dangerous assumptions. For example, in an IaaS model (like AWS EC2), AWS secures the physical servers and network, but the customer MUST patch the guest OS and configure their own firewalls (Security Groups)."
+        },
+        {
+            "id": 61,
+            "category": "Active Directory",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "What does an Active Directory 'Trust Relationship' accomplish?",
+            "options": [
+                "A. It establishes a secure, encrypted tunnel for VPN users connecting from home",
+                "B. It allows users in one domain to authenticate and access resources in another, distinct domain based on defined permissions",
+                "C. It automatically shares all files between two different companies",
+                "D. It verifies that a client computer has up-to-date antivirus definitions before connecting to the network"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Trusts bridge domains or forests. If Domain A trusts Domain B, users from Domain B can log in and (if authorized) access file shares or applications located in Domain A without needing a separate username and password."
+        },
+        {
+            "id": 62,
+            "category": "Access Control Lists (ACL)",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "In standard Linux filesystem permissions (UGO), what does an ACL (Access Control List) provide that standard permissions cannot?",
+            "options": [
+                "A. The ability to encrypt the contents of a directory",
+                "B. The ability to assign granular, distinct permissions to multiple specific users or multiple groups on a single file, rather than just one owner, one group, and 'others'",
+                "C. The ability to hide the file extension from non-root users",
+                "D. The ability to prevent the root user from deleting a file"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Standard POSIX permissions only allow you to set rights for the file Owner, the owning Group, and Everyone else. Linux ACLs (setfacl/getfacl) let you grant specific read/write access to user A, user B, and group C simultaneously on the same file."
+        },
+        {
+            "id": 63,
+            "category": "Cloud Security",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "What is a Cloud Access Security Broker (CASB)?",
+            "options": [
+                "A. A physical firewall installed in a company's on-premises data center",
+                "B. A software tool used to negotiate lower pricing with cloud service providers",
+                "C. A security policy enforcement point placed between cloud service consumers and providers to monitor activity, enforce compliance, and detect threats in cloud usage",
+                "D. A cloud-based backup solution for disaster recovery"
+            ],
+            "correctAnswer": "C",
+            "explanation": "CASBs provide visibility into 'Shadow IT' (unauthorized cloud app usage), enforce Data Loss Prevention (DLP) policies to stop sensitive data uploads, and detect anomalous user behavior across various SaaS platforms like Office 365 or Salesforce."
+        },
+        {
+            "id": 64,
+            "category": "Active Directory",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "What is an Organizational Unit (OU) in Active Directory used for?",
+            "options": [
+                "A. To physically separate servers into different data center racks",
+                "B. To create logical containers that group users, computers, and groups for easier administration and the targeted application of Group Policy Objects (GPOs)",
+                "C. To isolate network traffic between different departments",
+                "D. To define the DNS namespace for a new domain"
+            ],
+            "correctAnswer": "B",
+            "explanation": "OUs are structural containers. You might create a 'Sales' OU and put all sales computers and users inside it. You can then delegate administrative control of that OU to a regional IT admin, or apply a specific GPO just to that department."
+        },
+        {
+            "id": 65,
+            "category": "Access Control Lists (ACL)",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "Which statement about evaluating Router Access Control Lists is TRUE?",
+            "options": [
+                "A. Rules are evaluated randomly to prevent attackers from predicting the firewall behavior",
+                "B. Rules are evaluated sequentially from top to bottom (lowest sequence number to highest); processing stops as soon as a match is found",
+                "C. All rules are evaluated simultaneously, and 'Allow' rules always override 'Deny' rules",
+                "D. Rules are evaluated from bottom to top"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Order matters critically in router ACLs. If Rule 10 says 'Deny IP from X' and Rule 20 says 'Allow IP from X', traffic from X is dropped. Because Rule 10 matches first, the router takes action and stops reading the rest of the list."
+        },
+        {
+            "id": 66,
+            "category": "Cloud Security",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "What is the primary purpose of enabling Multi-Factor Authentication (MFA) for cloud administrator accounts?",
+            "options": [
+                "A. To ensure administrators memorize multiple passwords",
+                "B. To comply with environmental regulations regarding energy usage",
+                "C. To provide a secondary layer of security requiring 'something the user has' (like a token or phone), significantly mitigating the risk of compromised passwords",
+                "D. To speed up the login process during emergency outages"
+            ],
+            "correctAnswer": "C",
+            "explanation": "Passwords (something you know) are frequently stolen via phishing or data breaches. MFA adds a requirement for 'something you have' (a Time-based One-Time Password or hardware key), making it vastly harder for an attacker to use a stolen password."
+        },
+        {
+            "id": 67,
+            "category": "Active Directory",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "In Active Directory, what happens when an employee account is disabled rather than deleted upon termination?",
+            "options": [
+                "A. The user can still log in, but only to check email",
+                "B. The account remains in the directory with its unique Security Identifier (SID) intact, preventing login but preserving file permissions and historical audit logs for compliance",
+                "C. All files owned by the user are automatically encrypted and locked",
+                "D. The account is automatically moved to the Recycle Bin after 24 hours"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Best practice is to disable accounts upon termination. Deleting an account destroys its SID; if you later recreate an account with the exact same name, it gets a new SID and won't have access to the old user's files. Disabling preserves the identity for forensics and data recovery."
+        },
+        {
+            "id": 68,
+            "category": "Access Control Lists (ACL)",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "When configuring a Web Application Firewall (WAF) ACL, what is the difference between an 'allowlist' (whitelist) and a 'blocklist' (blacklist) approach?",
+            "options": [
+                "A. An allowlist explicitly blocks known bad traffic, while a blocklist permits only known good traffic",
+                "B. An allowlist permits only explicitly approved traffic and blocks everything else, while a blocklist blocks explicitly defined bad traffic and permits everything else",
+                "C. Allowlists are used for inbound traffic, while blocklists are used exclusively for outbound traffic",
+                "D. There is no functional difference; they are just different vendor terminologies"
+            ],
+            "correctAnswer": "B",
+            "explanation": "A 'default deny' (allowlist) approach is far more secure because it automatically protects against unknown threats (zero-days) by blocking anything not specifically recognized as legitimate. A blocklist approach requires constantly updating rules to catch new malicious IP addresses or attack signatures."
+        },
+        {
+            "id": 69,
+            "category": "Cloud Security",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "What does 'Data Encryption at Rest' protect against in a cloud environment?",
+            "options": [
+                "A. Man-in-the-middle attacks intercepting traffic over the internet",
+                "B. Unauthorized access to data if the underlying physical storage media is stolen, discarded improperly, or accessed by unauthorized cloud provider staff",
+                "C. SQL injection attacks targeting web application databases",
+                "D. Phishing attacks aimed at cloud administrators"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Encryption at rest ensures that data stored on disks is scrambled. Without the decryption key (managed via KMS), someone physically walking out of an AWS/Azure data center with a hard drive would only see unreadable ciphertext."
+        },
+        {
+            "id": 70,
+            "category": "Active Directory",
+            "difficulty": "medium",
+            "type": "mcq",
+            "question": "What is a Service Principal Name (SPN) in Active Directory?",
+            "options": [
+                "A. A unique identifier that associates a specific service instance (like a SQL server or web server) with an AD service logon account, enabling Kerberos authentication",
+                "B. The primary email address format used by Microsoft Exchange",
+                "C. A specialized password used only by Domain Admins to bypass locked accounts",
+                "D. A geographic location tag used to route users to the nearest Domain Controller"
+            ],
+            "correctAnswer": "A",
+            "explanation": "SPNs are critical for Kerberos. When a user requests access to 'SQLServer1', Kerberos uses the SPN to look up which AD account runs that SQL service, encrypts a ticket using that account's password hash, and grants access. Misconfigured SPNs break authentication."
+        },
+        {
+            "id": 71,
+            "category": "Access Control Lists (ACL)",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "In Windows NTFS permissions, how does permission inheritance work when moving versus copying a file between folders on the SAME NTFS volume?",
+            "options": [
+                "A. Moving a file causes it to inherit the destination folder's permissions; copying retains the original permissions",
+                "B. Copying a file causes it to inherit the destination folder's permissions; moving a file retains its original explicit permissions",
+                "C. Both moving and copying cause the file to inherit the destination folder's permissions",
+                "D. Both moving and copying cause the file to retain its original permissions"
+            ],
+            "correctAnswer": "B",
+            "explanation": "This is a classic Windows administrative gotcha. If you COPY a file, a new object is created that inherits the new folder's ACL. If you MOVE a file on the same drive, the file object's pointers are just updated, so it brings its original ACLs with it, which can cause unexpected access denials."
+        },
+        {
+            "id": 72,
+            "category": "Cloud Security",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "An attacker compromises a cloud web server. They then execute a command to query the IP address '169.254.169.254'. What is the attacker attempting to do?",
+            "options": [
+                "A. Initiate a Denial of Service attack against the cloud provider's DNS infrastructure",
+                "B. Query the Cloud Instance Metadata Service (IMDS) to extract temporary IAM credentials attached to the virtual machine, attempting to escalate privileges",
+                "C. Bypass the Network ACL by routing traffic through a loopback interface",
+                "D. Ping the cloud provider's NTP server to synchronize attack timing"
+            ],
+            "correctAnswer": "B",
+            "explanation": "169.254.169.254 is the link-local address for the Instance Metadata Service (IMDS) in AWS, Azure, and GCP. If a VM has an IAM role attached, an attacker exploiting an SSRF vulnerability can query this URL to steal the temporary security tokens and gain API access to the cloud environment."
+        },
+        {
+            "id": 73,
+            "category": "Active Directory",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "What is an Active Directory 'Golden Ticket' attack?",
+            "options": [
+                "A. An attack where a hacker steals a Domain Admin's password using a phishing email",
+                "B. An attack where an adversary compromises the KRBTGT account password hash, allowing them to forge Kerberos Ticket Granting Tickets (TGTs) and gain unrestricted, persistent access to any resource in the domain",
+                "C. A brute-force attack against the Active Directory Administrator account that bypasses account lockout policies",
+                "D. An attack exploiting a vulnerability in the DNS service running on a Domain Controller"
+            ],
+            "correctAnswer": "B",
+            "explanation": "The KRBTGT account is the master key of Kerberos. If an attacker extracts its NTLM hash (usually after gaining Domain Admin rights initially), they can mint forged Kerberos tickets valid for years, granting themselves stealthy admin access even if normal admin passwords are changed."
+        },
+        {
+            "id": 74,
+            "category": "Access Control Lists (ACL)",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "When writing an AWS IAM Policy (which acts as a highly granular ACL for cloud resources), what is the evaluation logic if a user's request matches an 'Explicit Allow' in one policy, but also matches an 'Explicit Deny' in another attached policy?",
+            "options": [
+                "A. The 'Explicit Allow' overrides the 'Explicit Deny' if the allow policy was attached more recently",
+                "B. The 'Explicit Deny' always overrides any 'Explicit Allow', and the request is blocked",
+                "C. The system prompts the resource owner for manual approval",
+                "D. The action is allowed only if the user has Multi-Factor Authentication enabled"
+            ],
+            "correctAnswer": "B",
+            "explanation": "AWS IAM evaluation logic is strict: By default, everything is implicitly denied. An Explicit Allow grants access. However, an Explicit Deny ALWAYS trumps an Explicit Allow. This allows administrators to set absolute boundaries (e.g., 'Deny all access if not using MFA' or 'Deny access outside the US')."
+        },
+        {
+            "id": 75,
+            "category": "Cloud Security",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "What is the purpose of 'Workload Identity Federation' in cloud architecture?",
+            "options": [
+                "A. To share a single database instance across multiple different applications to save costs",
+                "B. To allow external identities (like GitHub Actions or an on-premises server) to authenticate to cloud APIs by exchanging their own trusted tokens for short-lived cloud credentials, eliminating the need to store long-lived static secret keys",
+                "C. To synchronize employee passwords between Google Workspace and Microsoft 365",
+                "D. To automatically failover virtual machines to a different geographic region during an outage"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Storing long-lived static service account keys in CI/CD pipelines (like GitHub) is a massive security risk, as they can be leaked. Workload Identity Federation establishes a trust relationship so GitHub can request a 1-hour temporary token to deploy code, completely removing static secrets from the equation."
+        },
+        {
+            "id": 76,
+            "category": "Active Directory",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "In the context of Active Directory security, what is 'AS-REP Roasting'?",
+            "options": [
+                "A. A technique to overheat server CPUs to cause a denial of service",
+                "B. An attack that targets user accounts that have 'Do not require Kerberos preauthentication' enabled, allowing the attacker to request authentication data and extract an offline-crackable hash of the user's password",
+                "C. A method of extracting plaintext passwords directly from the domain controller's memory",
+                "D. A vulnerability in the SMBv1 protocol used to execute remote code"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Kerberos pre-authentication normally prevents attackers from requesting authentication data for a user unless they know the password. If pre-auth is disabled (often a misconfiguration for legacy apps), an attacker can request the AS-REP message, which contains a piece of data encrypted with the user's password hash, and crack it offline."
+        },
+        {
+            "id": 77,
+            "category": "Access Control Lists (ACL)",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "You configure an Amazon S3 bucket with a Bucket Policy (IAM ACL) that explicitly allows public read access. However, the 'Block Public Access' (BPA) settings at the account level are turned on. What happens when an anonymous internet user tries to read a file?",
+            "options": [
+                "A. The user can read the file because the Bucket Policy is more specific and overrides the account-level BPA setting",
+                "B. The request is denied because account-level Block Public Access settings act as a mandatory guardrail that overrides any permissive bucket-level or object-level ACLs",
+                "C. The file is temporarily downloaded but cannot be opened until a captcha is solved",
+                "D. The user is redirected to a cloud provider login page"
+            ],
+            "correctAnswer": "B",
+            "explanation": "AWS Block Public Access (BPA) is a defense-in-depth feature designed specifically to prevent accidental data leaks. Even if an administrator makes a mistake and applies a public ACL or Bucket Policy, BPA acts as an absolute override, blocking public access at the account or bucket level."
+        },
+        {
+            "id": 78,
+            "category": "Cloud Security",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "Which statement best describes the concept of a 'Zero Trust Architecture' (ZTA) in modern cloud networks?",
+            "options": [
+                "A. All users inside the corporate VPN are trusted, and all external users are blocked",
+                "B. No user, device, or application is inherently trusted, regardless of network location; every access request must be continuously authenticated, authorized, and validated for security posture before granting access",
+                "C. Security is entirely outsourced to the cloud provider, relieving the customer of responsibility",
+                "D. Antivirus software is removed from endpoints to improve performance, relying entirely on network firewalls"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Zero Trust abandons the old 'castle-and-moat' perimeter model. Because cloud users work from anywhere and threats can originate internally, ZTA mandates strict identity verification, least privilege, and continuous device health checks for every single transaction, even if the user is 'inside' the network."
+        },
+        {
+            "id": 79,
+            "category": "Active Directory",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "What is an Active Directory 'BloodHound' analysis used for?",
+            "options": [
+                "A. It is an official Microsoft tool used to optimize database indexing speed on Domain Controllers",
+                "B. It is an offensive security tool that uses graph theory to map out hidden, complex, and unintended relationship paths (like nested group memberships and delegated permissions) that an attacker can exploit to escalate privileges to Domain Admin",
+                "C. It is a network protocol analyzer used to detect cleartext passwords traversing the network",
+                "D. It is a forensics tool used to recover deleted files from a domain controller's hard drive"
+            ],
+            "correctAnswer": "B",
+            "explanation": "BloodHound visualizes AD environments. Attackers (and defenders) use it to find obscure paths—for example, discovering that User A has rights to reset the password of User B, who is a local admin on Server C, where a Domain Admin has an active session that can be hijacked."
+        },
+        {
+            "id": 80,
+            "category": "Access Control Lists (ACL)",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "In Kubernetes, how does Role-Based Access Control (RBAC) differ between a 'Role' and a 'ClusterRole'?",
+            "options": [
+                "A. A Role grants permissions within a specific, isolated Namespace, whereas a ClusterRole grants permissions across the entire cluster and to cluster-scoped resources like Nodes",
+                "B. A Role is used for human users, while a ClusterRole is exclusively used for automated service accounts",
+                "C. A Role allows read-only access, whereas a ClusterRole grants full administrative read/write access",
+                "D. There is no difference; Role is simply an alias for ClusterRole in newer Kubernetes versions"
+            ],
+            "correctAnswer": "A",
+            "explanation": "Kubernetes separates resources logically using Namespaces (e.g., 'dev' vs 'prod'). A 'Role' and 'RoleBinding' restrict a user's permissions to a single Namespace. To grant access to resources that don't belong to a namespace (like the physical Nodes), or to grant permissions across all namespaces simultaneously, you must use a 'ClusterRole'."
+        },
+        {
+            "id": 81,
+            "category": "Cloud Security",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "What is a Server-Side Request Forgery (SSRF) vulnerability, and why is it particularly dangerous in a cloud environment?",
+            "options": [
+                "A. An attack that injects malicious SQL commands into a database login form",
+                "B. An attack where a web application is tricked into making an unauthorized HTTP request on behalf of the attacker, which can be used to query internal cloud APIs (like AWS IMDS) and steal highly privileged temporary credentials",
+                "C. A technique used to bypass cloud Web Application Firewalls by encrypting the payload",
+                "D. A vulnerability that allows an attacker to alter the source code of a serverless lambda function"
+            ],
+            "correctAnswer": "B",
+            "explanation": "SSRF occurs when a server blindly fetches a URL provided by a user. In the cloud, if an attacker feeds the server the URL for the Instance Metadata Service (169.254.169.254), the server will fetch its own IAM role credentials and return them to the attacker, leading to total cloud compromise."
+        },
+        {
+            "id": 82,
+            "category": "Active Directory",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "In Active Directory, what is the principle risk of granting a user 'GenericAll' or 'WriteDACL' permissions over another user object or group?",
+            "options": [
+                "A. The user will be able to delete the entire Active Directory Forest",
+                "B. The user can modify the access control list of the target object, allowing them to grant themselves full control, reset the target's password, or add themselves to a privileged group, leading to privilege escalation",
+                "C. The user will automatically bypass all Multi-Factor Authentication requirements",
+                "D. The target object's files will be encrypted with ransomware"
+            ],
+            "correctAnswer": "B",
+            "explanation": "WriteDACL (Write Discretionary Access Control List) means you have the power to change WHO has access to an object. If a low-level IT worker has WriteDACL over the 'Domain Admins' group, they can simply add their own account to that group, instantly escalating their privileges."
+        },
+        {
+            "id": 83,
+            "category": "Access Control Lists (ACL)",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "Which of the following scenarios describes the 'Confused Deputy' problem in cloud Access Control, and how is it typically mitigated?",
+            "options": [
+                "A. A user forgets their password and requests a reset; mitigated by Self-Service Password Reset (SSPR)",
+                "B. A legitimate, highly privileged service (the deputy) is tricked by an attacker into misusing its privileges to perform an action on a resource the attacker cannot access directly; mitigated by strictly scoping IAM role trust policies using Condition keys like 'aws:SourceArn'",
+                "C. A firewall rule is written ambiguously; mitigated by using automated syntax checkers",
+                "D. Two administrators make conflicting ACL changes simultaneously; mitigated by version control"
+            ],
+            "correctAnswer": "B",
+            "explanation": "The Confused Deputy problem happens when a service (like AWS CloudTrail) is granted permission to write to an S3 bucket, and an attacker tricks CloudTrail in *their* account to write to *your* bucket. Mitigations involve ensuring the service role is explicitly restricted to only act on behalf of your specific account or resources."
+        },
+        {
+            "id": 84,
+            "category": "Cloud Security",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "What is the primary function of a Cloud Security Posture Management (CSPM) tool?",
+            "options": [
+                "A. To actively block inbound DDoS attacks at the network edge",
+                "B. To continuously monitor cloud environments (AWS, Azure, GCP) via APIs to detect misconfigurations, ensure compliance frameworks (like SOC2 or HIPAA) are met, and identify risks such as public S3 buckets or open security groups",
+                "C. To manage employee payroll and human resources data securely in the cloud",
+                "D. To compile and execute serverless code functions in response to event triggers"
+            ],
+            "correctAnswer": "B",
+            "explanation": "CSPM tools (like AWS Security Hub, Prisma Cloud, or Wiz) provide visibility into the control plane. They don't block traffic (like a firewall); instead, they scan configurations to alert you if, for example, a developer accidentally opens SSH (port 22) to the entire internet (0.0.0.0/0)."
+        },
+        {
+            "id": 85,
+            "category": "Active Directory",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "What is LAPS (Local Administrator Password Solution) and what specific Active Directory lateral movement risk does it mitigate?",
+            "options": [
+                "A. A tool that synchronizes local admin passwords to the cloud for backup",
+                "B. A Microsoft tool that randomizes the local Administrator password on every domain-joined computer, stores it securely in AD, and rotates it regularly, preventing 'Pass-the-Hash' attacks where one stolen local admin hash grants access to all workstations",
+                "C. A protocol for encrypting LDAP traffic between domain controllers",
+                "D. A feature that completely disables the local Administrator account on all machines"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Historically, IT deployed the same local Administrator password across all desktops. If an attacker compromised one desktop and dumped the password hash, they could use that hash to authenticate to every other desktop in the company. LAPS stops this by ensuring every machine has a unique, rotating local admin password."
+        },
+        {
+            "id": 86,
+            "category": "Access Control Lists (ACL)",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "When designing a defense-in-depth network architecture in AWS, how should Subnet Route Tables, Network ACLs, and Security Groups interact to protect a backend database?",
+            "options": [
+                "A. The database should be in a public subnet, protected only by a Security Group allowing port 3306",
+                "B. The database should be in a private subnet (no Internet Gateway in the route table), the NACL should allow traffic only from the application tier subnet, and the Security Group should allow traffic only from the specific Application Security Group ID",
+                "C. Route tables and NACLs are redundant; only Security Groups should be used to reduce latency",
+                "D. The database should have a public IP address but rely on a strict NACL blocklist to drop known malicious IPs"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Defense in depth layers controls. The Route Table ensures the DB isn't routable from the internet. The NACL creates a subnet-level boundary allowing only the App subnet. The Security Group provides instance-level stateful filtering, specifically trusting only the App tier's identity (its SG ID)."
+        },
+        {
+            "id": 87,
+            "category": "Cloud Security",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "In a containerized cloud environment (like Docker/Kubernetes), what is a 'Container Escape' vulnerability?",
+            "options": [
+                "A. A feature that allows a container to automatically scale horizontally across multiple servers",
+                "B. A vulnerability where an attacker compromises an application inside a container, and then exploits a kernel flaw or misconfiguration to break out of the container's isolation, gaining administrative access to the underlying host operating system (the node)",
+                "C. A networking issue where a container loses its IP address and disconnects from the cluster",
+                "D. A process for gracefully shutting down a container during a rolling update"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Containers share the host operating system's kernel. If a container is run with excessive privileges (e.g., the '--privileged' flag), an attacker can exploit the kernel to 'escape' the container, giving them control over the physical/virtual node and potentially the entire cluster."
+        },
+        {
+            "id": 88,
+            "category": "Active Directory",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "What is a 'Pass-the-Ticket' attack in an Active Directory environment?",
+            "options": [
+                "A. A physical security breach where an attacker steals an employee's RFID badge",
+                "B. An attack where an adversary extracts a valid Kerberos Ticket Granting Ticket (TGT) or Service Ticket from a compromised computer's memory (LSASS), and injects it into their own session to impersonate the victim without needing their password",
+                "C. A method of bypassing MFA by intercepting the SMS text message containing the one-time code",
+                "D. A technique used to forge DNS records to redirect traffic to a malicious server"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Tools like Mimikatz can extract Kerberos tickets from the Local Security Authority Subsystem Service (LSASS) process in Windows. Once extracted, the attacker 'passes' the ticket to themselves, instantly gaining the access rights of the compromised user until the ticket expires."
+        },
+        {
+            "id": 89,
+            "category": "Access Control Lists (ACL)",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "In Google Cloud Platform (GCP), how does Identity-Aware Proxy (IAP) improve upon traditional VPNs and network ACLs for accessing internal applications?",
+            "options": [
+                "A. IAP uses quantum encryption to secure all network packets",
+                "B. IAP shifts access control from the network perimeter to individual applications, verifying user identity, device health, and context via IAM policies for every single HTTP/TCP request, regardless of where the user is connecting from (Zero Trust)",
+                "C. IAP automatically assigns public IP addresses to all internal applications for faster access",
+                "D. IAP relies entirely on MAC address filtering to authorize users"
+            ],
+            "correctAnswer": "B",
+            "explanation": "IAP is Google's implementation of Zero Trust. Instead of trusting a user just because they connected to a VPN (a network perimeter), IAP intercepts every request, validates the user's Google Workspace identity, checks device context, and applies IAM rules before letting traffic reach the application backend."
+        },
+        {
+            "id": 90,
+            "category": "Cloud Security",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "What is the purpose of 'Envelope Encryption' in cloud Key Management Services (KMS)?",
+            "options": [
+                "A. To encrypt emails before they are sent over the internet",
+                "B. To encrypt the actual payload data (Data Key) using a highly secure, centrally managed Master Key (Key Encryption Key); this allows massive amounts of data to be encrypted locally without sending it all to the KMS, while maintaining strict control over the Master Key",
+                "C. To physically seal server hard drives in tamper-evident hardware enclosures",
+                "D. To hide the network routing information within the headers of IP packets"
+            ],
+            "correctAnswer": "B",
+            "explanation": "KMS APIs have size limits and network latency. Envelope encryption solves this: KMS generates a Data Key. The application uses the plaintext Data Key to rapidly encrypt gigabytes of data locally. The KMS then encrypts the Data Key using the Master Key. The encrypted Data Key is stored alongside the encrypted data."
+        },
+        {
+            "id": 91,
+            "category": "Active Directory",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "In Active Directory, what is the 'AdminSDHolder' object and how is it targeted by attackers?",
+            "options": [
+                "A. It is a group policy object that enforces password complexity; attackers try to delete it to use weak passwords",
+                "B. It is a template object whose ACL is automatically copied to all highly privileged groups (like Domain Admins) every hour; attackers who gain temporary admin rights will modify AdminSDHolder to grant themselves a persistent backdoor that survives password resets",
+                "C. It is the service account used to run the Active Directory database; attackers attempt to brute-force its password",
+                "D. It is a graphical interface used by Helpdesk staff to reset passwords"
+            ],
+            "correctAnswer": "B",
+            "explanation": "The SDProp process runs every 60 minutes and overwrites the ACLs of protected AD groups with the ACL from the AdminSDHolder object. If an attacker adds their standard user account to the AdminSDHolder ACL, SDProp will automatically make them an administrator of the Domain Admins group every hour, maintaining stealthy persistence."
+        },
+        {
+            "id": 92,
+            "category": "Access Control Lists (ACL)",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "What is a 'Dynamic ACL' (also known as Lock-and-Key routing) in network security?",
+            "options": [
+                "A. An ACL that automatically allows all traffic during business hours and blocks it at night",
+                "B. An ACL where rules are created automatically using machine learning based on traffic patterns",
+                "C. A security feature where a firewall or router drops all inbound traffic by default, but dynamically creates a temporary explicit 'Allow' rule for a specific user's IP address only after they successfully authenticate via a web portal or Telnet/SSH",
+                "D. An ACL that shifts rules based on the physical location of the router"
+            ],
+            "correctAnswer": "C",
+            "explanation": "Dynamic ACLs provide granular access. A contractor might need access to a specific internal server. The firewall blocks them by default. They authenticate to a portal, which then dynamically inserts an ACL rule permitting their specific IP to hit the server for a set timeframe, closing the hole afterward."
+        },
+        {
+            "id": 93,
+            "category": "Cloud Security",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "Which statement correctly describes a 'Serverless' (e.g., AWS Lambda, Azure Functions) security model?",
+            "options": [
+                "A. Because there are no servers, serverless applications are immune to vulnerabilities like SQL injection or Cross-Site Scripting (XSS)",
+                "B. The cloud provider assumes responsibility for securing the underlying OS, runtime, and infrastructure patching, but the customer remains responsible for securing the application code, managing IAM permissions for the function, and managing third-party library dependencies",
+                "C. Serverless functions cannot be assigned IAM roles, so they must rely entirely on network security groups",
+                "D. The customer is responsible for applying OS security patches to the serverless runtime environment"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Serverless shifts infrastructure management to the provider, but the Shared Responsibility Model still applies. The customer must still write secure code, ensure the function has Least Privilege IAM access (e.g., it can only read from a specific DynamoDB table), and patch vulnerabilities in the NPM/Python packages they import."
+        },
+        {
+            "id": 94,
+            "category": "Active Directory",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "What is a 'Kerberoasting' attack, and how does an attacker execute it?",
+            "options": [
+                "A. Overwhelming the Key Distribution Center (KDC) with fake ticket requests to cause a denial of service",
+                "B. Any authenticated domain user requests a Kerberos Service Ticket for an account with a Service Principal Name (SPN); the attacker then takes this ticket offline and attempts to brute-force the encrypted portion to reveal the plaintext password of the service account",
+                "C. Intercepting Kerberos traffic to downgrade the encryption protocol to an insecure standard",
+                "D. Injecting a rogue Domain Controller into the network to issue fraudulent tickets"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Kerberoasting is highly effective because any standard user can request a ticket for any service (like a SQL server) in AD. The ticket contains data encrypted with the service account's NTLM hash. If the service account uses a weak, human-generated password, the attacker can crack it offline and gain access to the service or escalate privileges."
+        },
+        {
+            "id": 95,
+            "category": "Access Control Lists (ACL)",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "When utilizing Attribute-Based Access Control (ABAC) in a cloud environment (such as AWS IAM Condition Keys), how does ABAC provide more flexibility than traditional Role-Based Access Control (RBAC)?",
+            "options": [
+                "A. ABAC relies entirely on the user's job title in HR software, whereas RBAC relies on network location",
+                "B. ABAC grants access by evaluating dynamic attributes of the user, the resource, and the environment (e.g., 'Allow access if User_Project_Tag == Resource_Project_Tag'), allowing policies to scale automatically as new projects are added without creating new roles",
+                "C. ABAC eliminates the need for user authentication, relying only on resource tagging",
+                "D. ABAC is simpler to configure because it only requires assigning a single role to each user"
+            ],
+            "correctAnswer": "B",
+            "explanation": "RBAC requires creating a new role for every new project (e.g., 'ProjectA_Admin', 'ProjectB_Admin'). ABAC uses logic. A single ABAC policy can say: 'A user can delete a VM only if the user's Department tag matches the VM's Department tag.' As new departments are added, the single policy still works perfectly."
+        },
+        {
+            "id": 96,
+            "category": "Cloud Security",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "What is 'Infrastructure as Code' (IaC) Security Scanning, and at what stage of the CI/CD pipeline is it most effectively deployed?",
+            "options": [
+                "A. Scanning deployed virtual machines for malware; deployed in the Production stage",
+                "B. Analyzing tools like Terraform, CloudFormation, or Kubernetes YAML files for misconfigurations (e.g., hardcoded secrets, open ports) during the 'Shift-Left' pre-deployment or Pull Request phase, before any actual infrastructure is provisioned",
+                "C. Using a Web Application Firewall to scan inbound HTTP traffic; deployed in the Testing stage",
+                "D. Monitoring cloud billing reports to detect anomalous spending spikes; deployed post-deployment"
+            ],
+            "correctAnswer": "B",
+            "explanation": "IaC scanning (using tools like Checkov or tfsec) catches cloud misconfigurations in the source code before they are deployed to AWS/Azure. 'Shifting left' means finding and fixing the flaw (like an S3 bucket configured to be public) in the developer's pull request, which is vastly cheaper and safer than finding it in production."
+        },
+        {
+            "id": 97,
+            "category": "Active Directory",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "In Active Directory, what is the security implication of an account being configured with 'Unconstrained Delegation'?",
+            "options": [
+                "A. The account cannot log into more than one computer simultaneously",
+                "B. If a user authenticates to a server running with Unconstrained Delegation, the server caches the user's Kerberos TGT; if an attacker compromises that server, they can extract the TGT and impersonate the user to any other service in the domain",
+                "C. The account is exempt from all Group Policy Object (GPO) restrictions",
+                "D. The account is allowed to bypass the corporate proxy server for internet access"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Unconstrained delegation is a dangerous legacy feature. If a Domain Admin connects to a print server with unconstrained delegation, the print server holds a copy of the Domain Admin's master ticket (TGT) in memory. An attacker who controls the print server instantly becomes a Domain Admin. Modern AD uses Constrained or Resource-Based Constrained Delegation."
+        },
+        {
+            "id": 98,
+            "category": "Access Control Lists (ACL)",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "Which of the following best describes the difference between Discretionary Access Control (DAC) and Mandatory Access Control (MAC)?",
+            "options": [
+                "A. In DAC, the system administrator centrally dictates all access; in MAC, the resource owner decides who has access",
+                "B. In DAC, the resource owner determines who has access to the object (e.g., standard Windows/Linux ACLs); in MAC, the operating system enforces access based on strict, centrally mandated security labels and classifications (e.g., SELinux, military Top Secret networks)",
+                "C. DAC is used exclusively for network firewalls, while MAC is used for physical door access",
+                "D. DAC requires Multi-Factor Authentication, while MAC only requires a password"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Standard operating systems use DAC: if you create a file, you own it, and you can change the ACL to let anyone read it. MAC (like SELinux or AppArmor) overrides user choice. If a file is labeled 'Confidential', even the file's creator cannot grant access to a user labeled 'Unclassified'. The system enforces the mandate."
+        },
+        {
+            "id": 99,
+            "category": "Cloud Security",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "An organization uses a 'Hub and Spoke' VPC/VNet network topology in their cloud environment. What is the primary security advantage of this design?",
+            "options": [
+                "A. It guarantees that all virtual machines share a single, massive IP subnet, making routing tables smaller",
+                "B. It forces all inbound, outbound, and lateral (East-West) inter-VPC traffic to flow through a centralized 'Hub' where deep packet inspection firewalls, IDS/IPS, and unified security policies can be strictly enforced",
+                "C. It eliminates the need for Identity and Access Management (IAM) by securing the network layer",
+                "D. It allows each Spoke VPC to have its own independent, unmonitored Internet Gateway for faster performance"
+            ],
+            "correctAnswer": "B",
+            "explanation": "Instead of managing separate firewalls and internet connections for 50 different departmental VPCs (spokes), all traffic is routed through a central Hub VPC. This ensures consistent security policy enforcement, centralized logging, and a single chokepoint for next-generation firewall inspection."
+        },
+        {
+            "id": 100,
+            "category": "Active Directory",
+            "difficulty": "difficult",
+            "type": "mcq",
+            "question": "What is 'NTLM Relay' and why does it remain a significant threat in Windows/Active Directory networks?",
+            "options": [
+                "A. An attack that intercepts SMB or HTTP traffic containing an NTLM authentication challenge/response, and forwards (relays) it to a different server to authenticate as the victim, bypassing the need to crack the password hash",
+                "B. A legitimate Windows service used to relay DHCP requests across different network subnets",
+                "C. A feature that allows Domain Controllers to synchronize their Active Directory databases over low-bandwidth WAN links",
+                "D. An attack that floods the network with forged NTLM packets to cause a broadcast storm"
+            ],
+            "correctAnswer": "A",
+            "explanation": "Because NTLM is a challenge-response protocol without mutual authentication, an attacker in a 'man-in-the-middle' position can intercept User A trying to authenticate to Server B, and instead relay that authentication to Server C. Server C thinks User A is logging in, granting the attacker access. Mitigations include SMB Signing and disabling NTLM entirely in favor of Kerberos."
+        }
+    ]
+}
