@@ -350,7 +350,7 @@ export default function AvatarCustomizerPage() {
       {/* ── Top Bar ── */}
       <div className="flex-shrink-0 flex items-center justify-between px-4 pt-safe pt-3 pb-2 z-30 relative">
         <button
-          onClick={() => router.push('/dashboard')}
+          onClick={() => router.push('/')}
           className="p-2.5 rounded-xl bg-[#0e0414] border border-[#ff0055]/30 text-[#ff0055] hover:bg-[#ff0055] hover:text-white transition-all shadow-[0_0_10px_rgba(255,0,85,0.2)]"
           aria-label="Close"
         >

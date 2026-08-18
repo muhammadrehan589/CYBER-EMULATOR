@@ -66,10 +66,58 @@ export default function QuizEngine() {
       setIsTimeout(true);
       setIsCorrect(false);
       setIsSubmitted(true);
+
+      const diff = activeQuestion.difficulty?.toLowerCase() || '';
+      let initialTime = 30;
+      if (diff.includes('hard') || diff.includes('expert') || diff.includes('difficult')) initialTime = 60;
+      else if (diff.includes('medium')) initialTime = 45;
+
+      useQuizStore.getState().addLog({
+        questionId: activeQuestion.id,
+        isCorrect: false,
+        timeSpent: initialTime,
+      });
     }
   }, [timeLeft, isSubmitted, activeQuestion, resetStreak]);
 
   if (!mounted) return <div className="min-h-screen w-full bg-[#050505]" />;
+
+  // Handle Simulation Complete - Save Session
+  useEffect(() => {
+    if (mounted && !activeQuestion && score > 0) {
+      const saveSession = async () => {
+        const state = useQuizStore.getState();
+        // Use 'EMP-456' or similar from context if available, for now using EMP-456 as a safe fallback
+        const empId = 'EMP-456'; 
+        
+        try {
+          await fetch('/api/quiz-sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              empId,
+              finalScore: state.score,
+              highestStreak: state.highestStreak || 0,
+              questionsPlayed: state.playedQuestions,
+              sessionLogs: state.sessionLogs,
+            }),
+          });
+
+          await fetch('/api/users', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              empId,
+              updates: { score: state.score }
+            }),
+          });
+        } catch (error) {
+          console.error('[QuizEngine] Failed to save session:', error);
+        }
+      };
+      saveSession();
+    }
+  }, [activeQuestion, mounted, score]);
 
   if (!activeQuestion) {
     return (
@@ -77,7 +125,10 @@ export default function QuizEngine() {
         <h1 className="text-3xl text-[#ff0055] font-black uppercase tracking-widest mb-4">Simulation Complete</h1>
         <p className="text-gray-400 font-mono mb-8">Final Score: {score}</p>
         <button 
-          onClick={() => router.push('/dashboard')}
+          onClick={() => {
+            useQuizStore.getState().resetQuiz();
+            router.push('/');
+          }}
           className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded transition-colors"
         >
           Return to Dashboard
@@ -101,6 +152,17 @@ export default function QuizEngine() {
     setIsCorrect(correct);
     setIsTimeout(false);
     setIsSubmitted(true);
+
+    const diff = activeQuestion.difficulty?.toLowerCase() || '';
+    let initialTime = 30;
+    if (diff.includes('hard') || diff.includes('expert') || diff.includes('difficult')) initialTime = 60;
+    else if (diff.includes('medium')) initialTime = 45;
+
+    useQuizStore.getState().addLog({
+      questionId: activeQuestion.id,
+      isCorrect: correct,
+      timeSpent: initialTime - timeLeft,
+    });
   };
 
   const handleAction = () => {
@@ -116,7 +178,7 @@ export default function QuizEngine() {
   };
 
   const handleSaveAndAbort = () => {
-    router.push('/dashboard');
+    router.push('/');
   };
 
   return (

@@ -95,7 +95,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
     setLoginStatus('loggingIn');
     setTimeout(() => {
       setLoginStatus('success');
-      router.push('/dashboard');
+      router.push('/');
     }, 1000);
   };
 
