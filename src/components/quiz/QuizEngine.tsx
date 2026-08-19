@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuizStore } from '@/store/quizStore';
 import quizData from '@/data/questions.json';
 import { useRouter } from 'next/navigation';
@@ -17,23 +17,27 @@ export default function QuizEngine() {
   const [isTimeout, setIsTimeout] = useState(false);
   
   const [timeLeft, setTimeLeft] = useState<number>(30);
-  const [isFlashing, setIsFlashing] = useState(false);
+  const [activeGotcha, setActiveGotcha] = useState<{image: string, sound: string} | null>(null);
+  const [showQR, setShowQR] = useState(false);
+  const qrSpawnCount = useRef(0);
 
   const triggerGotcha = () => {
-    // 1. Trigger Bright Flash for 2 seconds
-    setIsFlashing(true);
-    setTimeout(() => setIsFlashing(false), 2000);
+    const images = ['/images/scary1.jpg', '/images/glitch.gif'];
+    const sounds = ['/sounds/screech.mp3', '/sounds/error.wav'];
     
-    // 2. Trigger 1-second High Pitch Beep via Web Audio API
+    const index = Math.floor(Math.random() * images.length);
+    const image = images[index];
+    const sound = sounds[index];
+    
+    setActiveGotcha({ image, sound });
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioCtx.createOscillator();
-      oscillator.type = 'sine';
-      oscillator.frequency.value = 900; 
-      oscillator.connect(audioCtx.destination);
-      oscillator.start();
-      oscillator.stop(audioCtx.currentTime + 1); 
-    } catch (e) { console.error("Audio blocked by browser"); }
+      if (typeof Audio !== 'undefined') {
+        const audio = new Audio(sound);
+        audio.play().catch(e => console.log('Audio blocked'));
+      }
+    } catch (e) {}
+
+    setTimeout(() => setActiveGotcha(null), 3000);
   };
   
   // Hydration check since we use localStorage persist
@@ -41,6 +45,15 @@ export default function QuizEngine() {
   useEffect(() => setMounted(true), []);
 
   const activeQuestion = questions[currentQuestionIndex];
+
+  useEffect(() => {
+    if (qrSpawnCount.current < 3 && Math.random() > 0.6) {
+      setShowQR(true);
+      qrSpawnCount.current += 1;
+    } else {
+      setShowQR(false);
+    }
+  }, [activeQuestion]);
 
   // Timer Initialization
   useEffect(() => {
@@ -176,13 +189,15 @@ export default function QuizEngine() {
           <h2 className="text-xl font-bold mb-6 leading-relaxed">
             {activeQuestion.question}
           </h2>
-          <div onClick={triggerGotcha} className="my-6 p-4 bg-white rounded flex justify-center items-center mx-auto border-4 border-gray-300 cursor-pointer shadow-lg hover:bg-gray-50 transition-colors">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=CyberShield_Gotcha_Test" alt="Phishing Test QR" className="rounded" />
-            <div className="ml-4 text-left">
-              <p className="text-black font-extrabold text-xl">SCAN OR CLICK</p>
-              <p className="text-gray-600 text-sm">Testing Phase 7 Triggers</p>
+          {showQR && (
+            <div onClick={triggerGotcha} className="my-6 p-4 bg-white rounded flex justify-center items-center mx-auto border-4 border-gray-300 cursor-pointer shadow-lg hover:bg-gray-50 transition-colors">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=CyberShield_Gotcha_Test" alt="Phishing Test QR" className="rounded" />
+              <div className="ml-4 text-left">
+                <p className="text-black font-extrabold text-xl">SCAN OR CLICK</p>
+                <p className="text-gray-600 text-sm">Testing Phase 7 Triggers</p>
+              </div>
             </div>
-          </div>
+          )}
 
           {(activeQuestion.type === 'mcq' || activeQuestion.type === 'true_false') && (
             <div className="space-y-3 mb-8">
@@ -237,8 +252,18 @@ export default function QuizEngine() {
         <LiveLeaderboard />
       </div>
 
-      {isFlashing && (
-        <div className="fixed inset-0 z-[9999] bg-white pointer-events-none"></div>
+      {activeGotcha && (
+        <div className="fixed inset-0 z-[9999] bg-black flex justify-center items-center pointer-events-none">
+          <img 
+            src={activeGotcha.image} 
+            alt="System Compromised" 
+            className="w-full h-full object-contain animate-pulse"
+            onError={(e) => {
+              console.error("ASSET MISSING: Could not load", activeGotcha.image);
+              e.currentTarget.style.display = 'none';
+            }} 
+          />
+        </div>
       )}
     </div>
   );
