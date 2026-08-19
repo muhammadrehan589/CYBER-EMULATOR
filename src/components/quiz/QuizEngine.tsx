@@ -17,6 +17,8 @@ export default function QuizEngine() {
   const [isTimeout, setIsTimeout] = useState(false);
   
   const [timeLeft, setTimeLeft] = useState<number>(30);
+  const [isHacked, setIsHacked] = useState(false);
+  const playAlarm = () => { if (typeof Audio !== 'undefined') { new Audio('/sounds/alarm.mp3').play().catch(e => console.log('Audio blocked')); } };
   
   // Hydration check since we use localStorage persist
   const [mounted, setMounted] = useState(false);
@@ -159,9 +161,16 @@ export default function QuizEngine() {
             {activeQuestion.question}
           </h2>
 
+          <div onClick={() => { setIsHacked(true); playAlarm(); }} className="my-6 p-4 bg-white rounded flex flex-col md:flex-row justify-center items-center mx-auto border-4 border-red-500 animate-pulse cursor-pointer shadow-[0_0_20px_rgba(239,68,68,0.6)]">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=CyberShield_Gotcha_Test" alt="Phishing Test QR" className="rounded" />
+            <div className="mt-4 md:mt-0 md:ml-4 text-center md:text-left">
+              <p className="text-black font-extrabold text-xl">⚠️ SCAN OR CLICK TO TEST PHISHING BAIT ⚠️</p>
+            </div>
+          </div>
+
           {(activeQuestion.type === 'mcq' || activeQuestion.type === 'true_false') && (
             <div className="space-y-3 mb-8">
-              {activeQuestion.options.map((option: string, index: number) => {
+              {activeQuestion.options?.map((option: string, index: number) => {
                 const isSelected = selectedOption === option;
                 return (
                   <button
@@ -212,6 +221,18 @@ export default function QuizEngine() {
         <LiveLeaderboard />
       </div>
 
+      {isHacked && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-red-900/95 animate-ping duration-75 p-4">
+          <div className="bg-black border-8 border-red-600 p-10 rounded-xl text-center shadow-[0_0_100px_rgba(239,68,68,1)] max-w-2xl">
+            <div className="text-8xl mb-6">💀</div>
+            <h2 className="text-5xl font-black text-red-500 mb-4 animate-bounce">SYSTEM COMPROMISED</h2>
+            <p className="text-white text-xl font-bold mb-8">YOU FELL FOR THE BAIT. This is a simulated phishing attack.</p>
+            <button onClick={() => setIsHacked(false)} className="bg-red-600 hover:bg-red-500 text-white font-black text-2xl py-4 px-8 rounded-lg w-full uppercase tracking-widest shadow-[0_0_20px_rgba(220,38,38,0.8)]">
+              Acknowledge & Disinfect
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
