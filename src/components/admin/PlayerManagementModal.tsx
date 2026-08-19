@@ -2,12 +2,12 @@
 
 import React, { useState } from 'react';
 import { Player, PlayerRole } from '@/types/admin';
-import { X, UserPlus, Shield, Building2, User, Hash, AlertCircle } from 'lucide-react';
+import { X, UserPlus, Shield, Building2, User, Hash, AlertCircle, Key, Eye, EyeOff } from 'lucide-react';
 
 interface PlayerManagementModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddPlayer: (player: Omit<Player, 'status' | 'score' | 'joinedAt'>) => void;
+  onAddPlayer: (player: Omit<Player, 'status' | 'score' | 'joinedAt'> & { password?: string }) => void;
   departments: string[];
 }
 
@@ -20,6 +20,8 @@ export const PlayerManagementModal: React.FC<PlayerManagementModalProps> = ({
   const [empId, setEmpId] = useState('');
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [department, setDepartment] = useState(departments[0] || 'Engineering');
   const [role, setRole] = useState<PlayerRole>('Player');
   const [error, setError] = useState('');
@@ -32,6 +34,14 @@ export const PlayerManagementModal: React.FC<PlayerManagementModalProps> = ({
       setError('Please fill in all required fields.');
       return;
     }
+    if (!password.trim()) {
+      setError('Please set a password for the player.');
+      return;
+    }
+    if (password.trim().length < 4) {
+      setError('Password must be at least 4 characters.');
+      return;
+    }
 
     onAddPlayer({
       empId: empId.trim(),
@@ -39,12 +49,14 @@ export const PlayerManagementModal: React.FC<PlayerManagementModalProps> = ({
       username: username.trim().replace(/^@/, ''),
       department,
       role,
+      password: password.trim(),
     });
 
     // Reset form
     setEmpId('');
     setName('');
     setUsername('');
+    setPassword('');
     setError('');
     onClose();
   };
@@ -176,6 +188,31 @@ export const PlayerManagementModal: React.FC<PlayerManagementModalProps> = ({
                 <option value="Operations">Operations</option>
                 <option value="Intelligence">Intelligence</option>
               </select>
+            </div>
+          </div>
+
+          {/* Password */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono font-semibold text-zinc-300 flex items-center gap-1">
+              <Key className="w-3.5 h-3.5 text-[#ff0055]" />
+              <span>PASSWORD *</span>
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Set a password for this player"
+                required
+                className="w-full px-3.5 py-2.5 pr-10 bg-[#050008] rounded-xl border border-[#ff0055]/40 text-white placeholder-zinc-500 text-xs font-mono focus:outline-none focus:border-[#ff0055] focus:ring-1 focus:ring-[#ff0055]/30 transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-[#ff0055] transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
             </div>
           </div>
 

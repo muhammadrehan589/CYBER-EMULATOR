@@ -73,22 +73,19 @@ export default function QuizEngine() {
       else if (diff.includes('medium')) initialTime = 45;
 
       useQuizStore.getState().addLog({
-        questionId: activeQuestion.id,
+        questionId: String(activeQuestion.id),
         isCorrect: false,
         timeSpent: initialTime,
       });
     }
   }, [timeLeft, isSubmitted, activeQuestion, resetStreak]);
 
-  if (!mounted) return <div className="min-h-screen w-full bg-[#050505]" />;
-
   // Handle Simulation Complete - Save Session
   useEffect(() => {
     if (mounted && !activeQuestion && score > 0) {
       const saveSession = async () => {
         const state = useQuizStore.getState();
-        // Use 'EMP-456' or similar from context if available, for now using EMP-456 as a safe fallback
-        const empId = 'EMP-456'; 
+        const empId = localStorage.getItem('currentUserEmpId') || 'EMP-456'; 
         
         try {
           await fetch('/api/quiz-sessions', {
@@ -118,6 +115,8 @@ export default function QuizEngine() {
       saveSession();
     }
   }, [activeQuestion, mounted, score]);
+
+  if (!mounted) return <div className="min-h-screen w-full bg-[#050505]" />;
 
   if (!activeQuestion) {
     return (
@@ -159,7 +158,7 @@ export default function QuizEngine() {
     else if (diff.includes('medium')) initialTime = 45;
 
     useQuizStore.getState().addLog({
-      questionId: activeQuestion.id,
+      questionId: String(activeQuestion.id),
       isCorrect: correct,
       timeSpent: initialTime - timeLeft,
     });

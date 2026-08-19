@@ -31,6 +31,9 @@ export const AuthForm: React.FC<AuthFormProps> = ({
   // Form & Admin Trapdoor States
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState('');
   const [buttonOffset, setButtonOffset] = useState({ x: 0, y: 0 });
   const [loginStatus, setLoginStatus] = useState<'idle' | 'loggingIn' | 'success'>('idle');
 
@@ -39,9 +42,13 @@ export const AuthForm: React.FC<AuthFormProps> = ({
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [adminAuthError, setAdminAuthError] = useState('');
 
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+
   const isFormValid = isAdminTrapdoor
     ? adminPassword.trim().length > 0
-    : name.trim().length > 0 && username.trim().length > 0;
+    : authMode === 'signup'
+      ? name.trim().length > 0 && username.trim().length > 0 && password.trim().length > 0
+      : username.trim().length > 0 && password.trim().length > 0;
 
   // Runaway button flee logic
   const makeButtonFlee = () => {
@@ -59,7 +66,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
   }, [isFormValid]);
 
   // Two-Step Authentication Handler
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!isFormValid) {
@@ -82,21 +89,95 @@ export const AuthForm: React.FC<AuthFormProps> = ({
       return;
     }
 
-    // Step 1: Check if user is Admin ('abdurrehman' or '@abdurrehman')
-    const cleanUsername = username.trim().toLowerCase().replace(/^@/, '');
-    if (cleanUsername === 'abdurrehman') {
-      // Trigger Admin Trapdoor Mode
-      setIsAdminTrapdoor(true);
-      setAdminAuthError('');
-      return;
+    setLoginError('');
+    setLoginStatus('loggingIn');
+
+    if (authMode === 'signup') {
+      try {
+        const regRes = await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            empId: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
+            name: name.trim(),
+            username: username.trim(),
+            department: 'Trainee',
+            password: password.trim()
+          })
+        });
+        const regData = await regRes.json();
+        if (regRes.ok && regData.success) {
+          if (regData.data && regData.data.empId) {
+            localStorage.setItem('currentUserEmpId', regData.data.empId);
+          }
+          
+          try {
+            const { io } = await import('socket.io-client');
+            const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+            const tempSocket = io(socketUrl, { transports: ['websocket'] });
+            tempSocket.emit('trigger_refresh');
+            setTimeout(() => tempSocket.disconnect(), 1000);
+          } catch (e) {}
+
+          setLoginStatus('success');
+          setTimeout(() => {
+            router.push('/');
+          }, 800);
+          return;
+        } else {
+          setLoginStatus('idle');
+          setLoginError(regData.error || 'Sign up failed.');
+          return;
+        }
+      } catch (err) {
+        setLoginStatus('idle');
+        setLoginError('Connection error during sign up.');
+        return;
+      }
     }
 
-    // Normal Player Login -> Redirect to Player Arena Dashboard
-    setLoginStatus('loggingIn');
-    setTimeout(() => {
+    // Normal Login: Authenticate via API
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: username.trim(),
+          password: password.trim(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setLoginStatus('idle');
+        setLoginError(data.error || 'Authentication failed.');
+        return;
+      }
+
+      // Save user to local storage so other pages know who is logged in
+      if (data.data && data.data.empId) {
+        localStorage.setItem('currentUserEmpId', data.data.empId);
+      }
+
+      // Check if user is Admin → trigger admin trapdoor
+      const cleanUsername = username.trim().toLowerCase().replace(/^@/, '');
+      if (data.data?.role === 'Admin' || cleanUsername === 'abdurrehman') {
+        setLoginStatus('idle');
+        setIsAdminTrapdoor(true);
+        setAdminAuthError('');
+        return;
+      }
+
+      // Normal Player Login → Redirect to Player Arena
       setLoginStatus('success');
-      router.push('/');
-    }, 1000);
+      setTimeout(() => {
+        router.push('/');
+      }, 800);
+    } catch (err) {
+      setLoginStatus('idle');
+      setLoginError('Connection error. Please try again.');
+    }
   };
 
   return (
@@ -117,12 +198,14 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         {/* Header in Bright Neon Pink */}
         <div className="mb-8">
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#ff0055] drop-shadow-[0_0_12px_rgba(255,0,85,0.6)]">
-            {isAdminTrapdoor ? 'Admin Override' : 'Welcome back!'}
+            {isAdminTrapdoor ? 'Admin Override' : authMode === 'signup' ? 'Create an account' : 'Welcome back!'}
           </h1>
           <p className="text-sm text-zinc-400 mt-2">
             {isAdminTrapdoor 
               ? 'Security clearance required for Administrator Abdurrehman.' 
-              : 'Please enter your details to sign in.'}
+              : authMode === 'signup' 
+                ? 'Please enter your details to register.' 
+                : 'Please enter your details to sign in.'}
           </p>
         </div>
 
@@ -210,27 +293,29 @@ export const AuthForm: React.FC<AuthFormProps> = ({
               /* STEP 1: NORMAL NAME & USERNAME INPUTS */
               <>
                 {/* NAME FIELD */}
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-zinc-300 block flex justify-between">
-                    <span>Name</span>
-                    <span className="text-[10px] font-mono text-[#ff0055]">REQUIRED</span>
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#ff0055]">
-                      <User className="w-4 h-4" />
+                {authMode === 'signup' && (
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-zinc-300 block flex justify-between">
+                      <span>Name</span>
+                      <span className="text-[10px] font-mono text-[#ff0055]">REQUIRED</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#ff0055]">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="text"
+                        value={name}
+                        onFocus={() => setIsInputFocused(true)}
+                        onBlur={() => setIsInputFocused(false)}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Abdurrehman"
+                        required={authMode === 'signup'}
+                        className="w-full pl-11 pr-4 py-3.5 bg-zinc-900/80 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl text-sm focus:outline-none focus:border-[#ff0055] focus:ring-2 focus:ring-[#ff0055]/30 transition-all"
+                      />
                     </div>
-                    <input
-                      type="text"
-                      value={name}
-                      onFocus={() => setIsInputFocused(true)}
-                      onBlur={() => setIsInputFocused(false)}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Abdurrehman"
-                      required
-                      className="w-full pl-11 pr-4 py-3.5 bg-zinc-900/80 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl text-sm focus:outline-none focus:border-[#ff0055] focus:ring-2 focus:ring-[#ff0055]/30 transition-all"
-                    />
                   </div>
-                </div>
+                )}
 
                 {/* USERNAME FIELD */}
                 <div className="space-y-2">
@@ -254,6 +339,44 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                     />
                   </div>
                 </div>
+
+                {/* PASSWORD FIELD */}
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-zinc-300 block flex justify-between">
+                    <span>Password</span>
+                    <span className="text-[10px] font-mono text-[#ff0055]">REQUIRED</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#ff0055]">
+                      <Key className="w-4 h-4" />
+                    </div>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onFocus={() => setIsInputFocused(true)}
+                      onBlur={() => setIsInputFocused(false)}
+                      onChange={(e) => { setPassword(e.target.value); setLoginError(''); }}
+                      placeholder="Enter your password"
+                      required
+                      className="w-full pl-11 pr-10 py-3.5 bg-zinc-900/80 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl text-sm focus:outline-none focus:border-[#ff0055] focus:ring-2 focus:ring-[#ff0055]/30 transition-all font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-zinc-400 hover:text-[#ff0055] transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Login Error */}
+                {loginError && (
+                  <div className="p-3 rounded-xl bg-red-950/80 border border-red-600 text-xs font-mono text-red-400 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+                    <span>{loginError}</span>
+                  </div>
+                )}
               </>
             )}
 
@@ -269,7 +392,9 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                   <span>
                     {isAdminTrapdoor 
                       ? 'Please enter Admin Password to proceed.' 
-                      : 'Please fill in both Name and Username to click Log in.'}
+                      : authMode === 'signup'
+                        ? 'Please fill in Name, Username, and Password to proceed.'
+                        : 'Please fill in Username and Password to proceed.'}
                   </span>
                 </motion.div>
               )}
@@ -312,7 +437,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                     </>
                   ) : (
                     <>
-                      Log in
+                      {authMode === 'signup' ? 'Sign up' : 'Log in'}
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
@@ -324,8 +449,19 @@ export const AuthForm: React.FC<AuthFormProps> = ({
       </div>
 
       {/* Bottom Minimalist Footer */}
-      <div className="text-center text-xs text-zinc-500 border-t border-zinc-900 pt-6">
-        Need access? Contact System Administrator.
+      <div className="flex flex-col items-center gap-2 text-center text-xs text-zinc-500 border-t border-zinc-900 pt-6">
+        {loginStatus !== 'success' && !isAdminTrapdoor && (
+          <button
+            type="button"
+            onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
+            className="text-zinc-400 hover:text-[#ff0055] transition-colors"
+          >
+            {authMode === 'login' 
+              ? "Don't have an account? Sign up" 
+              : "Already have an account? Log in"}
+          </button>
+        )}
+        <span>Need access? Contact System Administrator.</span>
       </div>
     </div>
   );

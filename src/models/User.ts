@@ -12,7 +12,7 @@ export interface IUser extends Document {
   score: number;
   joinedAt: Date;
   activeAvatar: Record<string, any>;
-  wardrobe: Record<string, any>[];
+  wardrobe: any[];
   unlockedOutfits: string[];
 }
 
@@ -37,7 +37,7 @@ const UserSchema = new Schema<IUser>(
     score: { type: Number, default: 0 },
     joinedAt: { type: Date, default: Date.now },
     activeAvatar: { type: Schema.Types.Mixed, default: {} },
-    wardrobe: { type: [Schema.Types.Mixed], default: [] },
+    wardrobe: { type: Schema.Types.Mixed, default: [] },
     unlockedOutfits: { type: [String], default: [] },
   },
   { timestamps: true }

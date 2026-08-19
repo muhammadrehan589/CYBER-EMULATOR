@@ -133,12 +133,35 @@ export default function AvatarCustomizerPage() {
     pushHistory({ ...avatar, ...patch });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
     
     const newWardrobe = [...savedWardrobe, avatar];
     setSavedWardrobe(newWardrobe);
     localStorage.setItem('cyberWardrobe', JSON.stringify(newWardrobe));
+
+    const empId = localStorage.getItem('currentUserEmpId');
+    if (empId) {
+      try {
+        await fetch('/api/users', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            empId,
+            updates: { activeAvatar: avatar }
+          }),
+        });
+
+        // Tell socket server to refresh leaderboard for everyone
+        const { io } = await import('socket.io-client');
+        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+        const tempSocket = io(socketUrl, { transports: ['websocket'] });
+        tempSocket.emit('trigger_refresh');
+        setTimeout(() => tempSocket.disconnect(), 1000);
+      } catch (err) {
+        console.error('Failed to sync avatar to DB:', err);
+      }
+    }
 
     setShowSaveMessage(true);
     setTimeout(() => {

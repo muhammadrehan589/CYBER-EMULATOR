@@ -30,6 +30,12 @@ io.on('connection', (socket) => {
     io.emit('send_emoji', data);
   });
 
+  // Event listener to trigger full leaderboard refresh (e.g. on new user or avatar update)
+  socket.on('trigger_refresh', () => {
+    console.log(`[SOCKET_SERVER] Broadcast refresh_leaderboard`);
+    io.emit('refresh_leaderboard');
+  });
+
   // Event listener for live score updates
   socket.on('update_score', async (data) => {
     console.log(`[SOCKET_SERVER] Broadcast update_score:`, data);

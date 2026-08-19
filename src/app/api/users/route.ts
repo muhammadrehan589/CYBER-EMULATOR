@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/User';
+import bcrypt from 'bcryptjs';
 
 // GET /api/users - Fetch users with optional filters
 export async function GET(request: NextRequest) {
@@ -49,7 +50,14 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
-    const { empId, name, username, department, role } = body;
+    const { empId, name, username, department, role, password } = body;
+
+    // Hash password if provided
+    let passwordHash: string | undefined;
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      passwordHash = await bcrypt.hash(password, salt);
+    }
 
     const user = await User.create({
       empId,
@@ -59,9 +67,14 @@ export async function POST(request: NextRequest) {
       role: role || 'Player',
       score: 1000,
       status: 'active',
+      ...(passwordHash && { passwordHash }),
     });
 
-    return NextResponse.json({ success: true, data: user }, { status: 201 });
+    // Strip passwordHash from response
+    const userObj = user.toObject();
+    const { passwordHash: _, ...safeUser } = userObj;
+
+    return NextResponse.json({ success: true, data: safeUser }, { status: 201 });
   } catch (error: any) {
     console.error('[API] POST /api/users error:', error);
 

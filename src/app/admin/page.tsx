@@ -148,12 +148,13 @@ export default function AdminPage() {
   };
 
   // Add New Player Handler
-  const handleAddPlayer = async (newPlayerData: Omit<Player, 'status' | 'score' | 'joinedAt'>) => {
+  const handleAddPlayer = async (newPlayerData: Omit<Player, 'status' | 'score' | 'joinedAt'> & { password?: string }) => {
     try {
+      const { password, ...playerFields } = newPlayerData;
       await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newPlayerData),
+        body: JSON.stringify({ ...playerFields, password }),
       });
 
       await fetch('/api/activity-logs', {
