@@ -19,6 +19,18 @@ export default function QuizEngine() {
   const [timeLeft, setTimeLeft] = useState<number>(30);
   const [activeMedia, setActiveMedia] = useState<{ type: 'video' | 'image' | 'audio', url: string } | null>(null);
   const [showQR, setShowQR] = useState(false);
+  
+  const [isSabotaged, setIsSabotaged] = useState(false);
+  const [sabotageMessage, setSabotageMessage] = useState<string | null>(null);
+  const [socket, setSocket] = useState<any>(null);
+
+  useEffect(() => {
+    import('socket.io-client').then(({ io }) => {
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+      const newSocket = io(socketUrl, { transports: ['websocket', 'polling'] });
+      setSocket(newSocket);
+    });
+  }, []);
 
   const triggerGotcha = () => {
     const mediaArsenal = [
@@ -67,6 +79,37 @@ export default function QuizEngine() {
       clearTimeout(hideTimer);
     };
   }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('sabotage_received', (data: { attackerName: string, penaltyXp: number }) => {
+      // Check if player has active decoy proxy
+      const store = useQuizStore.getState();
+      if (store.inventory.decoys > 0) {
+        store.consumeDecoy();
+        socket.emit('sabotage_deflected', { attackerId: data.attackerName });
+        return;
+      }
+
+      // Trigger shake and red glitch
+      setIsSabotaged(true);
+      setSabotageMessage(`⚠️ ZERO-DAY EXPLOIT INJECTED BY ${data.attackerName || 'ANONYMOUS'} (-${data.penaltyXp} XP)`);
+      
+      // Deduct XP locally
+      store.deductXP(data.penaltyXp || 150);
+
+      // Clear effect after 2.5 seconds
+      setTimeout(() => {
+        setIsSabotaged(false);
+        setSabotageMessage(null);
+      }, 2500);
+    });
+
+    return () => {
+      socket.off('sabotage_received');
+    };
+  }, [socket]);
 
   // Timer Initialization
   useEffect(() => {
@@ -254,7 +297,7 @@ export default function QuizEngine() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 w-full max-w-7xl mx-auto min-h-screen overflow-y-auto p-6 pb-8">
+    <div className={`grid grid-cols-1 lg:grid-cols-3 gap-8 w-full max-w-7xl mx-auto min-h-screen overflow-y-auto p-6 pb-8 relative transition-all ${isSabotaged ? 'animate-cyber-shake border-4 border-red-600' : ''}`}>
       
       {/* LEFT SIDE: QUIZ UI */}
       <div className="lg:col-span-2 flex flex-col w-full h-auto">
@@ -371,6 +414,15 @@ export default function QuizEngine() {
               <p className="text-white text-2xl font-bold">Listen carefully...</p>
             </div>
           )}
+        </div>
+      )}
+
+      {isSabotaged && (
+        <div className="fixed inset-0 z-[9999] pointer-events-none bg-red-900/30 backdrop-hue-rotate-90 flex flex-col items-center justify-center">
+          <div className="bg-black/90 border border-red-500 p-6 rounded-lg shadow-[0_0_50px_rgba(239,68,68,0.8)] text-center animate-pulse">
+            <h2 className="text-red-500 font-mono text-3xl font-black tracking-widest mb-2">SYSTEM COMPROMISED</h2>
+            <p className="text-white font-mono text-lg">{sabotageMessage}</p>
+          </div>
         </div>
       )}
     </div>

@@ -37,6 +37,8 @@ interface QuizState {
   resetQuiz: () => void;
   buyItem: (item: 'hints' | 'timeFreezes' | 'shields' | 'sabotagers' | 'decoys' | 'ddosEmps' | 'overclocks', cost: number) => boolean;
   executeSabotage: (targetPlayerId: string, socket: any) => void;
+  consumeDecoy: () => void;
+  deductXP: (amount: number) => void;
 }
 
 const DIFFICULTY_TIERS = ['easy', 'medium', 'hard', 'expert'];
@@ -168,6 +170,19 @@ export const useQuizStore = create<QuizState>()(
             socket.emit('player_sabotage', { targetId: targetPlayerId, penaltyXp: 150 });
           }
         }
+      },
+      consumeDecoy: () => {
+        set(state => ({
+          inventory: {
+            ...state.inventory,
+            decoys: Math.max(0, state.inventory.decoys - 1)
+          }
+        }));
+      },
+      deductXP: (amount) => {
+        set(state => ({
+          xpEarned: Math.max(0, state.xpEarned - amount)
+        }));
       },
     }),
     {
