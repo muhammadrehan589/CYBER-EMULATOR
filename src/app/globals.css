@@ -74,3 +74,14 @@ body {
   from { --angle: 0deg; }
   to { --angle: 360deg; }
 }
+
+.cyber-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.cyber-scrollbar::-webkit-scrollbar-track {
+  background: #111;
+}
+.cyber-scrollbar::-webkit-scrollbar-thumb {
+  background: #e11d48;
+  border-radius: 4px;
+}

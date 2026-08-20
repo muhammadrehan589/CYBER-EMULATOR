@@ -106,7 +106,7 @@ export default function ItemShopModal({ onClose, players = [], socket }: ItemSho
         </div>
 
         {/* Grid Layout */}
-        <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-6 max-h-[60vh] overflow-y-auto overflow-x-hidden cyber-scrollbar">
           {boosters.map((booster) => {
             const isOwned = inventory && (inventory[booster.type] as number) > 0;
             const isSabotager = booster.id === 'zero-day-sabotager';
