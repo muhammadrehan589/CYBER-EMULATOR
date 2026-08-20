@@ -14,6 +14,8 @@ export interface IUser extends Document {
   activeAvatar: Record<string, any>;
   wardrobe: any[];
   unlockedOutfits: string[];
+  coins: number;
+  xp: number;
 }
 
 const UserSchema = new Schema<IUser>(
@@ -39,6 +41,8 @@ const UserSchema = new Schema<IUser>(
     activeAvatar: { type: Schema.Types.Mixed, default: {} },
     wardrobe: { type: Schema.Types.Mixed, default: [] },
     unlockedOutfits: { type: [String], default: [] },
+    coins: { type: Number, default: 0 },
+    xp: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

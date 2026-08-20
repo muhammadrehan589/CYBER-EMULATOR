@@ -99,18 +99,22 @@ export async function PATCH(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
-    const { empId, updates } = body;
+    const { empId, updates, inc } = body;
 
-    if (!empId || !updates) {
+    if (!empId || (!updates && !inc)) {
       return NextResponse.json(
-        { success: false, error: 'empId and updates are required.' },
+        { success: false, error: 'empId and updates or inc are required.' },
         { status: 400 }
       );
     }
 
+    const updateQuery: any = {};
+    if (updates) updateQuery.$set = updates;
+    if (inc) updateQuery.$inc = inc;
+
     const updatedUser = await User.findOneAndUpdate(
       { empId },
-      { $set: updates },
+      updateQuery,
       { new: true }
     ).lean();
 

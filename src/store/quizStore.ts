@@ -19,6 +19,8 @@ interface QuizState {
   playedQuestions: number[];
   timer: number;
   sessionLogs: SessionLog[];
+  coinsEarned: number;
+  xpEarned: number;
   advanceQuestion: (isCorrect: boolean, basePoints: number) => void;
   resetStreak: () => void;
   addLog: (log: SessionLog) => void;
@@ -39,6 +41,8 @@ export const useQuizStore = create<QuizState>()(
       playedQuestions: [],
       timer: 0,
       sessionLogs: [],
+      coinsEarned: 0,
+      xpEarned: 0,
       advanceQuestion: (isCorrect: boolean, basePoints: number) => set((state) => {
         let newStreak = state.streak;
         let newHighestStreak = state.highestStreak;
@@ -120,7 +124,9 @@ export const useQuizStore = create<QuizState>()(
         multiplier: 1,
         playedQuestions: [],
         timer: 0, 
-        sessionLogs: [] 
+        sessionLogs: [],
+        coinsEarned: 0,
+        xpEarned: 0,
       }),
     }),
     {
