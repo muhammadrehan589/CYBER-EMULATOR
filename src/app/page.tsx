@@ -208,11 +208,28 @@ export default function Phase3RealtimeDashboard() {
   const [isQuestOpen, setIsQuestOpen] = useState(false);
   const [showOperantsList, setShowOperantsList] = useState(false);
   const [incomingChallenge, setIncomingChallenge] = useState<{challengerId: string, challengerName: string} | null>(null);
+  const [duelCountdown, setDuelCountdown] = useState<number | null>(null);
   
   const sendDuelChallenge = (targetId: string, targetName: string) => {
     if (!socket) return;
     socket.emit('initiate_1v1_challenge', { targetId });
     alert(`[!] CHALLENGE SENT TO ${targetName.toUpperCase()}`); // Temporary feedback
+  };
+
+  const triggerDuelCountdown = () => {
+    setDuelCountdown(3);
+    let timeLeft = 3;
+    const timer = setInterval(() => {
+      timeLeft -= 1;
+      if (timeLeft > 0) {
+        setDuelCountdown(timeLeft);
+      } else {
+        clearInterval(timer);
+        setDuelCountdown(null);
+        // Route to QuizEngine or flip global is1v1Duel state here
+        console.log("LAUNCHING MATRIX DUEL...");
+      }
+    }, 1000);
   };
 
   const fetchLeaderboard = async () => {
@@ -292,8 +309,13 @@ export default function Phase3RealtimeDashboard() {
       setIncomingChallenge(data);
     });
 
+    newSocket.on('1v1_challenge_accepted', () => {
+      triggerDuelCountdown();
+    });
+
     return () => {
       newSocket.off('receive_1v1_challenge');
+      newSocket.off('1v1_challenge_accepted');
       newSocket.disconnect();
     };
   }, []);
@@ -605,7 +627,7 @@ export default function Phase3RealtimeDashboard() {
                 onClick={() => {
                   socket?.emit('accept_1v1_challenge', { challengerId: incomingChallenge.challengerId });
                   setIncomingChallenge(null);
-                  // Route to 1v1 view here
+                  triggerDuelCountdown();
                 }}
                 className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded font-black tracking-widest w-1/2 transition-colors"
               >
@@ -618,6 +640,17 @@ export default function Phase3RealtimeDashboard() {
                 DECLINE
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {duelCountdown !== null && (
+        <div className="fixed inset-0 z-[300] flex flex-col items-center justify-center bg-black/95 backdrop-blur-lg pointer-events-auto">
+          <div className="text-red-600 font-mono text-[15rem] font-black leading-none animate-ping">
+            {duelCountdown}
+          </div>
+          <div className="text-red-500 font-black tracking-[1em] mt-8 animate-pulse text-2xl uppercase">
+            PREPARE TO ENGAGE
           </div>
         </div>
       )}
