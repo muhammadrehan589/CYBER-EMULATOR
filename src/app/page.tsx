@@ -226,8 +226,8 @@ export default function Phase3RealtimeDashboard() {
       } else {
         clearInterval(timer);
         setDuelCountdown(null);
-        // Route to QuizEngine or flip global is1v1Duel state here
-        console.log("LAUNCHING MATRIX DUEL...");
+        // LAUNCH THE MATRIX 
+        window.location.href = '/simulation-matrix';
       }
     }, 1000);
   };
