@@ -523,7 +523,7 @@ export default function Phase3RealtimeDashboard() {
         onScoreBoost={handleScoreBoost}
       />
 
-      {isShopOpen && <ItemShopModal onClose={() => setIsShopOpen(false)} />}
+      {isShopOpen && <ItemShopModal onClose={() => setIsShopOpen(false)} players={leaderboard} socket={socket} />}
     </div>
   );
 }
