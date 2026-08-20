@@ -206,6 +206,7 @@ export default function Phase3RealtimeDashboard() {
   const [isFullLeaderboardOpen, setIsFullLeaderboardOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isQuestOpen, setIsQuestOpen] = useState(false);
+  const [showOperantsList, setShowOperantsList] = useState(false);
 
   const fetchLeaderboard = async () => {
     try {
@@ -450,8 +451,11 @@ export default function Phase3RealtimeDashboard() {
                   {leaderboard[0]?.name}
                 </span>
               </div>
-              <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
-                <span className="text-[10px] font-mono text-zinc-400 uppercase">OPERANTS</span>
+              <div 
+                onClick={() => setShowOperantsList(true)}
+                className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 hover:border-emerald-500/50 hover:bg-[#111] backdrop-blur-md flex flex-col justify-between space-y-2 cursor-pointer transition-all"
+              >
+                <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">OPERANTS</span>
                 <span className="text-xl font-extrabold text-emerald-400 font-mono">{leaderboard.length} ACTIVE</span>
               </div>
               <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
@@ -533,6 +537,37 @@ export default function Phase3RealtimeDashboard() {
 
       {isShopOpen && <ItemShopModal onClose={() => setIsShopOpen(false)} players={leaderboard} socket={socket} />}
       {isQuestOpen && <PasswordQuest onClose={() => setIsQuestOpen(false)} />}
+      
+      {showOperantsList && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setShowOperantsList(false)}>
+          <div className="bg-[#0a0a0a] border border-green-500/30 p-6 rounded-lg min-w-[320px] shadow-[0_0_30px_rgba(34,197,94,0.1)]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4 border-b border-gray-800 pb-2">
+              <h3 className="text-green-400 font-black tracking-widest text-lg flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                ACTIVE OPERANTS
+              </h3>
+              <button onClick={() => setShowOperantsList(false)} className="text-gray-500 hover:text-white transition-colors">✕</button>
+            </div>
+            <div className="max-h-[40vh] overflow-y-auto cyber-scrollbar flex flex-col gap-2">
+              {leaderboard.map((player, idx) => (
+                <div key={player.empId || idx} className="flex items-center gap-3 bg-[#111] p-2 border border-gray-800/50 rounded hover:border-gray-700 transition-colors">
+                  <div className="w-8 h-8 rounded bg-gray-800 flex items-center justify-center text-xs overflow-hidden">
+                    <MiniAvatar avatarState={player.avatar as AvatarState} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-gray-200 text-sm font-bold">{player.name || `Operant-${idx}`}</span>
+                    <span className="text-gray-600 text-[10px] uppercase tracking-wider">Sector 04 Link</span>
+                  </div>
+                  <div className="ml-auto text-green-500 text-xs font-mono">12ms</div>
+                </div>
+              ))}
+              {leaderboard.length === 0 && (
+                <div className="text-gray-600 text-center py-6 font-mono text-sm">NO SIGNAL DETECTED</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
