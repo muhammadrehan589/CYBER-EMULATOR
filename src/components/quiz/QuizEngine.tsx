@@ -24,6 +24,9 @@ export default function QuizEngine() {
   const [sabotageMessage, setSabotageMessage] = useState<string | null>(null);
   const [socket, setSocket] = useState<any>(null);
 
+  const [quizMode, setQuizMode] = useState<'standard' | 'wager'>('standard');
+  const [wagerAmount, setWagerAmount] = useState(0);
+
   useEffect(() => {
     import('socket.io-client').then(({ io }) => {
       const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
@@ -50,6 +53,21 @@ export default function QuizEngine() {
       audio.onended = () => setActiveMedia(null); // Unlock when audio finishes
     }
   };
+
+  const initiateWagerRound = () => {
+    setQuizMode('wager');
+    // Logic to pause standard timer and render the betting UI
+  };
+
+  useEffect(() => {
+    const handlePhysicalSmash = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && quizMode === 'standard') {
+        initiateWagerRound();
+      }
+    };
+    window.addEventListener('keydown', handlePhysicalSmash);
+    return () => window.removeEventListener('keydown', handlePhysicalSmash);
+  }, [quizMode]);
   
   // Hydration check since we use localStorage persist
   const [mounted, setMounted] = useState(false);
@@ -423,6 +441,14 @@ export default function QuizEngine() {
             <h2 className="text-red-500 font-mono text-3xl font-black tracking-widest mb-2">SYSTEM COMPROMISED</h2>
             <p className="text-white font-mono text-lg">{sabotageMessage}</p>
           </div>
+        </div>
+      )}
+
+      {quizMode === 'wager' && (
+        <div className="absolute inset-0 bg-red-900/90 z-40 flex flex-col items-center justify-center border-8 border-red-600 animate-pulse">
+          <h2 className="text-4xl font-black text-white">🔥 HIGH STAKES WAGER 🔥</h2>
+          <p className="text-xl text-red-200 mt-2">Bet your coins. Double the payout, or lose it all.</p>
+          {/* Betting input and Wager Question component go here */}
         </div>
       )}
     </div>
