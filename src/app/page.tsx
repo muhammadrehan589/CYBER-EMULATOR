@@ -207,6 +207,11 @@ export default function Phase3RealtimeDashboard() {
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isQuestOpen, setIsQuestOpen] = useState(false);
   const [showOperantsList, setShowOperantsList] = useState(false);
+  const sendDuelChallenge = (targetId: string, targetName: string) => {
+    if (!socket) return;
+    socket.emit('initiate_1v1_challenge', { targetId });
+    alert(`[!] CHALLENGE SENT TO ${targetName.toUpperCase()}`); // Temporary feedback
+  };
 
   const fetchLeaderboard = async () => {
     try {
@@ -559,6 +564,15 @@ export default function Phase3RealtimeDashboard() {
                     <span className="text-gray-600 text-[10px] uppercase tracking-wider">Sector 04 Link</span>
                   </div>
                   <div className="ml-auto text-green-500 text-xs font-mono">12ms</div>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      sendDuelChallenge(player.empId, player.name || player.username || `Operant-${idx}`);
+                    }}
+                    className="ml-3 bg-red-950/40 hover:bg-red-900 border border-red-700/50 text-red-500 hover:text-red-400 px-3 py-1 rounded text-[10px] font-black tracking-widest transition-all"
+                  >
+                    ⚔️ CHALLENGE
+                  </button>
                 </div>
               ))}
               {leaderboard.length === 0 && (
