@@ -207,6 +207,8 @@ export default function Phase3RealtimeDashboard() {
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isQuestOpen, setIsQuestOpen] = useState(false);
   const [showOperantsList, setShowOperantsList] = useState(false);
+  const [incomingChallenge, setIncomingChallenge] = useState<{challengerId: string, challengerName: string} | null>(null);
+  
   const sendDuelChallenge = (targetId: string, targetName: string) => {
     if (!socket) return;
     socket.emit('initiate_1v1_challenge', { targetId });
@@ -286,7 +288,12 @@ export default function Phase3RealtimeDashboard() {
       }, 1800);
     });
 
+    newSocket.on('receive_1v1_challenge', (data: { challengerId: string, challengerName: string }) => {
+      setIncomingChallenge(data);
+    });
+
     return () => {
+      newSocket.off('receive_1v1_challenge');
       newSocket.disconnect();
     };
   }, []);
@@ -578,6 +585,38 @@ export default function Phase3RealtimeDashboard() {
               {leaderboard.length === 0 && (
                 <div className="text-gray-600 text-center py-6 font-mono text-sm">NO SIGNAL DETECTED</div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {incomingChallenge && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md pointer-events-auto">
+          <div className="bg-red-950/20 border-2 border-red-600 p-8 rounded-lg shadow-[0_0_80px_rgba(220,38,38,0.4)] text-center animate-pulse max-w-md w-full mx-4">
+            <div className="text-red-500 mb-4">
+              <svg className="w-16 h-16 mx-auto" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+            </div>
+            <h2 className="text-3xl font-black text-white tracking-widest mb-2 uppercase">1v1 DUEL INCOMING</h2>
+            <p className="text-red-400 font-mono mb-8">
+              <span className="text-white font-bold">{incomingChallenge.challengerName}</span> has challenged you to a rapid-fire matrix duel.
+            </p>
+            <div className="flex gap-4 justify-center">
+              <button 
+                onClick={() => {
+                  socket?.emit('accept_1v1_challenge', { challengerId: incomingChallenge.challengerId });
+                  setIncomingChallenge(null);
+                  // Route to 1v1 view here
+                }}
+                className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded font-black tracking-widest w-1/2 transition-colors"
+              >
+                ACCEPT
+              </button>
+              <button 
+                onClick={() => setIncomingChallenge(null)}
+                className="bg-transparent border border-gray-600 text-gray-400 hover:text-white hover:border-gray-400 px-6 py-3 rounded font-black tracking-widest w-1/2 transition-colors"
+              >
+                DECLINE
+              </button>
             </div>
           </div>
         </div>
