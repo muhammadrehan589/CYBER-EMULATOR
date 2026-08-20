@@ -17,27 +17,26 @@ export default function QuizEngine() {
   const [isTimeout, setIsTimeout] = useState(false);
   
   const [timeLeft, setTimeLeft] = useState<number>(30);
-  const [activeGotcha, setActiveGotcha] = useState<{image: string, sound: string} | null>(null);
+  const [activeMedia, setActiveMedia] = useState<{ type: 'video' | 'image' | 'audio', url: string } | null>(null);
   const [showQR, setShowQR] = useState(false);
-  const qrSpawnCount = useRef(0);
 
   const triggerGotcha = () => {
-    const images = ['/images/scary1.jpg', '/images/glitch.gif'];
-    const sounds = ['/sounds/screech.mp3', '/sounds/error.wav'];
+    const mediaArsenal = [
+      { type: 'video', url: '/videos/hack1.mp4' },
+      { type: 'image', url: '/images/scary1.jpg' },
+      { type: 'audio', url: '/sounds/screech.mp3' }
+    ];
+    const selected = mediaArsenal[Math.floor(Math.random() * mediaArsenal.length)];
+    setActiveMedia(selected as any);
+    setShowQR(false); // Hide QR immediately on click
     
-    const index = Math.floor(Math.random() * images.length);
-    const image = images[index];
-    const sound = sounds[index];
-    
-    setActiveGotcha({ image, sound });
-    try {
-      if (typeof Audio !== 'undefined') {
-        const audio = new Audio(sound);
-        audio.play().catch(e => console.log('Audio blocked'));
-      }
-    } catch (e) {}
-
-    setTimeout(() => setActiveGotcha(null), 3000);
+    if (selected.type === 'image') {
+      setTimeout(() => setActiveMedia(null), 5000); // 5-second hard lock
+    } else if (selected.type === 'audio') {
+      const audio = new Audio(selected.url);
+      audio.play().catch(() => setActiveMedia(null)); // Fallback if browser blocks audio
+      audio.onended = () => setActiveMedia(null); // Unlock when audio finishes
+    }
   };
   
   // Hydration check since we use localStorage persist
@@ -47,13 +46,27 @@ export default function QuizEngine() {
   const activeQuestion = questions[currentQuestionIndex];
 
   useEffect(() => {
-    if (qrSpawnCount.current < 3 && Math.random() > 0.6) {
-      setShowQR(true);
-      qrSpawnCount.current += 1;
-    } else {
-      setShowQR(false);
-    }
-  }, [activeQuestion]);
+    let spawnTimer: NodeJS.Timeout;
+    let hideTimer: NodeJS.Timeout;
+
+    const scheduleQR = () => {
+      const delay = Math.floor(Math.random() * (180000 - 120000 + 1)) + 120000; // 2 to 3 mins
+      spawnTimer = setTimeout(() => {
+        setShowQR(true);
+        hideTimer = setTimeout(() => {
+          setShowQR(false);
+          scheduleQR(); // Restart the cycle
+        }, 60000); // 1 minute visibility
+      }, delay);
+    };
+
+    scheduleQR();
+
+    return () => {
+      clearTimeout(spawnTimer);
+      clearTimeout(hideTimer);
+    };
+  }, []);
 
   // Timer Initialization
   useEffect(() => {
@@ -252,17 +265,20 @@ export default function QuizEngine() {
         <LiveLeaderboard />
       </div>
 
-      {activeGotcha && (
-        <div className="fixed inset-0 z-[9999] bg-black flex justify-center items-center pointer-events-none">
-          <img 
-            src={activeGotcha.image} 
-            alt="System Compromised" 
-            className="w-full h-full object-contain animate-pulse"
-            onError={(e) => {
-              console.error("ASSET MISSING: Could not load", activeGotcha.image);
-              e.currentTarget.style.display = 'none';
-            }} 
-          />
+      {activeMedia && (
+        <div className="fixed inset-0 z-[10000] bg-black flex justify-center items-center pointer-events-none">
+          {activeMedia.type === 'video' && (
+            <video src={activeMedia.url} autoPlay playsInline onEnded={() => setActiveMedia(null)} className="w-full h-full object-cover" />
+          )}
+          {activeMedia.type === 'image' && (
+            <img src={activeMedia.url} className="max-h-[80vh] w-full object-contain animate-pulse" alt="Compromised" />
+          )}
+          {activeMedia.type === 'audio' && (
+            <div className="text-center">
+              <h1 className="text-red-600 text-6xl font-black animate-ping mb-4">⚠️ MALWARE DETECTED ⚠️</h1>
+              <p className="text-white text-2xl font-bold">Listen carefully...</p>
+            </div>
+          )}
         </div>
       )}
     </div>
