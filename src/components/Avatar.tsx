@@ -265,6 +265,18 @@ interface AvatarSVGProps {
 }
 
 const AvatarSVG: React.FC<AvatarSVGProps> = ({ avatar, size = 260, mini = false }) => {
+  // 🛡️ SAFETY SHIELD: If no avatar data exists, render a placeholder
+  if (!avatar) {
+    return (
+      <div 
+        style={{ width: size, height: size }} 
+        className="bg-gray-800 rounded-full flex items-center justify-center text-gray-500 border border-gray-700"
+      >
+        👤
+      </div>
+    );
+  }
+
   const skin = getSkinColor(avatar.skinTone);
   const hair = getHairColor(avatar.hairColor);
   const eye = getEyeColor(avatar.eyeColor);
