@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { MiniAvatar, AvatarSVG, DEFAULT_AVATAR, type AvatarState } from '@/components/Avatar';
 import ItemShopModal from '@/components/shop/ItemShopModal';
+import PasswordQuest from '@/components/dashboard/PasswordQuest';
 
 interface LeaderboardPlayer {
   rank: number;
@@ -204,6 +205,7 @@ export default function Phase3RealtimeDashboard() {
   
   const [isFullLeaderboardOpen, setIsFullLeaderboardOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
+  const [isQuestOpen, setIsQuestOpen] = useState(false);
 
   const fetchLeaderboard = async () => {
     try {
@@ -390,6 +392,12 @@ export default function Phase3RealtimeDashboard() {
             >
               🛒 BLACK MARKET
             </button>
+            <button 
+              onClick={() => setIsQuestOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold border border-blue-400 font-mono tracking-widest text-xs shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all active:scale-95 cursor-pointer"
+            >
+              🛡️ SIDE QUESTS
+            </button>
           </div>
         </header>
 
@@ -524,6 +532,7 @@ export default function Phase3RealtimeDashboard() {
       />
 
       {isShopOpen && <ItemShopModal onClose={() => setIsShopOpen(false)} players={leaderboard} socket={socket} />}
+      {isQuestOpen && <PasswordQuest onClose={() => setIsQuestOpen(false)} />}
     </div>
   );
 }

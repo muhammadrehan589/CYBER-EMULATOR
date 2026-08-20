@@ -39,6 +39,8 @@ interface QuizState {
   executeSabotage: (targetPlayerId: string, socket: any) => void;
   consumeDecoy: () => void;
   deductXP: (amount: number) => void;
+  addCoins: (amount: number) => void;
+  addXP: (amount: number) => void;
 }
 
 const DIFFICULTY_TIERS = ['easy', 'medium', 'hard', 'expert'];
@@ -184,6 +186,12 @@ export const useQuizStore = create<QuizState>()(
           xpEarned: Math.max(0, state.xpEarned - amount)
         }));
       },
+      addCoins: (amount) => {
+        set(state => ({ coinsEarned: state.coinsEarned + amount }));
+      },
+      addXP: (amount) => {
+        set(state => ({ xpEarned: state.xpEarned + amount }));
+      }
     }),
     {
       name: 'quiz-storage',
