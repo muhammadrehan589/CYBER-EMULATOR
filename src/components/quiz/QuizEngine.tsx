@@ -10,7 +10,7 @@ const questions = quizData.questions;
 
 export default function QuizEngine() {
   const router = useRouter();
-  const { currentQuestionIndex, advanceQuestion, score, multiplier, resetStreak } = useQuizStore();
+  const { currentQuestionIndex, advanceQuestion, score, multiplier, resetStreak, coinsEarned, xpEarned } = useQuizStore();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -110,8 +110,55 @@ export default function QuizEngine() {
       setIsTimeout(true);
       setIsCorrect(false);
       setIsSubmitted(true);
+
+      const diff = activeQuestion.difficulty?.toLowerCase() || '';
+      let initialTime = 30;
+      if (diff.includes('hard') || diff.includes('expert') || diff.includes('difficult')) initialTime = 60;
+      else if (diff.includes('medium')) initialTime = 45;
+
+      useQuizStore.getState().addLog({
+        questionId: String(activeQuestion.id),
+        isCorrect: false,
+        timeSpent: initialTime,
+      });
     }
   }, [timeLeft, isSubmitted, activeQuestion, resetStreak]);
+
+  // Handle Simulation Complete - Save Session
+  useEffect(() => {
+    if (mounted && !activeQuestion && score > 0) {
+      const saveSession = async () => {
+        const state = useQuizStore.getState();
+        const empId = localStorage.getItem('currentUserEmpId') || 'EMP-456'; 
+        
+        try {
+          await fetch('/api/quiz-sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              empId,
+              finalScore: state.score,
+              highestStreak: state.highestStreak || 0,
+              questionsPlayed: state.playedQuestions,
+              sessionLogs: state.sessionLogs,
+            }),
+          });
+
+          await fetch('/api/users', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              empId,
+              updates: { score: state.score }
+            }),
+          });
+        } catch (error) {
+          console.error('[QuizEngine] Failed to save session:', error);
+        }
+      };
+      saveSession();
+    }
+  }, [activeQuestion, mounted, score]);
 
   if (!mounted) return <div className="min-h-screen w-full bg-[#050505]" />;
 
@@ -119,9 +166,14 @@ export default function QuizEngine() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen w-full">
         <h1 className="text-3xl text-[#ff0055] font-black uppercase tracking-widest mb-4">Simulation Complete</h1>
-        <p className="text-gray-400 font-mono mb-8">Final Score: {score}</p>
+        <p className="text-gray-400 font-mono mb-2">Final Score: {score}</p>
+        <p className="text-yellow-400 font-mono mb-2">Coins Earned: {coinsEarned}</p>
+        <p className="text-blue-400 font-mono mb-8">XP Earned: {xpEarned}</p>
         <button 
-          onClick={() => router.push('/dashboard')}
+          onClick={() => {
+            useQuizStore.getState().resetQuiz();
+            router.push('/');
+          }}
           className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded transition-colors"
         >
           Return to Dashboard
@@ -145,6 +197,44 @@ export default function QuizEngine() {
     setIsCorrect(correct);
     setIsTimeout(false);
     setIsSubmitted(true);
+
+    const diff = activeQuestion.difficulty?.toLowerCase() || '';
+    let initialTime = 30;
+    if (diff.includes('hard') || diff.includes('expert') || diff.includes('difficult')) initialTime = 60;
+    else if (diff.includes('medium')) initialTime = 45;
+
+    useQuizStore.getState().addLog({
+      questionId: String(activeQuestion.id),
+      isCorrect: correct,
+      timeSpent: initialTime - timeLeft,
+    });
+
+    if (correct) {
+      let xpEarned = 20;
+      let coinsEarned = 10;
+      if (diff.includes('hard') || diff.includes('expert') || diff.includes('difficult')) {
+        xpEarned = 100;
+        coinsEarned = 50;
+      } else if (diff.includes('medium')) {
+        xpEarned = 50;
+        coinsEarned = 20;
+      }
+
+      useQuizStore.setState((state) => ({
+        coinsEarned: state.coinsEarned + coinsEarned,
+        xpEarned: state.xpEarned + xpEarned
+      }));
+
+      const empId = localStorage.getItem('currentUserEmpId') || 'EMP-456';
+      fetch('/api/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          empId,
+          inc: { coins: coinsEarned, xp: xpEarned }
+        })
+      }).catch(err => console.error('[QuizEngine] Real-time reward sync failed:', err));
+    }
   };
 
   const handleAction = () => {
@@ -160,7 +250,7 @@ export default function QuizEngine() {
   };
 
   const handleSaveAndAbort = () => {
-    router.push('/dashboard');
+    router.push('/');
   };
 
   return (
@@ -183,6 +273,8 @@ export default function QuizEngine() {
             {multiplier > 1 && (
               <span className="text-[#ff9900] font-black animate-pulse">🔥 {multiplier}X ACTIVE</span>
             )}
+            <span className="text-yellow-400">🪙 {coinsEarned}</span>
+            <span className="text-blue-400">✨ {xpEarned} XP</span>
             <span className="text-[#ff0055]">Score {score}</span>
           </div>
         </div>

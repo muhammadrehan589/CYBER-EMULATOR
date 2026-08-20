@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Player, ActivityLogEntry } from '@/types/admin';
 import { PlayerTable } from '@/components/admin/PlayerTable';
 import { ActivityLog } from '@/components/admin/ActivityLog';
@@ -19,113 +19,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-// Initial Mock Player State with 'Abdurrehman' as Default Admin
-const INITIAL_PLAYERS: Player[] = [
-  {
-    empId: 'EMP-001',
-    name: 'Abdurrehman',
-    username: 'abdurrehman',
-    department: 'Security & Command',
-    role: 'Admin',
-    status: 'active',
-    score: 9999,
-    joinedAt: '2026-01-01',
-  },
-  {
-    empId: 'EMP-456',
-    name: 'Seong Gi-hun',
-    username: 'gihun456',
-    department: 'Operations',
-    role: 'Player',
-    status: 'active',
-    score: 4560,
-    joinedAt: '2026-02-10',
-  },
-  {
-    empId: 'EMP-218',
-    name: 'Cho Sang-woo',
-    username: 'sangwoo218',
-    department: 'Engineering',
-    role: 'Player',
-    status: 'active',
-    score: 3820,
-    joinedAt: '2026-02-12',
-  },
-  {
-    empId: 'EMP-067',
-    name: 'Kang Sae-byeok',
-    username: 'saebyeok067',
-    department: 'Intelligence',
-    role: 'VIP',
-    status: 'active',
-    score: 4100,
-    joinedAt: '2026-02-14',
-  },
-  {
-    empId: 'EMP-007',
-    name: 'Oh Il-nam',
-    username: 'ilnam007',
-    department: 'VIP Lounge',
-    role: 'VIP',
-    status: 'suspended',
-    score: 9000,
-    joinedAt: '2026-01-05',
-  },
-  {
-    empId: 'EMP-101',
-    name: 'Jang Deok-su',
-    username: 'deoksu101',
-    department: 'Security',
-    role: 'Guard',
-    status: 'suspended',
-    score: 1200,
-    joinedAt: '2026-02-01',
-  },
-];
-
-// Initial Activity Logs
-const INITIAL_LOGS: ActivityLogEntry[] = [
-  {
-    id: 'log-1',
-    empId: 'EMP-001',
-    timestamp: '2026-08-11 10:30',
-    action: 'Admin Authentication',
-    type: 'login',
-    details: 'Administrator Abdurrehman logged into Control Room Grid with master clearance.',
-  },
-  {
-    id: 'log-2',
-    empId: 'EMP-456',
-    timestamp: '2026-08-11 09:15',
-    action: 'Round 3 Passed',
-    type: 'score',
-    details: 'Completed Glass Bridge puzzle with +1200 bonus points.',
-  },
-  {
-    id: 'log-3',
-    empId: 'EMP-218',
-    timestamp: '2026-08-11 08:45',
-    action: 'Grid Login',
-    type: 'login',
-    details: 'Logged into node terminal from Engineering Sector.',
-  },
-  {
-    id: 'log-4',
-    empId: 'EMP-007',
-    timestamp: '2026-08-10 18:20',
-    action: 'Account Suspended',
-    type: 'status_change',
-    details: 'Suspended by Admin Abdurrehman for policy violation in VIP Lounge.',
-  },
-  {
-    id: 'log-5',
-    empId: 'EMP-101',
-    timestamp: '2026-08-10 14:10',
-    action: 'Security Violation Flag',
-    type: 'flag',
-    details: 'Attempted unauthorized command execution on Sector 4 barrier.',
-  },
-];
+// Initial Mock Player State with 'Abdurrehman' as Default Admin - NOW LOADED FROM API
 
 const DEPARTMENTS = [
   'Security & Command',
@@ -137,12 +31,72 @@ const DEPARTMENTS = [
 ];
 
 export default function AdminPage() {
-  const [players, setPlayers] = useState<Player[]>(INITIAL_PLAYERS);
-  const [logs, setLogs] = useState<ActivityLogEntry[]>(INITIAL_LOGS);
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(INITIAL_PLAYERS[0]);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [logs, setLogs] = useState<ActivityLogEntry[]>([]);
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('ALL');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Reusable fetch helpers
+  const fetchPlayers = async () => {
+    try {
+      const res = await fetch('/api/users');
+      const json = await res.json();
+      if (json.success) {
+        const mapped: Player[] = json.data.map((u: any) => ({
+          empId: u.empId,
+          name: u.name,
+          username: u.username,
+          department: u.department,
+          role: u.role,
+          status: u.status,
+          score: u.score,
+          joinedAt: u.joinedAt ? new Date(u.joinedAt).toISOString().slice(0, 10) : '',
+        }));
+        setPlayers(mapped);
+        return mapped;
+      }
+    } catch (error) {
+      console.error('[Admin] Failed to fetch players:', error);
+    }
+    return [];
+  };
+
+  const fetchLogs = async () => {
+    try {
+      const res = await fetch('/api/activity-logs');
+      const json = await res.json();
+      if (json.success) {
+        const mapped: ActivityLogEntry[] = json.data.map((l: any) => ({
+          id: l._id || l.id,
+          empId: l.empId,
+          timestamp: l.timestamp ? new Date(l.timestamp).toISOString().replace('T', ' ').slice(0, 16) : '',
+          action: l.action,
+          type: l.type,
+          details: l.details,
+        }));
+        setLogs(mapped);
+      }
+    } catch (error) {
+      console.error('[Admin] Failed to fetch logs:', error);
+    }
+  };
+
+  // Fetch data on mount
+  useEffect(() => {
+    const init = async () => {
+      setIsLoading(true);
+      const fetched = await fetchPlayers();
+      await fetchLogs();
+      if (fetched.length > 0) {
+        setSelectedPlayer(fetched[0]);
+      }
+      setIsLoading(false);
+    };
+    init();
+  }, []);
 
   // Filtered Players Logic
   const filteredPlayers = players.filter((player) => {
@@ -158,57 +112,70 @@ export default function AdminPage() {
   });
 
   // Toggle Suspend / Activate Player State
-  const handleToggleStatus = (empId: string) => {
-    setPlayers((prev) =>
-      prev.map((player) => {
-        if (player.empId === empId) {
-          const newStatus = player.status === 'active' ? 'suspended' : 'active';
-          
-          // Log status change entry
-          const newLog: ActivityLogEntry = {
-            id: `log-${Date.now()}`,
-            empId: player.empId,
-            timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
-            action: newStatus === 'suspended' ? 'Player Suspended' : 'Player Reactivated',
-            type: 'status_change',
-            details: `Status set to ${newStatus.toUpperCase()} by Admin Abdurrehman.`,
-          };
-          setLogs((prevLogs) => [newLog, ...prevLogs]);
+  const handleToggleStatus = async (empId: string) => {
+    const player = players.find((p) => p.empId === empId);
+    if (!player) return;
 
-          const updated = { ...player, status: newStatus as Player['status'] };
-          if (selectedPlayer?.empId === empId) {
-            setSelectedPlayer(updated);
-          }
-          return updated;
-        }
-        return player;
-      })
-    );
+    const newStatus = player.status === 'active' ? 'suspended' : 'active';
+
+    try {
+      await fetch('/api/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ empId, updates: { status: newStatus } }),
+      });
+
+      await fetch('/api/activity-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          empId,
+          action: newStatus === 'suspended' ? 'Player Suspended' : 'Player Reactivated',
+          type: 'status_change',
+          details: `Status set to ${newStatus.toUpperCase()} by Admin Abdurrehman.`,
+        }),
+      });
+
+      await fetchPlayers();
+      await fetchLogs();
+
+      if (selectedPlayer?.empId === empId) {
+        setSelectedPlayer((prev) => prev ? { ...prev, status: newStatus as Player['status'] } : null);
+      }
+    } catch (error) {
+      console.error('[Admin] Toggle status failed:', error);
+    }
   };
 
   // Add New Player Handler
-  const handleAddPlayer = (newPlayerData: Omit<Player, 'status' | 'score' | 'joinedAt'>) => {
-    const newPlayer: Player = {
-      ...newPlayerData,
-      status: 'active',
-      score: 1000,
-      joinedAt: new Date().toISOString().slice(0, 10),
-    };
+  const handleAddPlayer = async (newPlayerData: Omit<Player, 'status' | 'score' | 'joinedAt'> & { password?: string }) => {
+    try {
+      const { password, ...playerFields } = newPlayerData;
+      await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...playerFields, password }),
+      });
 
-    setPlayers((prev) => [newPlayer, ...prev]);
+      await fetch('/api/activity-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          empId: newPlayerData.empId,
+          action: 'Account Created',
+          type: 'login',
+          details: `New ${newPlayerData.role} registered in ${newPlayerData.department} by Admin Abdurrehman.`,
+        }),
+      });
 
-    // Log addition event
-    const newLog: ActivityLogEntry = {
-      id: `log-${Date.now()}`,
-      empId: newPlayer.empId,
-      timestamp: new Date().toISOString().replace('T', ' ').slice(0, 16),
-      action: 'Account Created',
-      type: 'login',
-      details: `New ${newPlayer.role} registered in ${newPlayer.department} by Admin Abdurrehman.`,
-    };
-    setLogs((prevLogs) => [newLog, ...prevLogs]);
+      const updated = await fetchPlayers();
+      await fetchLogs();
 
-    setSelectedPlayer(newPlayer);
+      const added = updated.find((p: Player) => p.empId === newPlayerData.empId);
+      if (added) setSelectedPlayer(added);
+    } catch (error) {
+      console.error('[Admin] Add player failed:', error);
+    }
   };
 
   // KPI Metrics Calculation
@@ -265,6 +232,12 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {isLoading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#ff0055]"></div>
+          </div>
+        ) : (
+        <>
         {/* KPI Metrics Banner */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Active Personnel Card */}
@@ -335,6 +308,8 @@ export default function AdminPage() {
             <ActivityLog selectedPlayer={selectedPlayer} logs={logs} />
           </div>
         </div>
+        </>
+        )}
 
         {/* Player Add Modal */}
         <PlayerManagementModal

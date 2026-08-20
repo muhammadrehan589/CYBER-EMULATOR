@@ -30,11 +30,31 @@ io.on('connection', (socket) => {
     io.emit('send_emoji', data);
   });
 
+  // Event listener to trigger full leaderboard refresh (e.g. on new user or avatar update)
+  socket.on('trigger_refresh', () => {
+    console.log(`[SOCKET_SERVER] Broadcast refresh_leaderboard`);
+    io.emit('refresh_leaderboard');
+  });
+
   // Event listener for live score updates
-  socket.on('update_score', (data) => {
+  socket.on('update_score', async (data) => {
     console.log(`[SOCKET_SERVER] Broadcast update_score:`, data);
     // Broadcast updated score to all connected clients
     io.emit('update_score', data);
+
+    try {
+      await fetch('http://localhost:3002/api/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          empId: data.empId,
+          updates: { score: data.newScore }
+        })
+      });
+      console.log(`[SOCKET_SERVER] Persisted score for ${data.empId}`);
+    } catch (err) {
+      console.error(`[SOCKET_SERVER] Failed to persist score:`, err.message);
+    }
   });
 
   socket.on('disconnect', () => {

@@ -1,22 +1,70 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuizStore } from '@/store/quizStore';
 import { Check, X, ShieldAlert } from 'lucide-react';
+import { io, Socket } from 'socket.io-client';
+
+interface LeaderboardPlayer {
+  empId: string;
+  name: string;
+  score: number;
+  xp: number;
+  isUser: boolean;
+  rank: number;
+}
 
 export default function LiveLeaderboard() {
-  const { score, sessionLogs } = useQuizStore();
+  const { sessionLogs } = useQuizStore();
+  const [leaderboard, setLeaderboard] = useState<LeaderboardPlayer[]>([]);
 
-  const leaderboard = useMemo(() => {
-    const players = [
-      { name: 'NullPointer', score: 240, isUser: false },
-      { name: 'CyberSentinel', score: 180, isUser: false },
-      { name: 'ByteDrifter', score: 110, isUser: false },
-      { name: 'NetPhantom', score: 50, isUser: false },
-      { name: 'YOU', score: score, isUser: true }
-    ];
-    return players.sort((a, b) => b.score - a.score);
-  }, [score]);
+  const fetchLeaderboard = async () => {
+    try {
+      const res = await fetch('/api/users');
+      const json = await res.json();
+      if (json.success && json.data.length > 0) {
+        const currentEmpId = localStorage.getItem('currentUserEmpId') || 'EMP-456';
+        const sorted = json.data.sort((a: any, b: any) => (b.score - a.score) || (b.xp - a.xp));
+        const mapped: LeaderboardPlayer[] = sorted.map((u: any, index: number) => ({
+          empId: u.empId,
+          name: u.empId === currentEmpId ? 'YOU' : u.name,
+          score: u.score,
+          xp: u.xp || 0,
+          isUser: u.empId === currentEmpId,
+          rank: index + 1
+        }));
+        setLeaderboard(mapped);
+      }
+    } catch (error) {
+      console.error('[LiveLeaderboard] Failed to fetch:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeaderboard();
+
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+    const newSocket = io(socketUrl, {
+      transports: ['websocket', 'polling'],
+      autoConnect: true,
+    });
+
+    newSocket.on('refresh_leaderboard', () => {
+      fetchLeaderboard();
+    });
+
+    newSocket.on('update_score', (data: { empId: string; newScore: number }) => {
+      fetchLeaderboard(); // fetch to get latest xp and score
+    });
+
+    // Also poll every 3 seconds just in case we miss socket events for xp updates
+    const intervalId = setInterval(fetchLeaderboard, 3000);
+
+    return () => {
+      newSocket.disconnect();
+      clearInterval(intervalId);
+    };
+  }, []);
 
   return (
     <div className="w-full h-full flex flex-col p-6 font-mono conic-border-box rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(255,0,60,0.2)]">
@@ -25,11 +73,11 @@ export default function LiveLeaderboard() {
       </h2>
       
       <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3 mb-6">
-        {leaderboard.map((player, index) => {
+        {leaderboard.map((player) => {
           const isUser = player.isUser;
           return (
             <div 
-              key={player.name}
+              key={player.empId}
               className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
                 isUser 
                   ? 'bg-[#ff003c]/10 border-[#ff003c] shadow-[0_0_15px_rgba(255,0,60,0.4)]'
@@ -38,7 +86,7 @@ export default function LiveLeaderboard() {
             >
               <div className="flex items-center gap-4">
                 <span className={`text-xl font-black ${isUser ? 'text-[#ff003c]' : 'text-gray-500'}`}>
-                  #{index + 1}
+                  #{player.rank}
                 </span>
                 <span className={`font-bold uppercase tracking-wider ${isUser ? 'text-white' : 'text-gray-300'}`}>
                   {player.name}
@@ -46,7 +94,7 @@ export default function LiveLeaderboard() {
                 {isUser && <ShieldAlert className="w-4 h-4 text-[#ff003c]" />}
               </div>
               <span className={`font-black ${isUser ? 'text-[#ff003c]' : 'text-gray-400'}`}>
-                {player.score} PTS
+                {player.xp} XP
               </span>
             </div>
           );

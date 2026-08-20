@@ -14,10 +14,13 @@ interface QuizState {
   currentQuestionIndex: number;
   score: number;
   streak: number;
+  highestStreak: number;
   multiplier: number;
   playedQuestions: number[];
   timer: number;
   sessionLogs: SessionLog[];
+  coinsEarned: number;
+  xpEarned: number;
   advanceQuestion: (isCorrect: boolean, basePoints: number) => void;
   resetStreak: () => void;
   addLog: (log: SessionLog) => void;
@@ -33,17 +36,23 @@ export const useQuizStore = create<QuizState>()(
       currentQuestionIndex: 0,
       score: 0,
       streak: 0,
+      highestStreak: 0,
       multiplier: 1,
       playedQuestions: [],
       timer: 0,
       sessionLogs: [],
+      coinsEarned: 0,
+      xpEarned: 0,
       advanceQuestion: (isCorrect: boolean, basePoints: number) => set((state) => {
         let newStreak = state.streak;
+        let newHighestStreak = state.highestStreak;
         let newMultiplier = state.multiplier;
         let newScore = state.score;
 
         if (isCorrect) {
           newStreak += 1;
+          if (newStreak > newHighestStreak) newHighestStreak = newStreak;
+          
           if (newStreak >= 6) newMultiplier = 3;
           else if (newStreak >= 3) newMultiplier = 2;
           else newMultiplier = 1;
@@ -98,6 +107,7 @@ export const useQuizStore = create<QuizState>()(
         return {
           score: newScore,
           streak: newStreak,
+          highestStreak: newHighestStreak,
           multiplier: newMultiplier,
           currentQuestionIndex: nextIndex,
           playedQuestions: newPlayed
@@ -110,10 +120,13 @@ export const useQuizStore = create<QuizState>()(
         currentQuestionIndex: 0, 
         score: 0, 
         streak: 0,
+        highestStreak: 0,
         multiplier: 1,
         playedQuestions: [],
         timer: 0, 
-        sessionLogs: [] 
+        sessionLogs: [],
+        coinsEarned: 0,
+        xpEarned: 0,
       }),
     }),
     {
