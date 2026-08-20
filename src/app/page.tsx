@@ -17,6 +17,7 @@ import {
   List
 } from 'lucide-react';
 import { MiniAvatar, AvatarSVG, DEFAULT_AVATAR, type AvatarState } from '@/components/Avatar';
+import ItemShopModal from '@/components/shop/ItemShopModal';
 
 interface LeaderboardPlayer {
   rank: number;
@@ -202,6 +203,7 @@ export default function Phase3RealtimeDashboard() {
   });
   
   const [isFullLeaderboardOpen, setIsFullLeaderboardOpen] = useState(false);
+  const [isShopOpen, setIsShopOpen] = useState(false);
 
   const fetchLeaderboard = async () => {
     try {
@@ -382,6 +384,12 @@ export default function Phase3RealtimeDashboard() {
               <Sparkles className="w-4 h-4 text-white" />
               EDIT AVATAR
             </Link>
+            <button 
+              onClick={() => setIsShopOpen(true)} 
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl font-bold border border-purple-400 font-mono tracking-widest text-xs shadow-[0_0_15px_rgba(147,51,234,0.5)] transition-all active:scale-95 cursor-pointer"
+            >
+              🛒 BLACK MARKET
+            </button>
           </div>
         </header>
 
@@ -514,6 +522,8 @@ export default function Phase3RealtimeDashboard() {
         onEmitEmoji={handleEmitEmoji}
         onScoreBoost={handleScoreBoost}
       />
+
+      {isShopOpen && <ItemShopModal onClose={() => setIsShopOpen(false)} />}
     </div>
   );
 }
