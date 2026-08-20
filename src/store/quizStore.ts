@@ -21,18 +21,20 @@ interface QuizState {
   sessionLogs: SessionLog[];
   coinsEarned: number;
   xpEarned: number;
+  inventory: { hints: number; timeFreezes: number; shields: number; };
   advanceQuestion: (isCorrect: boolean, basePoints: number) => void;
   resetStreak: () => void;
   addLog: (log: SessionLog) => void;
   setTimer: (time: number) => void;
   resetQuiz: () => void;
+  buyItem: (item: 'hints' | 'timeFreezes' | 'shields', cost: number) => boolean;
 }
 
 const DIFFICULTY_TIERS = ['easy', 'medium', 'hard', 'expert'];
 
 export const useQuizStore = create<QuizState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       currentQuestionIndex: 0,
       score: 0,
       streak: 0,
@@ -43,6 +45,7 @@ export const useQuizStore = create<QuizState>()(
       sessionLogs: [],
       coinsEarned: 0,
       xpEarned: 0,
+      inventory: { hints: 0, timeFreezes: 0, shields: 0 },
       advanceQuestion: (isCorrect: boolean, basePoints: number) => set((state) => {
         let newStreak = state.streak;
         let newHighestStreak = state.highestStreak;
@@ -127,7 +130,22 @@ export const useQuizStore = create<QuizState>()(
         sessionLogs: [],
         coinsEarned: 0,
         xpEarned: 0,
+        inventory: { hints: 0, timeFreezes: 0, shields: 0 },
       }),
+      buyItem: (item, cost) => {
+        const state = get();
+        if (state.coinsEarned >= cost) {
+          set({
+            coinsEarned: state.coinsEarned - cost,
+            inventory: {
+              ...state.inventory,
+              [item]: state.inventory[item] + 1
+            }
+          });
+          return true;
+        }
+        return false;
+      },
     }),
     {
       name: 'quiz-storage',
@@ -136,7 +154,10 @@ export const useQuizStore = create<QuizState>()(
         score: state.score,
         streak: state.streak,
         multiplier: state.multiplier,
-        playedQuestions: state.playedQuestions
+        playedQuestions: state.playedQuestions,
+        coinsEarned: state.coinsEarned,
+        xpEarned: state.xpEarned,
+        inventory: state.inventory
       }),
     }
   )
