@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+/* Custom retro scanlines */
+.scanlines {
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.45) 50%
+  ), linear-gradient(
+    90deg,
+    rgba(255, 0, 85, 0.04),
+    rgba(0, 0, 0, 0.01),
+    rgba(230, 0, 57, 0.04)
+  );
+  background-size: 100% 4px, 6px 100%;
+}
+
+/* Squid Game Dark Glassmorphism */
+.squid-panel {
+  background: rgba(10, 4, 10, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 0, 85, 0.35);
+  box-shadow: 0 0 35px rgba(255, 0, 85, 0.2), 
+              inset 0 0 20px rgba(230, 0, 57, 0.15);
+}
+
+.gameboy-console {
+  background: linear-gradient(155deg, rgba(24, 6, 22, 0.95), rgba(8, 2, 7, 0.98));
+  backdrop-filter: blur(16px);
+  border: 2px solid rgba(255, 0, 85, 0.5);
+  box-shadow: 0 0 45px rgba(255, 0, 85, 0.35),
+              inset 0 0 30px rgba(230, 0, 57, 0.25);
+}
+
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.conic-border-box {
+  position: relative;
+  background: rgba(10, 4, 10, 0.85);
+  backdrop-filter: blur(20px);
+}
+
+.conic-border-box::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  background: conic-gradient(from var(--angle), transparent 0%, #ff003c 50%, transparent 100%);
+  animation: spin-angle 3s linear infinite;
+  border-radius: inherit;
+}
+
+@keyframes spin-angle {
+  from { --angle: 0deg; }
+  to { --angle: 360deg; }
+}
+
+.cyber-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.cyber-scrollbar::-webkit-scrollbar-track {
+  background: #111;
+}
+.cyber-scrollbar::-webkit-scrollbar-thumb {
+  background: #e11d48;
+  border-radius: 4px;
+}
+@keyframes cyberShake {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  10% { transform: translate(-8px, -6px) rotate(-1deg); }
+  20% { transform: translate(7px, 5px) rotate(1.5deg); }
+  30% { transform: translate(-6px, 7px) rotate(-1deg); }
+  40% { transform: translate(8px, -5px) rotate(1deg); }
+  50% { transform: translate(-7px, 3px) rotate(-0.5deg); }
+  60% { transform: translate(6px, -4px) rotate(1deg); }
+  70% { transform: translate(-4px, 5px) rotate(-1deg); }
+  80% { transform: translate(5px, -3px) rotate(0.5deg); }
+  90% { transform: translate(-3px, 2px) rotate(0deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+.animate-cyber-shake {
+  animation: cyberShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
+}
