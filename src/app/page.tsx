@@ -220,11 +220,13 @@ export default function Phase3RealtimeDashboard() {
   const [isQuestOpen, setIsQuestOpen] = useState(false);
   const [showOperantsList, setShowOperantsList] = useState(false);
   const [incomingChallenge, setIncomingChallenge] = useState<{challengerId: string, challengerName: string} | null>(null);
+  const [challengeTimer, setChallengeTimer] = useState<number | null>(null);
   const [duelCountdown, setDuelCountdown] = useState<number | null>(null);
   
   const sendDuelChallenge = (targetId: string, targetName: string) => {
     if (!socket) return;
-    socket.emit('initiate_1v1_challenge', { targetId });
+    const currentUser = leaderboard.find(p => p.empId === localStorage.getItem('currentUserEmpId'));
+    socket.emit('initiate_1v1_challenge', { targetId, challengerName: currentUser?.name || 'A Player' });
     alert(`[!] CHALLENGE SENT TO ${targetName.toUpperCase()}`); // Temporary feedback
   };
 
@@ -284,6 +286,10 @@ export default function Phase3RealtimeDashboard() {
     newSocket.on('connect', () => {
       console.log('[FRONTEND] Connected to Socket server:', newSocket.id);
       setIsConnected(true);
+      const currentEmpId = localStorage.getItem('currentUserEmpId');
+      if (currentEmpId) {
+        newSocket.emit('register', currentEmpId);
+      }
     });
 
     newSocket.on('disconnect', () => {
@@ -320,18 +326,43 @@ export default function Phase3RealtimeDashboard() {
 
     newSocket.on('receive_1v1_challenge', (data: { challengerId: string, challengerName: string }) => {
       setIncomingChallenge(data);
+      setChallengeTimer(15);
     });
 
     newSocket.on('1v1_challenge_accepted', () => {
       triggerDuelCountdown();
     });
 
+    newSocket.on('1v1_challenge_denied', (data: { reason: string }) => {
+      alert(`[!] Challenge denied: ${data.reason}`);
+    });
+
     return () => {
       newSocket.off('receive_1v1_challenge');
       newSocket.off('1v1_challenge_accepted');
+      newSocket.off('1v1_challenge_denied');
       newSocket.disconnect();
     };
   }, []);
+
+  // Timer effect for challenge expiration
+  useEffect(() => {
+    if (challengeTimer === null || challengeTimer <= 0) return;
+    const interval = setInterval(() => {
+      setChallengeTimer((prev) => {
+        if (prev && prev <= 1) {
+          // Timer ended
+          if (incomingChallenge && socket) {
+            socket.emit('deny_1v1_challenge', { challengerId: incomingChallenge.challengerId, reason: 'Timeout' });
+          }
+          setIncomingChallenge(null);
+          return null;
+        }
+        return prev ? prev - 1 : null;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [challengeTimer, incomingChallenge, socket]);
 
   const handleScoreBoost = async (empId: string) => {
     const currentEmpId = localStorage.getItem('currentUserEmpId');
@@ -652,6 +683,8 @@ export default function Phase3RealtimeDashboard() {
             <h2 className="text-3xl font-black text-white tracking-widest mb-2 uppercase">1v1 DUEL INCOMING</h2>
             <p className="text-red-400 font-mono mb-8">
               <span className="text-white font-bold">{incomingChallenge.challengerName}</span> has challenged you to a rapid-fire matrix duel.
+              <br />
+              <span className="text-sm mt-2 block">Expires in: {challengeTimer}s</span>
             </p>
             <div className="flex gap-4 justify-center">
               <button 
@@ -665,7 +698,10 @@ export default function Phase3RealtimeDashboard() {
                 ACCEPT
               </button>
               <button 
-                onClick={() => setIncomingChallenge(null)}
+                onClick={() => {
+                  socket?.emit('deny_1v1_challenge', { challengerId: incomingChallenge.challengerId, reason: 'Declined by player' });
+                  setIncomingChallenge(null);
+                }}
                 className="bg-transparent border border-gray-600 text-gray-400 hover:text-white hover:border-gray-400 px-6 py-3 rounded font-black tracking-widest w-1/2 transition-colors"
               >
                 DECLINE
