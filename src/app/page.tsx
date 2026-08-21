@@ -17,6 +17,8 @@ import {
   List
 } from 'lucide-react';
 import { MiniAvatar, AvatarSVG, DEFAULT_AVATAR, type AvatarState } from '@/components/Avatar';
+import ItemShopModal from '@/components/shop/ItemShopModal';
+import PasswordQuest from '@/components/dashboard/PasswordQuest';
 
 interface LeaderboardPlayer {
   rank: number;
@@ -214,6 +216,33 @@ export default function Phase3RealtimeDashboard() {
   });
   
   const [isFullLeaderboardOpen, setIsFullLeaderboardOpen] = useState(false);
+  const [isShopOpen, setIsShopOpen] = useState(false);
+  const [isQuestOpen, setIsQuestOpen] = useState(false);
+  const [showOperantsList, setShowOperantsList] = useState(false);
+  const [incomingChallenge, setIncomingChallenge] = useState<{challengerId: string, challengerName: string} | null>(null);
+  const [duelCountdown, setDuelCountdown] = useState<number | null>(null);
+  
+  const sendDuelChallenge = (targetId: string, targetName: string) => {
+    if (!socket) return;
+    socket.emit('initiate_1v1_challenge', { targetId });
+    alert(`[!] CHALLENGE SENT TO ${targetName.toUpperCase()}`); // Temporary feedback
+  };
+
+  const triggerDuelCountdown = () => {
+    setDuelCountdown(3);
+    let timeLeft = 3;
+    const timer = setInterval(() => {
+      timeLeft -= 1;
+      if (timeLeft > 0) {
+        setDuelCountdown(timeLeft);
+      } else {
+        clearInterval(timer);
+        setDuelCountdown(null);
+        // LAUNCH THE MATRIX 
+        window.location.href = '/simulation-matrix';
+      }
+    }, 1000);
+  };
 
   const fetchLeaderboard = async () => {
     try {
@@ -289,7 +318,17 @@ export default function Phase3RealtimeDashboard() {
       }, 1800);
     });
 
+    newSocket.on('receive_1v1_challenge', (data: { challengerId: string, challengerName: string }) => {
+      setIncomingChallenge(data);
+    });
+
+    newSocket.on('1v1_challenge_accepted', () => {
+      triggerDuelCountdown();
+    });
+
     return () => {
+      newSocket.off('receive_1v1_challenge');
+      newSocket.off('1v1_challenge_accepted');
       newSocket.disconnect();
     };
   }, []);
@@ -413,6 +452,18 @@ export default function Phase3RealtimeDashboard() {
               <Sparkles className="w-4 h-4 text-white" />
               EDIT AVATAR
             </Link>
+            <button 
+              onClick={() => setIsShopOpen(true)} 
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl font-bold border border-purple-400 font-mono tracking-widest text-xs shadow-[0_0_15px_rgba(147,51,234,0.5)] transition-all active:scale-95 cursor-pointer"
+            >
+              🛒 BLACK MARKET
+            </button>
+            <button 
+              onClick={() => setIsQuestOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold border border-blue-400 font-mono tracking-widest text-xs shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all active:scale-95 cursor-pointer"
+            >
+              🛡️ SIDE QUESTS
+            </button>
           </div>
         </header>
 
@@ -465,8 +516,11 @@ export default function Phase3RealtimeDashboard() {
                   {leaderboard[0]?.name}
                 </span>
               </div>
-              <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
-                <span className="text-[10px] font-mono text-zinc-400 uppercase">OPERANTS</span>
+              <div 
+                onClick={() => setShowOperantsList(true)}
+                className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 hover:border-emerald-500/50 hover:bg-[#111] backdrop-blur-md flex flex-col justify-between space-y-2 cursor-pointer transition-all"
+              >
+                <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">OPERANTS</span>
                 <span className="text-xl font-extrabold text-emerald-400 font-mono">{leaderboard.length} ACTIVE</span>
               </div>
               <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
@@ -545,6 +599,92 @@ export default function Phase3RealtimeDashboard() {
         onEmitEmoji={handleEmitEmoji}
         onScoreBoost={handleScoreBoost}
       />
+
+      {isShopOpen && <ItemShopModal onClose={() => setIsShopOpen(false)} players={leaderboard} socket={socket} />}
+      {isQuestOpen && <PasswordQuest onClose={() => setIsQuestOpen(false)} />}
+      
+      {showOperantsList && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setShowOperantsList(false)}>
+          <div className="bg-[#0a0a0a] border border-green-500/30 p-6 rounded-lg min-w-[320px] shadow-[0_0_30px_rgba(34,197,94,0.1)]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4 border-b border-gray-800 pb-2">
+              <h3 className="text-green-400 font-black tracking-widest text-lg flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                ACTIVE OPERANTS
+              </h3>
+              <button onClick={() => setShowOperantsList(false)} className="text-gray-500 hover:text-white transition-colors">✕</button>
+            </div>
+            <div className="max-h-[40vh] overflow-y-auto cyber-scrollbar flex flex-col gap-2">
+              {leaderboard.map((player, idx) => (
+                <div key={player.empId || idx} className="flex items-center gap-3 bg-[#111] p-2 border border-gray-800/50 rounded hover:border-gray-700 transition-colors">
+                  <div className="w-8 h-8 rounded bg-gray-800 flex items-center justify-center text-xs overflow-hidden">
+                    <MiniAvatar avatarState={player.avatar as AvatarState} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-gray-200 text-sm font-bold">{player.name || `Operant-${idx}`}</span>
+                    <span className="text-gray-600 text-[10px] uppercase tracking-wider">Sector 04 Link</span>
+                  </div>
+                  <div className="ml-auto text-green-500 text-xs font-mono">12ms</div>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      sendDuelChallenge(player.empId, player.name || player.username || `Operant-${idx}`);
+                    }}
+                    className="ml-3 bg-red-950/40 hover:bg-red-900 border border-red-700/50 text-red-500 hover:text-red-400 px-3 py-1 rounded text-[10px] font-black tracking-widest transition-all"
+                  >
+                    ⚔️ CHALLENGE
+                  </button>
+                </div>
+              ))}
+              {leaderboard.length === 0 && (
+                <div className="text-gray-600 text-center py-6 font-mono text-sm">NO SIGNAL DETECTED</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {incomingChallenge && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md pointer-events-auto">
+          <div className="bg-red-950/20 border-2 border-red-600 p-8 rounded-lg shadow-[0_0_80px_rgba(220,38,38,0.4)] text-center animate-pulse max-w-md w-full mx-4">
+            <div className="text-red-500 mb-4">
+              <svg className="w-16 h-16 mx-auto" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+            </div>
+            <h2 className="text-3xl font-black text-white tracking-widest mb-2 uppercase">1v1 DUEL INCOMING</h2>
+            <p className="text-red-400 font-mono mb-8">
+              <span className="text-white font-bold">{incomingChallenge.challengerName}</span> has challenged you to a rapid-fire matrix duel.
+            </p>
+            <div className="flex gap-4 justify-center">
+              <button 
+                onClick={() => {
+                  socket?.emit('accept_1v1_challenge', { challengerId: incomingChallenge.challengerId });
+                  setIncomingChallenge(null);
+                  triggerDuelCountdown();
+                }}
+                className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded font-black tracking-widest w-1/2 transition-colors"
+              >
+                ACCEPT
+              </button>
+              <button 
+                onClick={() => setIncomingChallenge(null)}
+                className="bg-transparent border border-gray-600 text-gray-400 hover:text-white hover:border-gray-400 px-6 py-3 rounded font-black tracking-widest w-1/2 transition-colors"
+              >
+                DECLINE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {duelCountdown !== null && (
+        <div className="fixed inset-0 z-[300] flex flex-col items-center justify-center bg-black/95 backdrop-blur-lg pointer-events-auto">
+          <div className="text-red-600 font-mono text-[15rem] font-black leading-none animate-ping">
+            {duelCountdown}
+          </div>
+          <div className="text-red-500 font-black tracking-[1em] mt-8 animate-pulse text-2xl uppercase">
+            PREPARE TO ENGAGE
+          </div>
+        </div>
+      )}
     </div>
   );
 }

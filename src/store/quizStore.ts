@@ -21,13 +21,26 @@ interface QuizState {
   sessionLogs: SessionLog[];
   coinsEarned: number;
   xpEarned: number;
-  inventory: { hints: number; timeFreezes: number; shields: number; };
+  inventory: { 
+    hints: number; 
+    timeFreezes: number; 
+    shields: number; 
+    sabotagers: number;
+    decoys: number;
+    ddosEmps: number;
+    overclocks: number;
+  };
   advanceQuestion: (isCorrect: boolean, basePoints: number) => void;
   resetStreak: () => void;
   addLog: (log: SessionLog) => void;
   setTimer: (time: number) => void;
   resetQuiz: () => void;
-  buyItem: (item: 'hints' | 'timeFreezes' | 'shields', cost: number) => boolean;
+  buyItem: (item: 'hints' | 'timeFreezes' | 'shields' | 'sabotagers' | 'decoys' | 'ddosEmps' | 'overclocks', cost: number) => boolean;
+  executeSabotage: (targetPlayerId: string, socket: any) => void;
+  consumeDecoy: () => void;
+  deductXP: (amount: number) => void;
+  addCoins: (amount: number) => void;
+  addXP: (amount: number) => void;
 }
 
 const DIFFICULTY_TIERS = ['easy', 'medium', 'hard', 'expert'];
@@ -45,7 +58,7 @@ export const useQuizStore = create<QuizState>()(
       sessionLogs: [],
       coinsEarned: 0,
       xpEarned: 0,
-      inventory: { hints: 0, timeFreezes: 0, shields: 0 },
+      inventory: { hints: 0, timeFreezes: 0, shields: 0, sabotagers: 0, decoys: 0, ddosEmps: 0, overclocks: 0 },
       advanceQuestion: (isCorrect: boolean, basePoints: number) => set((state) => {
         let newStreak = state.streak;
         let newHighestStreak = state.highestStreak;
@@ -130,7 +143,7 @@ export const useQuizStore = create<QuizState>()(
         sessionLogs: [],
         coinsEarned: 0,
         xpEarned: 0,
-        inventory: { hints: 0, timeFreezes: 0, shields: 0 },
+        inventory: { hints: 0, timeFreezes: 0, shields: 0, sabotagers: 0, decoys: 0, ddosEmps: 0, overclocks: 0 },
       }),
       buyItem: (item, cost) => {
         const state = get();
@@ -146,6 +159,39 @@ export const useQuizStore = create<QuizState>()(
         }
         return false;
       },
+      executeSabotage: (targetPlayerId, socket) => {
+        const state = get();
+        if (state.inventory.sabotagers > 0) {
+          set({
+            inventory: {
+              ...state.inventory,
+              sabotagers: state.inventory.sabotagers - 1
+            }
+          });
+          if (socket) {
+            socket.emit('player_sabotage', { targetId: targetPlayerId, penaltyXp: 150 });
+          }
+        }
+      },
+      consumeDecoy: () => {
+        set(state => ({
+          inventory: {
+            ...state.inventory,
+            decoys: Math.max(0, state.inventory.decoys - 1)
+          }
+        }));
+      },
+      deductXP: (amount) => {
+        set(state => ({
+          xpEarned: Math.max(0, state.xpEarned - amount)
+        }));
+      },
+      addCoins: (amount) => {
+        set(state => ({ coinsEarned: state.coinsEarned + amount }));
+      },
+      addXP: (amount) => {
+        set(state => ({ xpEarned: state.xpEarned + amount }));
+      }
     }),
     {
       name: 'quiz-storage',
