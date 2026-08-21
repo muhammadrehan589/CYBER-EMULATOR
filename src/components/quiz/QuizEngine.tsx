@@ -233,6 +233,12 @@ export default function QuizEngine() {
           empId,
           inc: { coins: coinsEarned, xp: xpEarned }
         })
+      }).then(() => {
+        // Broadcast to all connected clients that the leaderboard has updated
+        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+        const tempSocket = require('socket.io-client').io(socketUrl, { transports: ['websocket', 'polling'] });
+        tempSocket.emit('trigger_refresh');
+        setTimeout(() => tempSocket.disconnect(), 1000);
       }).catch(err => console.error('[QuizEngine] Real-time reward sync failed:', err));
     }
   };

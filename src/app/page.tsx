@@ -25,6 +25,7 @@ interface LeaderboardPlayer {
   username: string;
   role: string;
   score: number;
+  xp: number;
   badgeColor: string;
   avatar: AvatarState;
 }
@@ -33,6 +34,7 @@ interface FloatingEmoji {
   id: string;
   empId: string;
   emoji: string;
+  senderName?: string;
 }
 
 const BADGE_COLORS = ['#ff0055', '#f59e0b', '#10b981', '#a855f7', '#3b82f6', '#14b8a6', '#ef4444'];
@@ -53,7 +55,7 @@ const LeaderboardItem = ({
   player: LeaderboardPlayer; 
   floatingEmojis: FloatingEmoji[]; 
   onEmitEmoji: (id: string, emoji: string) => void;
-  onScoreBoost: (id: string, score: number) => void;
+  onScoreBoost: (id: string) => void;
   mini?: boolean;
 }) => {
   const rowEmojis = floatingEmojis.filter((e) => e.empId === player.empId);
@@ -75,9 +77,14 @@ const LeaderboardItem = ({
             animate={{ y: -50, opacity: 0, scale: 1.5 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 1.6, ease: 'easeOut' }}
-            className="absolute right-16 top-1 text-2xl z-50 pointer-events-none drop-shadow-[0_0_10px_#ff0055]"
+            className="absolute right-8 top-0 flex items-center gap-1.5 z-50 pointer-events-none drop-shadow-[0_0_10px_#ff0055]"
           >
-            {e.emoji}
+            <span className="text-2xl">{e.emoji}</span>
+            {e.senderName && (
+              <span className="text-[10px] font-bold text-white bg-black/60 px-1.5 py-0.5 rounded border border-[#ff0055]/50 whitespace-nowrap">
+                Boosted by {e.senderName}
+              </span>
+            )}
           </motion.div>
         ))}
       </AnimatePresence>
@@ -115,22 +122,27 @@ const LeaderboardItem = ({
 
       {/* Score + Actions */}
       <div className="flex items-center gap-1.5 shrink-0">
-        <span className="text-sm font-mono font-bold text-white tabular-nums">
-          {player.score.toLocaleString()}
-        </span>
+        <div className="flex flex-col items-end">
+          <span className="text-sm font-mono font-bold text-white tabular-nums">
+            {player.score.toLocaleString()} PTS
+          </span>
+          <span className="text-[10px] font-mono text-[#ff0055] font-black">
+            {player.xp} XP
+          </span>
+        </div>
         <button
           onClick={() => onEmitEmoji(player.empId, '🔥')}
-          className="p-1 rounded bg-[#1c061e] border border-[#ff0055]/30 text-xs hover:bg-[#ff0055] hover:border-[#ff0055] transition-all cursor-pointer"
+          className="p-1 rounded bg-[#1c061e] border border-[#ff0055]/30 text-xs hover:bg-[#ff0055] hover:border-[#ff0055] transition-all cursor-pointer ml-2"
           title={`Send 🔥 to ${player.name}`}
         >
           🔥
         </button>
         <button
-          onClick={() => onScoreBoost(player.empId, player.score)}
+          onClick={() => onScoreBoost(player.empId)}
           className="px-1.5 py-1 rounded bg-emerald-950 border border-emerald-500/30 text-[9px] font-mono text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all cursor-pointer whitespace-nowrap"
-          title={`Boost ${player.name} +250 PTS`}
+          title={`Boost ${player.name} +250 XP`}
         >
-          +250
+          +250 XP
         </button>
       </div>
     </div>
@@ -150,7 +162,7 @@ const FullLeaderboardModal = ({
   leaderboard: LeaderboardPlayer[];
   floatingEmojis: FloatingEmoji[];
   onEmitEmoji: (id: string, emoji: string) => void;
-  onScoreBoost: (id: string, score: number) => void;
+  onScoreBoost: (id: string) => void;
 }) => {
   if (!isOpen) return null;
 
@@ -208,7 +220,7 @@ export default function Phase3RealtimeDashboard() {
       const res = await fetch('/api/users');
       const json = await res.json();
       if (json.success && json.data.length > 0) {
-        const sorted = json.data.sort((a: any, b: any) => b.score - a.score);
+        const sorted = json.data.sort((a: any, b: any) => (b.score - a.score) || (b.xp - a.xp));
         const mapped: LeaderboardPlayer[] = sorted.map((u: any, idx: number) => ({
           rank: idx + 1,
           empId: u.empId,
@@ -216,6 +228,7 @@ export default function Phase3RealtimeDashboard() {
           username: u.username,
           role: u.role,
           score: u.score,
+          xp: u.xp || 0,
           badgeColor: BADGE_COLORS[idx % BADGE_COLORS.length],
           avatar: (u.activeAvatar && Object.keys(u.activeAvatar).length > 0)
             ? { ...DEFAULT_AVATAR, ...u.activeAvatar }
@@ -264,9 +277,9 @@ export default function Phase3RealtimeDashboard() {
       });
     });
 
-    newSocket.on('send_emoji', (data: { empId: string; emoji: string; id: string }) => {
+    newSocket.on('send_emoji', (data: { empId: string; emoji: string; id: string; senderName?: string }) => {
       const emojiId = data.id || `${Date.now()}-${Math.random()}`;
-      setFloatingEmojis((prev) => [...prev, { id: emojiId, empId: data.empId, emoji: data.emoji }]);
+      setFloatingEmojis((prev) => [...prev, { id: emojiId, empId: data.empId, emoji: data.emoji, senderName: data.senderName }]);
       setReactionCounts((prev) => ({
         ...prev,
         [data.emoji]: (prev[data.emoji] || 0) + 1,
@@ -281,39 +294,57 @@ export default function Phase3RealtimeDashboard() {
     };
   }, []);
 
-  const handleScoreBoost = (empId: string, currentScore: number) => {
-    const newScore = currentScore + 250;
-    setLeaderboard((prevLeaderboard) => {
-      const updated = prevLeaderboard.map((p) =>
-        p.empId === empId ? { ...p, score: newScore } : p
-      );
-      updated.sort((a, b) => b.score - a.score);
-      return updated.map((p, idx) => ({ ...p, rank: idx + 1 }));
-    });
-    if (socket && isConnected) {
-      socket.emit('update_score', { empId, newScore });
-    }
-    // Persist to MongoDB
-    fetch('/api/users', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ empId, updates: { score: newScore } }),
-    }).catch((err) => console.error('[Dashboard] Score persist failed:', err));
+  const handleScoreBoost = async (empId: string) => {
+    const currentEmpId = localStorage.getItem('currentUserEmpId');
+    if (!currentEmpId || currentEmpId === empId) return; // Cannot boost yourself
 
-    fetch('/api/activity-logs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        empId,
-        action: 'Score Boost',
-        type: 'score',
-        details: `Score boosted by +250 from dashboard.`,
-      }),
-    }).catch((err) => console.error('[Dashboard] Log persist failed:', err));
+    const sender = leaderboard.find(p => p.empId === currentEmpId);
+    if (!sender || sender.xp < 250) {
+      alert("Not enough XP to boost!");
+      return;
+    }
+
+    try {
+      await Promise.all([
+        fetch('/api/users', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ empId: currentEmpId, inc: { xp: -250 } }),
+        }),
+        fetch('/api/users', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ empId, inc: { xp: 250 } }),
+        })
+      ]);
+
+      if (socket && isConnected) {
+        socket.emit('trigger_refresh'); // Refresh all leaderboards globally
+      } else {
+        fetchLeaderboard();
+      }
+
+      fetch('/api/activity-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          empId,
+          action: 'XP Boost',
+          type: 'xp',
+          details: `XP boosted by +250 from ${sender.name}.`,
+        }),
+      }).catch((err) => console.error('[Dashboard] Log persist failed:', err));
+    } catch (err) {
+      console.error('[Dashboard] XP transfer failed:', err);
+    }
   };
 
   const handleEmitEmoji = (empId: string, emoji: string) => {
-    const emojiObj = { empId, emoji, id: `emoji-${Date.now()}-${Math.random()}` };
+    const currentEmpId = localStorage.getItem('currentUserEmpId');
+    const sender = leaderboard.find(p => p.empId === currentEmpId);
+    const senderName = sender ? sender.name : 'Unknown';
+
+    const emojiObj = { empId, emoji, id: `emoji-${Date.now()}-${Math.random()}`, senderName };
     if (!socket || !isConnected) {
       setFloatingEmojis((prev) => [...prev, emojiObj]);
       setReactionCounts((prev) => ({ ...prev, [emoji]: (prev[emoji] || 0) + 1 }));
