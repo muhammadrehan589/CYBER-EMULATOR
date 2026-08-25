@@ -10,7 +10,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    origin: '*',
     methods: ['GET', 'POST'],
   },
 });
@@ -51,7 +51,8 @@ io.on('connection', (socket) => {
     console.log(`[SOCKET_SERVER] Broadcast update_score:`, data);
     io.emit('update_score', data);
     try {
-      await fetch('http://localhost:3002/api/users', {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3002';
+      await fetch(`${frontendUrl}/api/users`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
