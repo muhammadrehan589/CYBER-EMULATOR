@@ -6,11 +6,25 @@ import quizData from '@/data/questions.json';
 import { useRouter } from 'next/navigation';
 import LiveLeaderboard from './LiveLeaderboard';
 
-const questions = quizData.questions;
+const shuffleArray = (array: any[]) => {
+  let shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
 
+const initialQuestions = quizData.questions;
 export default function QuizEngine() {
   const router = useRouter();
   const { currentQuestionIndex, advanceQuestion, score, multiplier, resetStreak, coinsEarned, xpEarned } = useQuizStore();
+  const [questions, setQuestions] = useState(initialQuestions);
+  
+  useEffect(() => {
+    setQuestions(shuffleArray(initialQuestions));
+  }, []);
+  const [isBriefing, setIsBriefing] = useState(true);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -18,7 +32,6 @@ export default function QuizEngine() {
   
   const [timeLeft, setTimeLeft] = useState<number>(30);
   const [activeMedia, setActiveMedia] = useState<{ type: 'video' | 'image' | 'audio', url: string } | null>(null);
-  const [showQR, setShowQR] = useState(false);
   
   const [isSabotaged, setIsSabotaged] = useState(false);
   const [sabotageMessage, setSabotageMessage] = useState<string | null>(null);
@@ -43,7 +56,6 @@ export default function QuizEngine() {
     ];
     const selected = mediaArsenal[Math.floor(Math.random() * mediaArsenal.length)];
     setActiveMedia(selected as any);
-    setShowQR(false); // Hide QR immediately on click
     
     if (selected.type === 'image') {
       setTimeout(() => setActiveMedia(null), 5000); // 5-second hard lock
@@ -75,28 +87,6 @@ export default function QuizEngine() {
 
   const activeQuestion = questions[currentQuestionIndex];
 
-  useEffect(() => {
-    let spawnTimer: NodeJS.Timeout;
-    let hideTimer: NodeJS.Timeout;
-
-    const scheduleQR = () => {
-      const delay = Math.floor(Math.random() * (180000 - 120000 + 1)) + 120000; // 2 to 3 mins
-      spawnTimer = setTimeout(() => {
-        setShowQR(true);
-        hideTimer = setTimeout(() => {
-          setShowQR(false);
-          scheduleQR(); // Restart the cycle
-        }, 60000); // 1 minute visibility
-      }, delay);
-    };
-
-    scheduleQR();
-
-    return () => {
-      clearTimeout(spawnTimer);
-      clearTimeout(hideTimer);
-    };
-  }, []);
 
   useEffect(() => {
     if (!socket) return;
@@ -320,6 +310,29 @@ export default function QuizEngine() {
     router.push('/');
   };
 
+  if (isBriefing) {
+    return (
+      <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
+        <div className="bg-gray-950 border border-red-500/50 rounded-lg p-8 max-w-2xl w-full shadow-[0_0_30px_rgba(220,38,38,0.15)] font-mono">
+          <h2 className="text-3xl text-red-500 mb-6 tracking-widest text-center border-b border-red-900/30 pb-4">
+            SYSTEM BRIEFING
+          </h2>
+          <div className="space-y-6 text-gray-300 text-sm md:text-base mb-8">
+            <p><span className="text-red-400">»</span> Answer rapidly. Speed yields higher point multipliers.</p>
+            <p><span className="text-red-400">»</span> Access the Black Market via the lower console to deploy tactical gadgets.</p>
+            <p><span className="text-red-400">»</span> Gadgets can freeze timers, reveal hints, or obscure enemy data.</p>
+          </div>
+          <button 
+            onClick={() => setIsBriefing(false)} 
+            className="w-full bg-red-900/20 hover:bg-red-600 border border-red-500 text-white py-4 rounded font-bold tracking-[0.2em] transition-all duration-300 hover:shadow-[0_0_20px_rgba(220,38,38,0.4)]"
+          >
+            ACKNOWLEDGE & INITIATE
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`grid grid-cols-1 lg:grid-cols-3 gap-8 w-full max-w-7xl mx-auto min-h-screen overflow-y-auto p-6 pb-8 relative transition-all ${isSabotaged ? 'animate-cyber-shake border-4 border-red-600' : ''}`}>
       
@@ -361,15 +374,7 @@ export default function QuizEngine() {
           <h2 className="text-xl font-bold mb-6 leading-relaxed">
             {activeQuestion.question}
           </h2>
-          {showQR && (
-            <div onClick={triggerGotcha} className="my-6 p-4 bg-white rounded flex justify-center items-center mx-auto border-4 border-gray-300 cursor-pointer shadow-lg hover:bg-gray-50 transition-colors">
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=CyberShield_Gotcha_Test" alt="Phishing Test QR" className="rounded" />
-              <div className="ml-4 text-left">
-                <p className="text-black font-extrabold text-xl">SCAN OR CLICK</p>
-                <p className="text-gray-600 text-sm">Testing Phase 7 Triggers</p>
-              </div>
-            </div>
-          )}
+
 
           {(activeQuestion.type === 'mcq' || activeQuestion.type === 'true_false') && (
             <div className="space-y-3 mb-8">
