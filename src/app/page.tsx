@@ -648,7 +648,7 @@ export default function Phase3RealtimeDashboard() {
               {leaderboard.map((player, idx) => (
                 <div key={player.empId || idx} className="flex items-center gap-3 bg-[#111] p-2 border border-gray-800/50 rounded hover:border-gray-700 transition-colors">
                   <div className="w-8 h-8 rounded bg-gray-800 flex items-center justify-center text-xs overflow-hidden">
-                    <MiniAvatar avatarState={player.avatar as AvatarState} />
+                    <MiniAvatar avatar={player.avatar as AvatarState} />
                   </div>
                   <div className="flex flex-col">
                     <span className="text-gray-200 text-sm font-bold">{player.name || `Operant-${idx}`}</span>
