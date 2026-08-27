@@ -56,6 +56,8 @@ export default function QuizEngine() {
   const [timeLeft, setTimeLeft] = useState<number>(30);
   const [activeMedia, setActiveMedia] = useState<{ type: 'video' | 'image' | 'audio', url: string } | null>(null);
   
+  const [isTimerFrozen, setIsTimerFrozen] = useState(false);
+  
   const [isSabotaged, setIsSabotaged] = useState(false);
   const [sabotageMessage, setSabotageMessage] = useState<string | null>(null);
   const [socket, setSocket] = useState<any>(null);
@@ -162,7 +164,7 @@ export default function QuizEngine() {
 
   // Countdown Logic
   useEffect(() => {
-    if (isSubmitted || !activeQuestion || timeLeft <= 0) return;
+    if (isSubmitted || !activeQuestion || timeLeft <= 0 || isTimerFrozen) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -175,7 +177,7 @@ export default function QuizEngine() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isSubmitted, activeQuestion, timeLeft]);
+  }, [isSubmitted, activeQuestion, timeLeft, isTimerFrozen]);
 
   // Timeout Trigger
   useEffect(() => {
@@ -329,7 +331,38 @@ export default function QuizEngine() {
     }
   };
 
-  const handleSaveAndAbort = () => {
+  const handleSaveAndAbort = async () => {
+    const state = useQuizStore.getState();
+    const empId = localStorage.getItem('currentUserEmpId') || 'EMP-456'; 
+    
+    try {
+      await fetch('/api/quiz-sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          empId,
+          finalScore: state.score,
+          highestStreak: state.highestStreak || 0,
+          questionsPlayed: state.playedQuestions,
+          sessionLogs: state.sessionLogs,
+        }),
+      });
+
+      await fetch('/api/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          empId,
+          updates: { score: state.score }
+        }),
+      });
+      
+      console.log("Progress saved. Aborting simulation...");
+    } catch (error) {
+      console.error('[QuizEngine] Failed to save session:', error);
+    }
+    
+    useQuizStore.getState().resetQuiz();
     router.push('/');
   };
 
@@ -340,11 +373,12 @@ export default function QuizEngine() {
           <h2 className="text-3xl text-red-500 mb-6 tracking-widest text-center border-b border-red-900/30 pb-4">
             SYSTEM BRIEFING
           </h2>
-          <div className="space-y-6 text-gray-300 text-sm md:text-base mb-8">
-            <p><span className="text-red-400">»</span> Answer rapidly. Speed yields higher point multipliers.</p>
-            <p><span className="text-red-400">»</span> Access the Black Market via the lower console to deploy tactical gadgets.</p>
-            <p><span className="text-red-400">»</span> Gadgets can freeze timers, reveal hints, or obscure enemy data.</p>
-          </div>
+          <ul className="space-y-4 text-gray-300 text-sm md:text-base mb-8 font-mono">
+            <li><span className="text-red-400">»</span> Answer rapidly. Speed yields higher point multipliers.</li>
+            <li><span className="text-red-400">»</span> Access the Black Market via the lower console to deploy tactical gadgets.</li>
+            <li><span className="text-purple-400 font-bold">» GADGET EFFECT: Deploying an item will freeze the system timer for exactly 5 seconds.</span></li>
+            <li><span className="text-yellow-400 font-bold">» SYSTEM EXIT: You must press "SAVE AND ABORT" to securely extract your progress before leaving.</span></li>
+          </ul>
           <button 
             onClick={() => setIsBriefing(false)} 
             className="w-full bg-red-900/20 hover:bg-red-600 border border-red-500 text-white py-4 rounded font-bold tracking-[0.2em] transition-all duration-300 hover:shadow-[0_0_20px_rgba(220,38,38,0.4)]"
@@ -361,14 +395,6 @@ export default function QuizEngine() {
       
       {/* LEFT SIDE: QUIZ UI */}
       <div className="lg:col-span-2 flex flex-col w-full h-auto">
-        <div className="w-full flex justify-between items-center mb-6">
-          <button 
-            onClick={handleSaveAndAbort}
-            className="px-4 py-2 bg-gray-800 hover:bg-red-900/50 text-gray-300 hover:text-white border border-gray-700 hover:border-red-500 rounded text-xs font-mono uppercase tracking-widest transition-colors"
-          >
-            Save & Abort
-          </button>
-        </div>
 
         <div className="w-full flex justify-between mb-4 text-gray-500 font-mono text-sm uppercase tracking-wider">
           <span>Unit {currentQuestionIndex + 1} / {questions.length}</span>
@@ -445,6 +471,13 @@ export default function QuizEngine() {
             </button>
           </div>
         </div>
+
+        <button 
+          onClick={handleSaveAndAbort}
+          className="mt-6 w-full max-w-sm mx-auto flex justify-center bg-transparent border-2 border-red-900 text-red-500 hover:bg-red-900/30 hover:text-red-400 py-3 rounded font-mono text-sm tracking-widest transition-all shadow-[0_0_15px_rgba(153,27,27,0.3)] cursor-pointer"
+        >
+          [ SAVE AND ABORT ]
+        </button>
       </div>
 
       {/* RIGHT SIDE: LEADERBOARD */}
@@ -529,7 +562,7 @@ export default function QuizEngine() {
         </div>
       )}
       {/* INJECT GADGET DEPLOYMENT BUTTON */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
         <button 
           onClick={() => (document.getElementById('inventory-modal') as HTMLDialogElement)?.showModal()}
           className="bg-purple-900/40 hover:bg-purple-600 border border-purple-500 text-white px-6 py-3 rounded-full font-mono text-sm tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.4)] backdrop-blur-sm transition-all cursor-pointer"
@@ -551,6 +584,8 @@ export default function QuizEngine() {
                  onClick={() => {
                    // Trigger your gadget effect here
                    console.log(`Deployed: ${key}`);
+                   setIsTimerFrozen(true);
+                   setTimeout(() => setIsTimerFrozen(false), 5000); // Thaws after 5 seconds
                    (document.getElementById('inventory-modal') as HTMLDialogElement)?.close();
                  }}
                  className="block w-full text-left p-3 mb-2 bg-purple-900/20 hover:bg-purple-600 text-sm border border-purple-900 rounded cursor-pointer"
