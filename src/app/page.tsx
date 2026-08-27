@@ -21,6 +21,7 @@ import {
 import { MiniAvatar, AvatarSVG, DEFAULT_AVATAR, type AvatarState } from '@/components/Avatar';
 import ItemShopModal from '@/components/shop/ItemShopModal';
 import PasswordQuest from '@/components/dashboard/PasswordQuest';
+import { useQuizStore } from '@/store/quizStore';
 
 interface LeaderboardPlayer {
   rank: number;
@@ -54,24 +55,26 @@ const LeaderboardItem = ({
   floatingEmojis, 
   onEmitEmoji, 
   onScoreBoost,
-  mini = true
+  mini = true,
+  selectedTarget,
+  setSelectedTarget
 }: { 
   player: LeaderboardPlayer; 
   floatingEmojis: FloatingEmoji[]; 
   onEmitEmoji: (id: string, emoji: string) => void;
   onScoreBoost: (id: string) => void;
   mini?: boolean;
+  selectedTarget?: LeaderboardPlayer | null;
+  setSelectedTarget?: (p: LeaderboardPlayer) => void;
 }) => {
   const rowEmojis = floatingEmojis.filter((e) => e.empId === player.empId);
   const badgeStyle = RANK_BADGE_STYLES[player.rank] || '';
 
   return (
     <div
-      className={`px-3 py-2.5 rounded-xl border relative flex items-center gap-3 transition-all duration-500 ${
-        player.rank === 1
-          ? 'bg-[#1e0720] border-[#ff0055] shadow-[0_0_18px_rgba(255,0,85,0.25)]'
-          : 'bg-[#050008] border-zinc-800/80 hover:border-[#ff0055]/30'
-      }`}
+      key={player.empId} 
+      onClick={() => setSelectedTarget && setSelectedTarget(player)}
+      className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all ${selectedTarget?.empId === player.empId ? 'bg-red-900/40 border border-red-500' : 'bg-gray-900 border border-transparent hover:bg-gray-800'}`}
     >
       <AnimatePresence>
         {rowEmojis.map((e) => (
@@ -93,61 +96,49 @@ const LeaderboardItem = ({
         ))}
       </AnimatePresence>
 
-      {/* Rank Badge */}
-      <div
-        className={`w-8 h-8 rounded-lg font-mono text-xs font-black flex items-center justify-center shrink-0 ${
-          badgeStyle || 'text-white'
-        }`}
-        style={!badgeStyle ? { backgroundColor: player.badgeColor } : undefined}
-      >
-        #{player.rank}
-      </div>
+      <div className="flex items-center gap-3 w-full">
+        {/* Rank Badge */}
+        <div
+          className={`w-8 h-8 rounded-lg font-mono text-xs font-black flex items-center justify-center shrink-0 ${
+            badgeStyle || 'text-white'
+          }`}
+          style={!badgeStyle ? { backgroundColor: player.badgeColor } : undefined}
+        >
+          #{player.rank}
+        </div>
 
-      {/* Avatar */}
-      <div className={`${
-        mini ? 'w-10 h-10 rounded-full' : 'w-[48px] h-[76px] rounded-xl'
-      } overflow-hidden bg-black/60 border border-white/10 shrink-0 flex items-center justify-center`}>
-        {mini ? (
-          <MiniAvatar avatar={player.avatar} />
-        ) : (
-          <AvatarSVG avatar={player.avatar} size={48} mini={false} />
-        )}
-      </div>
+        {/* Avatar */}
+        <div className={`${
+          mini ? 'w-10 h-10 rounded-full' : 'w-[48px] h-[76px] rounded-xl'
+        } overflow-hidden bg-black/60 border border-white/10 shrink-0 flex items-center justify-center`}>
+          {mini ? (
+            <MiniAvatar avatar={player.avatar} />
+          ) : (
+            <AvatarSVG avatar={player.avatar} size={48} mini={false} />
+          )}
+        </div>
 
-      {/* Name + Username */}
-      <div className="flex flex-col min-w-0 flex-1">
-        <span className="text-sm font-bold text-white leading-tight truncate">
-          {player.name}
-        </span>
-        <span className="text-[10px] font-mono text-zinc-500 truncate">
-          @{player.username}
-        </span>
-      </div>
-
-      {/* Score + Actions */}
-      <div className="flex items-center gap-1.5 shrink-0">
-        <div className="flex flex-col items-end">
-          <span className="text-sm font-mono font-bold text-white tabular-nums">
-            {player.score.toLocaleString()} PTS
+        {/* Name + Username */}
+        <div className="flex flex-col min-w-0 flex-1">
+          <span className="text-sm font-bold text-white leading-tight truncate">
+            {player.name}
           </span>
-          <span className="text-[10px] font-mono text-[#ff0055] font-black">
-            {player.xp} XP
+          <span className="text-[10px] font-mono text-zinc-500 truncate">
+            @{player.username}
           </span>
         </div>
-        <button
-          onClick={() => onEmitEmoji(player.empId, '🔥')}
-          className="p-1 rounded bg-[#1c061e] border border-[#ff0055]/30 text-xs hover:bg-[#ff0055] hover:border-[#ff0055] transition-all cursor-pointer ml-2"
-          title={`Send 🔥 to ${player.name}`}
-        >
-          🔥
-        </button>
-        <button
-          onClick={() => onScoreBoost(player.empId)}
-          className="px-1.5 py-1 rounded bg-emerald-950 border border-emerald-500/30 text-[9px] font-mono text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all cursor-pointer whitespace-nowrap"
-          title={`Boost ${player.name} +250 XP`}
-        >
-          +250 XP
-        </button>
+
+        {/* Score + Actions */}
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+          <div className="flex flex-col items-end">
+            <span className="text-sm font-mono font-bold text-white tabular-nums">
+              {player.score.toLocaleString()} PTS
+            </span>
+            <span className="text-[10px] font-mono text-[#ff0055] font-black">
+              {player.xp} XP
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -159,7 +150,9 @@ const FullLeaderboardModal = ({
   leaderboard,
   floatingEmojis,
   onEmitEmoji,
-  onScoreBoost
+  onScoreBoost,
+  selectedTarget,
+  setSelectedTarget
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -167,6 +160,8 @@ const FullLeaderboardModal = ({
   floatingEmojis: FloatingEmoji[];
   onEmitEmoji: (id: string, emoji: string) => void;
   onScoreBoost: (id: string) => void;
+  selectedTarget: LeaderboardPlayer | null;
+  setSelectedTarget: (p: LeaderboardPlayer) => void;
 }) => {
   if (!isOpen) return null;
 
@@ -196,6 +191,8 @@ const FullLeaderboardModal = ({
               onEmitEmoji={onEmitEmoji}
               onScoreBoost={onScoreBoost}
               mini={false}
+              selectedTarget={selectedTarget}
+              setSelectedTarget={setSelectedTarget}
             />
           ))}
         </div>
@@ -207,6 +204,7 @@ const FullLeaderboardModal = ({
 export default function Phase3RealtimeDashboard() {
   const router = useRouter();
   const [isAuthenticating, setIsAuthenticating] = useState(true);
+  const { coinsEarned, addCoins } = useQuizStore();
 
   useEffect(() => {
     // Check for your specific auth token or user state here
@@ -231,6 +229,8 @@ export default function Phase3RealtimeDashboard() {
     '👑': 0,
     '🎯': 0,
   });
+  
+  const [selectedTarget, setSelectedTarget] = useState<LeaderboardPlayer | null>(null);
   
   const [isFullLeaderboardOpen, setIsFullLeaderboardOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
@@ -574,6 +574,8 @@ export default function Phase3RealtimeDashboard() {
                     floatingEmojis={floatingEmojis}
                     onEmitEmoji={handleEmitEmoji}
                     onScoreBoost={handleScoreBoost}
+                    selectedTarget={selectedTarget}
+                    setSelectedTarget={setSelectedTarget}
                   />
                 ))
               )}
@@ -587,19 +589,60 @@ export default function Phase3RealtimeDashboard() {
               FULL PLAYER LEADERBOARD
             </button>
 
-            <div className="pt-3 border-t border-[#ff0055]/20 space-y-2">
-              <span className="text-[10px] font-mono text-zinc-400 uppercase block">
-                BROADCAST EMOJI REACTION TO LEADERBOARD:
-              </span>
-              <div className="flex items-center justify-between gap-1.5">
-                {Object.entries(reactionCounts).map(([emoji, count]) => (
-                  <button
-                    key={emoji}
-                    onClick={() => handleEmitEmoji(leaderboard[0]?.empId || 'EMP-001', emoji)}
-                    className="flex-1 py-2 rounded-xl bg-[#050008] border border-zinc-800 hover:border-[#ff0055] text-xs font-mono flex flex-col items-center justify-center gap-0.5 transition-all active:scale-90 cursor-pointer shadow-sm"
+            <div className="mt-6 border-t border-gray-800 pt-6">
+              <h4 className="text-xs text-gray-500 font-mono mb-4 uppercase tracking-[0.2em]">
+                {selectedTarget ? `TARGET LOCKED: ${selectedTarget.name}` : 'SELECT A TARGET TO ENGAGE'}
+              </h4>
+              
+              {/* Reactions */}
+              <div className="flex justify-between gap-2 mb-6">
+                {['🔥', '⚡', '💀', '👑', '🎯'].map(emoji => (
+                   <button 
+                     key={emoji}
+                     disabled={!selectedTarget}
+                     onClick={() => selectedTarget && handleEmitEmoji(selectedTarget.empId, emoji)}
+                     className="flex-1 bg-gray-950 py-3 rounded border border-gray-800 hover:border-blue-500 disabled:opacity-20 transition-all text-xl cursor-pointer"
+                   >
+                     {emoji}
+                   </button>
+                ))}
+              </div>
+
+              {/* Coin-Based XP Boosts */}
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { xp: 50, cost: 10 }, 
+                  { xp: 100, cost: 25 }, 
+                  { xp: 250, cost: 50 }, 
+                  { xp: 500, cost: 100 }
+                ].map(tier => (
+                  <button 
+                     key={tier.xp}
+                     disabled={!selectedTarget}
+                     onClick={async () => {
+                       if (!selectedTarget) return;
+                       if (coinsEarned >= tier.cost) {
+                         addCoins(-tier.cost);
+                         try {
+                           await fetch('/api/users', {
+                             method: 'PATCH',
+                             headers: { 'Content-Type': 'application/json' },
+                             body: JSON.stringify({ empId: selectedTarget.empId, inc: { xp: tier.xp } }),
+                           });
+                           if (socket && isConnected) {
+                             socket.emit('trigger_refresh'); 
+                           }
+                         } catch (err) {
+                           console.error('Failed to send XP', err);
+                         }
+                       } else {
+                         alert("INSUFFICIENT FUNDS.");
+                       }
+                     }}
+                     className="bg-gray-950 group flex justify-between items-center p-3 font-mono border border-green-900/50 hover:bg-green-900/20 disabled:opacity-20 rounded transition-all cursor-pointer"
                   >
-                    <span>{emoji}</span>
-                    <span className="text-[9px] text-zinc-400 font-bold">{count}</span>
+                     <span className="text-green-500 text-sm font-bold group-hover:text-green-400">+{tier.xp} XP</span>
+                     <span className="text-yellow-600 text-xs tracking-widest">{tier.cost} 🪙</span>
                   </button>
                 ))}
               </div>
@@ -615,6 +658,8 @@ export default function Phase3RealtimeDashboard() {
         floatingEmojis={floatingEmojis}
         onEmitEmoji={handleEmitEmoji}
         onScoreBoost={handleScoreBoost}
+        selectedTarget={selectedTarget}
+        setSelectedTarget={setSelectedTarget}
       />
 
       {isShopOpen && <ItemShopModal onClose={() => setIsShopOpen(false)} players={leaderboard} socket={socket} />}
