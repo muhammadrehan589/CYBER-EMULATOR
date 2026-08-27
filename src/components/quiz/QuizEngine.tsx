@@ -5,12 +5,63 @@ import { useQuizStore } from '@/store/quizStore';
 import quizData from '@/data/questions.json';
 import { useRouter } from 'next/navigation';
 import LiveLeaderboard from './LiveLeaderboard';
+import { QRCodeSVG } from 'qrcode.react';
 
-const questions = quizData.questions;
+const shuffleArray = (array: any[]) => {
+  let shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
 
+const initialQuestions = quizData.questions;
 export default function QuizEngine() {
   const router = useRouter();
-  const { currentQuestionIndex, advanceQuestion, score, multiplier, resetStreak, coinsEarned, xpEarned } = useQuizStore();
+  const { currentQuestionIndex, advanceQuestion, score, multiplier, resetStreak, coinsEarned, xpEarned, inventory } = useQuizStore();
+  const [questions, setQuestions] = useState(initialQuestions);
+  
+  useEffect(() => {
+    // Fetch the burn list
+    const burnedQuestions = JSON.parse(localStorage.getItem('burned_questions') || '[]');
+    
+    // Filter out any question whose ID is in the burn list
+    const freshQuestions = initialQuestions.filter((q: any) => !burnedQuestions.includes(q.id));
+    
+    // Failsafe: If they answer every question in the DB, clear the burn list to restart
+    if (freshQuestions.length === 0) {
+       console.log("Database exhausted. Resetting matrix...");
+       localStorage.removeItem('burned_questions');
+       setQuestions(shuffleArray(initialQuestions).slice(0, 10)); 
+    } else {
+       // Proceed with the fresh, unplayed questions
+       setQuestions(shuffleArray(freshQuestions).slice(0, 10));
+    }
+  }, []);
+
+  const [qrEvent, setQrEvent] = useState({ active: false, payload: "" });
+  const publicAssets = [
+    "/secret-gadget-blueprint.png",
+    "/classified-intel-01.jpg",
+    "/black-market-voucher.pdf"
+  ];
+
+  useEffect(() => {
+    const popTime = Math.floor(Math.random() * 20000) + 10000; // 10s to 30s delay
+    
+    const dropTimer = setTimeout(() => {
+      // Pick a random asset from the array
+      const randomAsset = publicAssets[Math.floor(Math.random() * publicAssets.length)];
+      // Generate the full URL so a mobile scanner can actually open the file
+      const fullUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://cyber-emulator.vercel.app'}${randomAsset}`;
+      
+      setQrEvent({ active: true, payload: fullUrl });
+    }, popTime);
+
+    return () => clearTimeout(dropTimer);
+  }, []);
+  const [isBriefing, setIsBriefing] = useState(true);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -18,7 +69,8 @@ export default function QuizEngine() {
   
   const [timeLeft, setTimeLeft] = useState<number>(30);
   const [activeMedia, setActiveMedia] = useState<{ type: 'video' | 'image' | 'audio', url: string } | null>(null);
-  const [showQR, setShowQR] = useState(false);
+  
+  const [isTimerFrozen, setIsTimerFrozen] = useState(false);
   
   const [isSabotaged, setIsSabotaged] = useState(false);
   const [sabotageMessage, setSabotageMessage] = useState<string | null>(null);
@@ -43,7 +95,6 @@ export default function QuizEngine() {
     ];
     const selected = mediaArsenal[Math.floor(Math.random() * mediaArsenal.length)];
     setActiveMedia(selected as any);
-    setShowQR(false); // Hide QR immediately on click
     
     if (selected.type === 'image') {
       setTimeout(() => setActiveMedia(null), 5000); // 5-second hard lock
@@ -75,28 +126,6 @@ export default function QuizEngine() {
 
   const activeQuestion = questions[currentQuestionIndex];
 
-  useEffect(() => {
-    let spawnTimer: NodeJS.Timeout;
-    let hideTimer: NodeJS.Timeout;
-
-    const scheduleQR = () => {
-      const delay = Math.floor(Math.random() * (180000 - 120000 + 1)) + 120000; // 2 to 3 mins
-      spawnTimer = setTimeout(() => {
-        setShowQR(true);
-        hideTimer = setTimeout(() => {
-          setShowQR(false);
-          scheduleQR(); // Restart the cycle
-        }, 60000); // 1 minute visibility
-      }, delay);
-    };
-
-    scheduleQR();
-
-    return () => {
-      clearTimeout(spawnTimer);
-      clearTimeout(hideTimer);
-    };
-  }, []);
 
   useEffect(() => {
     if (!socket) return;
@@ -149,7 +178,7 @@ export default function QuizEngine() {
 
   // Countdown Logic
   useEffect(() => {
-    if (isSubmitted || !activeQuestion || timeLeft <= 0) return;
+    if (isSubmitted || !activeQuestion || timeLeft <= 0 || isTimerFrozen) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -162,7 +191,7 @@ export default function QuizEngine() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isSubmitted, activeQuestion, timeLeft]);
+  }, [isSubmitted, activeQuestion, timeLeft, isTimerFrozen]);
 
   // Timeout Trigger
   useEffect(() => {
@@ -309,6 +338,13 @@ export default function QuizEngine() {
       if (!selectedOption) return;
       submitAnswer(selectedOption);
     } else {
+      // Log question ID to the permanent burn list
+      const burnedQuestions = JSON.parse(localStorage.getItem('burned_questions') || '[]');
+      if (activeQuestion && !burnedQuestions.includes(activeQuestion.id)) {
+        burnedQuestions.push(activeQuestion.id);
+        localStorage.setItem('burned_questions', JSON.stringify(burnedQuestions));
+      }
+
       setSelectedOption(null);
       setIsSubmitted(false);
       setIsTimeout(false);
@@ -316,23 +352,88 @@ export default function QuizEngine() {
     }
   };
 
-  const handleSaveAndAbort = () => {
+  const handleSaveAndExit = async () => {
+    const state = useQuizStore.getState();
+    const empId = localStorage.getItem('currentUserEmpId') || 'EMP-456'; 
+    
+    // Save locally as requested
+    const playerProgress = {
+       score: state.score,
+       coins: state.coinsEarned,
+       timestamp: new Date().toISOString()
+    };
+    localStorage.setItem('simulation_save', JSON.stringify(playerProgress));
+
+    try {
+      await fetch('/api/quiz-sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          empId,
+          finalScore: state.score,
+          highestStreak: state.highestStreak || 0,
+          questionsPlayed: state.playedQuestions,
+          sessionLogs: state.sessionLogs,
+        }),
+      });
+
+      await fetch('/api/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          empId,
+          updates: { score: state.score }
+        }),
+      });
+      
+      console.log("Progress saved. Aborting simulation...");
+    } catch (error) {
+      console.error('[QuizEngine] Failed to save session:', error);
+    }
+    
+    if (socket) {
+      socket.emit('player_extracted', { targetId: socket.id });
+    }
+
+    useQuizStore.getState().resetQuiz();
     router.push('/');
   };
 
+  if (isBriefing) {
+    return (
+      <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
+        <div className="bg-gray-950 border border-red-500/50 rounded-lg p-8 max-w-2xl w-full shadow-[0_0_30px_rgba(220,38,38,0.15)] font-mono">
+          <h2 className="text-3xl text-red-500 mb-6 tracking-widest text-center border-b border-red-900/30 pb-4">
+            SYSTEM BRIEFING
+          </h2>
+          <ul className="space-y-4 text-gray-300 text-sm md:text-base mb-8 font-mono">
+            <li><span className="text-red-400">»</span> Answer rapidly. Speed yields higher point multipliers.</li>
+            <li><span className="text-red-400">»</span> Access the Black Market via the lower console to deploy tactical gadgets.</li>
+            <li><span className="text-purple-400 font-bold">» GADGET EFFECT: Deploying an item will freeze the system timer for exactly 5 seconds.</span></li>
+            <li><span className="text-yellow-400 font-bold">» SYSTEM EXIT: You must press "SAVE AND ABORT" to securely extract your progress before leaving.</span></li>
+          </ul>
+          <button 
+            onClick={() => setIsBriefing(false)} 
+            className="w-full bg-red-900/20 hover:bg-red-600 border border-red-500 text-white py-4 rounded font-bold tracking-[0.2em] transition-all duration-300 hover:shadow-[0_0_20px_rgba(220,38,38,0.4)]"
+          >
+            ACKNOWLEDGE & INITIATE
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`grid grid-cols-1 lg:grid-cols-3 gap-8 w-full max-w-7xl mx-auto min-h-screen overflow-y-auto p-6 pb-8 relative transition-all ${isSabotaged ? 'animate-cyber-shake border-4 border-red-600' : ''}`}>
+      <button 
+        onClick={handleSaveAndExit}
+        className="absolute top-6 left-6 bg-red-600 hover:bg-red-700 text-white font-mono text-xs px-4 py-2 rounded flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(220,38,38,0.4)] z-50"
+      >
+        <span className="text-lg font-bold">←</span> SAVE AND EXIT
+      </button>
       
       {/* LEFT SIDE: QUIZ UI */}
       <div className="lg:col-span-2 flex flex-col w-full h-auto">
-        <div className="w-full flex justify-between items-center mb-6">
-          <button 
-            onClick={handleSaveAndAbort}
-            className="px-4 py-2 bg-gray-800 hover:bg-red-900/50 text-gray-300 hover:text-white border border-gray-700 hover:border-red-500 rounded text-xs font-mono uppercase tracking-widest transition-colors"
-          >
-            Save & Abort
-          </button>
-        </div>
 
         <div className="w-full flex justify-between mb-4 text-gray-500 font-mono text-sm uppercase tracking-wider">
           <span>Unit {currentQuestionIndex + 1} / {questions.length}</span>
@@ -346,7 +447,7 @@ export default function QuizEngine() {
           </div>
         </div>
 
-        <div className="w-full h-auto bg-gray-900 border border-gray-800 p-6 pb-8 rounded-lg shadow-xl text-white flex flex-col">
+        <div className="w-full h-auto bg-gray-900 border border-gray-800 p-6 pb-24 rounded-lg shadow-xl text-white flex flex-col relative min-h-[500px]">
           <div className="mb-4 text-xs font-mono text-[#ff0055] uppercase tracking-widest flex items-center justify-between border-b border-gray-800 pb-2">
             <div className="flex gap-4">
               <span>{activeQuestion.category}</span>
@@ -361,36 +462,41 @@ export default function QuizEngine() {
           <h2 className="text-xl font-bold mb-6 leading-relaxed">
             {activeQuestion.question}
           </h2>
-          {showQR && (
-            <div onClick={triggerGotcha} className="my-6 p-4 bg-white rounded flex justify-center items-center mx-auto border-4 border-gray-300 cursor-pointer shadow-lg hover:bg-gray-50 transition-colors">
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=CyberShield_Gotcha_Test" alt="Phishing Test QR" className="rounded" />
-              <div className="ml-4 text-left">
-                <p className="text-black font-extrabold text-xl">SCAN OR CLICK</p>
-                <p className="text-gray-600 text-sm">Testing Phase 7 Triggers</p>
-              </div>
-            </div>
-          )}
+
 
           {(activeQuestion.type === 'mcq' || activeQuestion.type === 'true_false') && (
-            <div className="space-y-3 mb-8">
-              {activeQuestion.options?.map((option: string, index: number) => {
-                const isSelected = selectedOption === option;
-                return (
-                  <button
-                    key={index}
-                    onClick={() => !isSubmitted && setSelectedOption(option)}
-                    disabled={isSubmitted}
-                    className={`w-full text-left p-4 rounded border transition-colors ${
-                      isSelected 
-                        ? 'bg-[#ff0055]/20 border-[#ff0055] text-white' 
-                        : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-500 hover:bg-gray-750'
-                    } ${isSubmitted ? 'opacity-75 cursor-not-allowed' : ''}`}
-                  >
-                    {option}
-                  </button>
-                );
-              })}
-            </div>
+            activeQuestion.options && activeQuestion.options.length > 0 ? (
+              <div className="space-y-3 mb-8">
+                {activeQuestion.options.map((option: string, index: number) => {
+                  const isSelected = selectedOption === option;
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => !isSubmitted && setSelectedOption(option)}
+                      disabled={isSubmitted}
+                      className={`w-full text-left p-4 rounded border transition-colors ${
+                        isSelected 
+                          ? 'bg-[#ff0055]/20 border-[#ff0055] text-white' 
+                          : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-500 hover:bg-gray-750'
+                      } ${isSubmitted ? 'opacity-75 cursor-not-allowed' : ''}`}
+                    >
+                      {option}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="bg-red-900/20 border border-red-500 p-6 rounded-lg text-center font-mono mb-8">
+                <span className="text-red-500 text-xl block mb-2">⚠️ DATA CORRUPTION DETECTED</span>
+                <p className="text-gray-300 text-sm">No operational parameters loaded for this sequence. (Check database payload for this question).</p>
+                <button 
+                  onClick={() => advanceQuestion(false, 0)}
+                  className="mt-4 bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded text-xs tracking-widest cursor-pointer"
+                >
+                  FORCE SKIP →
+                </button>
+              </div>
+            )
           )}
 
           {isSubmitted && (
@@ -415,6 +521,45 @@ export default function QuizEngine() {
             >
               {isSubmitted ? 'NEXT QUESTION' : 'Submit Intel'}
             </button>
+          </div>
+
+          {/* INJECT GADGET DEPLOYMENT BUTTON */}
+          <div className="absolute bottom-6 left-6 z-40">
+            <button 
+              onClick={() => (document.getElementById('inventory-modal') as HTMLDialogElement)?.showModal()}
+              className="bg-purple-900/60 hover:bg-purple-600 border border-purple-500 text-white px-6 py-3 rounded-full font-mono text-sm tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all cursor-pointer"
+            >
+              DEPLOY GADGET 🛠️
+            </button>
+            
+            {/* Simple native dialog for inventory */}
+            <dialog id="inventory-modal" className="bg-gray-950 border border-purple-500 p-6 rounded-lg text-white font-mono backdrop:bg-black/80 w-80">
+               <h3 className="text-purple-400 mb-4 border-b border-purple-900/50 pb-2">ACTIVE INVENTORY</h3>
+               {Object.entries(inventory).filter(([_, count]) => count > 0).length === 0 ? (
+                 <p className="text-gray-500 text-xs">No tactical assets available.</p>
+               ) : (
+                 Object.entries(inventory)
+                   .filter(([_, count]) => count > 0)
+                   .map(([key, count], idx) => (
+                   <button 
+                     key={idx} 
+                     onClick={() => {
+                       // Trigger your gadget effect here
+                       console.log(`Deployed: ${key}`);
+                       setIsTimerFrozen(true);
+                       setTimeout(() => setIsTimerFrozen(false), 5000); // Thaws after 5 seconds
+                       (document.getElementById('inventory-modal') as HTMLDialogElement)?.close();
+                     }}
+                     className="block w-full text-left p-3 mb-2 bg-purple-900/20 hover:bg-purple-600 text-sm border border-purple-900 rounded cursor-pointer"
+                   >
+                     {">"} {key.toUpperCase()} (x{count})
+                   </button>
+                 ))
+               )}
+               <button onClick={() => (document.getElementById('inventory-modal') as HTMLDialogElement)?.close()} className="mt-4 text-gray-500 hover:text-white text-xs w-full text-right cursor-pointer">
+                 [ CLOSE ]
+               </button>
+            </dialog>
           </div>
         </div>
       </div>
@@ -455,6 +600,49 @@ export default function QuizEngine() {
           <h2 className="text-4xl font-black text-white">🔥 HIGH STAKES WAGER 🔥</h2>
           <p className="text-xl text-red-200 mt-2">Bet your coins. Double the payout, or lose it all.</p>
           {/* Betting input and Wager Question component go here */}
+        </div>
+      )}
+
+      {qrEvent.active && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-950 border-2 border-yellow-500 p-8 rounded-lg shadow-[0_0_50px_rgba(234,179,8,0.4)] z-50 text-center animate-pulse w-[90%] max-w-md">
+          
+          {/* Quick Close 'X' in top right */}
+          <button 
+            onClick={() => setQrEvent({ active: false, payload: "" })} 
+            className="absolute top-3 right-4 text-gray-500 hover:text-white font-mono text-2xl transition-colors"
+          >
+            &times;
+          </button>
+
+          <h3 className="text-yellow-500 font-bold font-mono text-3xl mb-2 tracking-widest uppercase drop-shadow-[0_0_10px_rgba(234,179,8,0.8)]">
+            🎁 LOOT DROP 🎁
+          </h3>
+          
+          <p className="text-gray-200 text-sm mb-4 font-mono leading-relaxed">
+            Scan immediately to claim:
+            <br/>
+            <span className="text-blue-400 font-bold text-lg drop-shadow-[0_0_5px_rgba(96,165,250,0.8)]">⚡ FREE XP</span> | 
+            <span className="text-green-400 font-bold text-lg drop-shadow-[0_0_5px_rgba(74,222,128,0.8)]"> 💰 BONUS COINS</span> | 
+            <span className="text-purple-400 font-bold text-lg drop-shadow-[0_0_5px_rgba(168,85,247,0.8)]"> 🛠️ GADGETS</span>
+          </p>
+          
+          <div className="bg-white p-4 inline-block rounded-xl shadow-[0_0_25px_rgba(255,255,255,0.3)] mb-6">
+            <QRCodeSVG 
+              value={qrEvent.payload} 
+              size={200} 
+              bgColor={"#ffffff"} 
+              fgColor={"#000000"} 
+              level={"H"}
+            />
+          </div>
+          
+          {/* Massive Skip Button */}
+          <button 
+            onClick={() => setQrEvent({ active: false, payload: "" })} 
+            className="block w-full bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white py-4 rounded font-mono text-sm tracking-[0.2em] transition-all"
+          >
+            SKIP & RETURN TO QUIZ
+          </button>
         </div>
       )}
     </div>

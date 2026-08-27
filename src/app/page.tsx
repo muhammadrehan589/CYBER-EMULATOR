@@ -1,9 +1,11 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { io, Socket } from 'socket.io-client';
+import { QRCodeSVG } from 'qrcode.react';
 import { 
   Gamepad2, 
   ArrowLeft, 
@@ -19,6 +21,7 @@ import {
 import { MiniAvatar, AvatarSVG, DEFAULT_AVATAR, type AvatarState } from '@/components/Avatar';
 import ItemShopModal from '@/components/shop/ItemShopModal';
 import PasswordQuest from '@/components/dashboard/PasswordQuest';
+import { useQuizStore } from '@/store/quizStore';
 
 interface LeaderboardPlayer {
   rank: number;
@@ -52,24 +55,26 @@ const LeaderboardItem = ({
   floatingEmojis, 
   onEmitEmoji, 
   onScoreBoost,
-  mini = true
+  mini = true,
+  selectedTarget,
+  setSelectedTarget
 }: { 
   player: LeaderboardPlayer; 
   floatingEmojis: FloatingEmoji[]; 
   onEmitEmoji: (id: string, emoji: string) => void;
   onScoreBoost: (id: string) => void;
   mini?: boolean;
+  selectedTarget?: LeaderboardPlayer | null;
+  setSelectedTarget?: (p: LeaderboardPlayer) => void;
 }) => {
   const rowEmojis = floatingEmojis.filter((e) => e.empId === player.empId);
   const badgeStyle = RANK_BADGE_STYLES[player.rank] || '';
 
   return (
     <div
-      className={`px-3 py-2.5 rounded-xl border relative flex items-center gap-3 transition-all duration-500 ${
-        player.rank === 1
-          ? 'bg-[#1e0720] border-[#ff0055] shadow-[0_0_18px_rgba(255,0,85,0.25)]'
-          : 'bg-[#050008] border-zinc-800/80 hover:border-[#ff0055]/30'
-      }`}
+      key={player.empId} 
+      onClick={() => setSelectedTarget && setSelectedTarget(player)}
+      className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all ${selectedTarget?.empId === player.empId ? 'bg-red-900/40 border border-red-500' : 'bg-gray-900 border border-transparent hover:bg-gray-800'}`}
     >
       <AnimatePresence>
         {rowEmojis.map((e) => (
@@ -91,61 +96,49 @@ const LeaderboardItem = ({
         ))}
       </AnimatePresence>
 
-      {/* Rank Badge */}
-      <div
-        className={`w-8 h-8 rounded-lg font-mono text-xs font-black flex items-center justify-center shrink-0 ${
-          badgeStyle || 'text-white'
-        }`}
-        style={!badgeStyle ? { backgroundColor: player.badgeColor } : undefined}
-      >
-        #{player.rank}
-      </div>
+      <div className="flex items-center gap-3 w-full">
+        {/* Rank Badge */}
+        <div
+          className={`w-8 h-8 rounded-lg font-mono text-xs font-black flex items-center justify-center shrink-0 ${
+            badgeStyle || 'text-white'
+          }`}
+          style={!badgeStyle ? { backgroundColor: player.badgeColor } : undefined}
+        >
+          #{player.rank}
+        </div>
 
-      {/* Avatar */}
-      <div className={`${
-        mini ? 'w-10 h-10 rounded-full' : 'w-[48px] h-[76px] rounded-xl'
-      } overflow-hidden bg-black/60 border border-white/10 shrink-0 flex items-center justify-center`}>
-        {mini ? (
-          <MiniAvatar avatar={player.avatar} />
-        ) : (
-          <AvatarSVG avatar={player.avatar} size={48} mini={false} />
-        )}
-      </div>
+        {/* Avatar */}
+        <div className={`${
+          mini ? 'w-10 h-10 rounded-full' : 'w-[48px] h-[76px] rounded-xl'
+        } overflow-hidden bg-black/60 border border-white/10 shrink-0 flex items-center justify-center`}>
+          {mini ? (
+            <MiniAvatar avatar={player.avatar} />
+          ) : (
+            <AvatarSVG avatar={player.avatar} size={48} mini={false} />
+          )}
+        </div>
 
-      {/* Name + Username */}
-      <div className="flex flex-col min-w-0 flex-1">
-        <span className="text-sm font-bold text-white leading-tight truncate">
-          {player.name}
-        </span>
-        <span className="text-[10px] font-mono text-zinc-500 truncate">
-          @{player.username}
-        </span>
-      </div>
-
-      {/* Score + Actions */}
-      <div className="flex items-center gap-1.5 shrink-0">
-        <div className="flex flex-col items-end">
-          <span className="text-sm font-mono font-bold text-white tabular-nums">
-            {player.score.toLocaleString()} PTS
+        {/* Name + Username */}
+        <div className="flex flex-col min-w-0 flex-1">
+          <span className="text-sm font-bold text-white leading-tight truncate">
+            {player.name}
           </span>
-          <span className="text-[10px] font-mono text-[#ff0055] font-black">
-            {player.xp} XP
+          <span className="text-[10px] font-mono text-zinc-500 truncate">
+            @{player.username}
           </span>
         </div>
-        <button
-          onClick={() => onEmitEmoji(player.empId, '🔥')}
-          className="p-1 rounded bg-[#1c061e] border border-[#ff0055]/30 text-xs hover:bg-[#ff0055] hover:border-[#ff0055] transition-all cursor-pointer ml-2"
-          title={`Send 🔥 to ${player.name}`}
-        >
-          🔥
-        </button>
-        <button
-          onClick={() => onScoreBoost(player.empId)}
-          className="px-1.5 py-1 rounded bg-emerald-950 border border-emerald-500/30 text-[9px] font-mono text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all cursor-pointer whitespace-nowrap"
-          title={`Boost ${player.name} +250 XP`}
-        >
-          +250 XP
-        </button>
+
+        {/* Score + Actions */}
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+          <div className="flex flex-col items-end">
+            <span className="text-sm font-mono font-bold text-white tabular-nums">
+              {player.score.toLocaleString()} PTS
+            </span>
+            <span className="text-[10px] font-mono text-[#ff0055] font-black">
+              {player.xp} XP
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -157,7 +150,9 @@ const FullLeaderboardModal = ({
   leaderboard,
   floatingEmojis,
   onEmitEmoji,
-  onScoreBoost
+  onScoreBoost,
+  selectedTarget,
+  setSelectedTarget
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -165,6 +160,8 @@ const FullLeaderboardModal = ({
   floatingEmojis: FloatingEmoji[];
   onEmitEmoji: (id: string, emoji: string) => void;
   onScoreBoost: (id: string) => void;
+  selectedTarget: LeaderboardPlayer | null;
+  setSelectedTarget: (p: LeaderboardPlayer) => void;
 }) => {
   if (!isOpen) return null;
 
@@ -194,6 +191,8 @@ const FullLeaderboardModal = ({
               onEmitEmoji={onEmitEmoji}
               onScoreBoost={onScoreBoost}
               mini={false}
+              selectedTarget={selectedTarget}
+              setSelectedTarget={setSelectedTarget}
             />
           ))}
         </div>
@@ -203,6 +202,40 @@ const FullLeaderboardModal = ({
 };
 
 export default function Phase3RealtimeDashboard() {
+  const router = useRouter();
+  const [isAuthenticating, setIsAuthenticating] = useState(true);
+  const { coinsEarned, addCoins } = useQuizStore();
+
+  const setMyScore = (s: number) => useQuizStore.setState({ score: s });
+  const setCoins = (c: number) => useQuizStore.setState({ coinsEarned: c });
+
+  useEffect(() => {
+    // 1. Retrieve the encrypted save file
+    const savedData = localStorage.getItem('simulation_save');
+    
+    if (savedData) {
+      // 2. Decrypt (Parse) the JSON payload
+      const parsed = JSON.parse(savedData);
+      
+      // 3. Inject the saved values into your active state
+      // (Ensure you have setMyScore and setCoins state functions in this file)
+      if (parsed.score !== undefined) setMyScore(parsed.score);
+      if (parsed.coins !== undefined) setCoins(parsed.coins);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Check for your specific auth token or user state here
+    const isAuthenticated = localStorage.getItem('currentUserEmpId'); 
+    
+    if (!isAuthenticated) {
+      // Eject unauthenticated users to the login route
+      router.push('/login'); 
+    } else {
+      setIsAuthenticating(false); // Green light, lift the blackout cloak
+    }
+  }, [router]);
+
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardPlayer[]>([]);
@@ -214,6 +247,8 @@ export default function Phase3RealtimeDashboard() {
     '👑': 0,
     '🎯': 0,
   });
+  
+  const [selectedTarget, setSelectedTarget] = useState<LeaderboardPlayer | null>(null);
   
   const [isFullLeaderboardOpen, setIsFullLeaderboardOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
@@ -428,6 +463,14 @@ export default function Phase3RealtimeDashboard() {
 
   const top5Leaderboard = leaderboard.slice(0, 5);
 
+  if (isAuthenticating) {
+    return (
+      <div className="h-screen w-screen bg-black flex items-center justify-center text-red-500 font-mono tracking-[0.3em]">
+        VERIFYING CLEARANCE...
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen h-screen bg-black text-white p-4 sm:p-6 lg:p-8 font-sans relative overflow-x-hidden flex flex-col justify-between select-none">
       <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#ff0055]/15 rounded-full blur-3xl pointer-events-none z-0" />
@@ -462,20 +505,6 @@ export default function Phase3RealtimeDashboard() {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#120315] border border-[#ff0055]/40 font-mono text-xs text-[#ff0055]">
-              {isConnected ? (
-                <>
-                  <Wifi className="w-4 h-4 text-emerald-400 animate-pulse" />
-                  <span className="text-emerald-400 font-bold">SOCKET LIVE (PORT 3001)</span>
-                </>
-              ) : (
-                <>
-                  <WifiOff className="w-4 h-4 text-amber-400" />
-                  <span className="text-amber-400">SOCKET SYNC READY</span>
-                </>
-              )}
-            </div>
-
             <Link
               href="/avatar"
               className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#ff0055] to-[#e60039] hover:from-[#e60039] hover:to-[#ff0055] text-white text-xs font-extrabold uppercase tracking-wider flex items-center gap-2 shadow-[0_0_20px_rgba(255,0,85,0.5)] border border-white/20 transition-all active:scale-95 cursor-pointer"
@@ -501,23 +530,6 @@ export default function Phase3RealtimeDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 items-start">
           <div className="lg:col-span-6 xl:col-span-7 space-y-6">
             <div className="squid-panel rounded-3xl p-6 sm:p-8 border border-[#ff0055]/40 backdrop-blur-xl shadow-[0_0_35px_rgba(255,0,85,0.25)] relative overflow-hidden space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#ff0055]/20 border border-[#ff0055]/40 text-xs font-mono text-[#ff0055]">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#ff0055] animate-ping" />
-                  <span>PHASE 3 // REAL-TIME MULTIPLAYER LEADERBOARD</span>
-                </div>
-                <span className="text-xs font-mono text-zinc-400">SECTOR 04</span>
-              </div>
-
-              <div className="space-y-2">
-                <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-pink-200 to-[#ff0055]">
-                  Live Synchronized Arena
-                </h1>
-                <p className="text-xs sm:text-sm text-zinc-300 max-w-xl leading-relaxed">
-                  Real-time Socket.io pipeline active. Score updates and emoji reaction streams are broadcast instantly across all connected operants.
-                </p>
-              </div>
-
               <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                 <button 
                   onClick={() => window.location.href = '/simulation-matrix'}
@@ -527,10 +539,6 @@ export default function Phase3RealtimeDashboard() {
                   ENTER SIMULATION MATRIX
                 </button>
 
-                <div className="flex items-center gap-4 text-xs font-mono text-zinc-400 px-4 py-2 rounded-xl bg-[#050008] border border-zinc-800">
-                  <div>LATENCY: <span className="text-emerald-400 font-bold">12 MS</span></div>
-                  <div>BROADCAST: <span className="text-[#ff0055] font-bold">SOCKET.IO</span></div>
-                </div>
               </div>
             </div>
 
@@ -553,10 +561,6 @@ export default function Phase3RealtimeDashboard() {
               >
                 <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">OPERANTS</span>
                 <span className="text-xl font-extrabold text-emerald-400 font-mono">{leaderboard.length} ACTIVE</span>
-              </div>
-              <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
-                <span className="text-[10px] font-mono text-zinc-400 uppercase">REACTIONS</span>
-                <span className="text-xl font-extrabold text-white font-mono">LIVE STREAM</span>
               </div>
             </div>
           </div>
@@ -588,6 +592,8 @@ export default function Phase3RealtimeDashboard() {
                     floatingEmojis={floatingEmojis}
                     onEmitEmoji={handleEmitEmoji}
                     onScoreBoost={handleScoreBoost}
+                    selectedTarget={selectedTarget}
+                    setSelectedTarget={setSelectedTarget}
                   />
                 ))
               )}
@@ -601,19 +607,60 @@ export default function Phase3RealtimeDashboard() {
               FULL PLAYER LEADERBOARD
             </button>
 
-            <div className="pt-3 border-t border-[#ff0055]/20 space-y-2">
-              <span className="text-[10px] font-mono text-zinc-400 uppercase block">
-                BROADCAST EMOJI REACTION TO LEADERBOARD:
-              </span>
-              <div className="flex items-center justify-between gap-1.5">
-                {Object.entries(reactionCounts).map(([emoji, count]) => (
-                  <button
-                    key={emoji}
-                    onClick={() => handleEmitEmoji(leaderboard[0]?.empId || 'EMP-001', emoji)}
-                    className="flex-1 py-2 rounded-xl bg-[#050008] border border-zinc-800 hover:border-[#ff0055] text-xs font-mono flex flex-col items-center justify-center gap-0.5 transition-all active:scale-90 cursor-pointer shadow-sm"
+            <div className="mt-6 border-t border-gray-800 pt-6">
+              <h4 className="text-xs text-gray-500 font-mono mb-4 uppercase tracking-[0.2em]">
+                {selectedTarget ? `TARGET LOCKED: ${selectedTarget.name}` : 'SELECT A TARGET TO ENGAGE'}
+              </h4>
+              
+              {/* Reactions */}
+              <div className="flex justify-between gap-2 mb-6">
+                {['🔥', '⚡', '💀', '👑', '🎯'].map(emoji => (
+                   <button 
+                     key={emoji}
+                     disabled={!selectedTarget}
+                     onClick={() => selectedTarget && handleEmitEmoji(selectedTarget.empId, emoji)}
+                     className="flex-1 bg-gray-950 py-3 rounded border border-gray-800 hover:border-blue-500 disabled:opacity-20 transition-all text-xl cursor-pointer"
+                   >
+                     {emoji}
+                   </button>
+                ))}
+              </div>
+
+              {/* Coin-Based XP Boosts */}
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { xp: 50, cost: 10 }, 
+                  { xp: 100, cost: 25 }, 
+                  { xp: 250, cost: 50 }, 
+                  { xp: 500, cost: 100 }
+                ].map(tier => (
+                  <button 
+                     key={tier.xp}
+                     disabled={!selectedTarget}
+                     onClick={async () => {
+                       if (!selectedTarget) return;
+                       if (coinsEarned >= tier.cost) {
+                         addCoins(-tier.cost);
+                         try {
+                           await fetch('/api/users', {
+                             method: 'PATCH',
+                             headers: { 'Content-Type': 'application/json' },
+                             body: JSON.stringify({ empId: selectedTarget.empId, inc: { xp: tier.xp } }),
+                           });
+                           if (socket && isConnected) {
+                             socket.emit('trigger_refresh'); 
+                           }
+                         } catch (err) {
+                           console.error('Failed to send XP', err);
+                         }
+                       } else {
+                         alert("INSUFFICIENT FUNDS.");
+                       }
+                     }}
+                     className="bg-gray-950 group flex justify-between items-center p-3 font-mono border border-green-900/50 hover:bg-green-900/20 disabled:opacity-20 rounded transition-all cursor-pointer"
                   >
-                    <span>{emoji}</span>
-                    <span className="text-[9px] text-zinc-400 font-bold">{count}</span>
+                     <span className="text-green-500 text-sm font-bold group-hover:text-green-400">+{tier.xp} XP</span>
+                     <span className="text-yellow-600 text-xs tracking-widest">{tier.cost} 🪙</span>
                   </button>
                 ))}
               </div>
@@ -629,6 +676,8 @@ export default function Phase3RealtimeDashboard() {
         floatingEmojis={floatingEmojis}
         onEmitEmoji={handleEmitEmoji}
         onScoreBoost={handleScoreBoost}
+        selectedTarget={selectedTarget}
+        setSelectedTarget={setSelectedTarget}
       />
 
       {isShopOpen && <ItemShopModal onClose={() => setIsShopOpen(false)} players={leaderboard} socket={socket} />}
