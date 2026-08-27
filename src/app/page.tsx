@@ -1,9 +1,11 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { io, Socket } from 'socket.io-client';
+import { QRCodeSVG } from 'qrcode.react';
 import { 
   Gamepad2, 
   ArrowLeft, 
@@ -203,6 +205,21 @@ const FullLeaderboardModal = ({
 };
 
 export default function Phase3RealtimeDashboard() {
+  const router = useRouter();
+  const [isAuthenticating, setIsAuthenticating] = useState(true);
+
+  useEffect(() => {
+    // Check for your specific auth token or user state here
+    const isAuthenticated = localStorage.getItem('currentUserEmpId'); 
+    
+    if (!isAuthenticated) {
+      // Eject unauthenticated users to the login route
+      router.push('/login'); 
+    } else {
+      setIsAuthenticating(false); // Green light, lift the blackout cloak
+    }
+  }, [router]);
+
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardPlayer[]>([]);
@@ -427,6 +444,14 @@ export default function Phase3RealtimeDashboard() {
   };
 
   const top5Leaderboard = leaderboard.slice(0, 5);
+
+  if (isAuthenticating) {
+    return (
+      <div className="h-screen w-screen bg-black flex items-center justify-center text-red-500 font-mono tracking-[0.3em]">
+        VERIFYING CLEARANCE...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen h-screen bg-black text-white p-4 sm:p-6 lg:p-8 font-sans relative overflow-x-hidden flex flex-col justify-between select-none">

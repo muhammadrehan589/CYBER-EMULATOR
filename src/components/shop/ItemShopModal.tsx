@@ -10,19 +10,50 @@ interface ItemShopModalProps {
 }
 
 export default function ItemShopModal({ onClose, players = [], socket }: ItemShopModalProps) {
-  const { coinsEarned, xpEarned, buyItem, inventory, executeSabotage } = useQuizStore();
+  const { coinsEarned: coins, xpEarned, inventory, executeSabotage } = useQuizStore();
   const [feedback, setFeedback] = useState<{ id: string, message: string, type: 'success' | 'error' } | null>(null);
   const [terminalLog, setTerminalLog] = useState<string | null>(null);
   const [targetingMode, setTargetingMode] = useState<string | null>(null);
 
-  const handlePurchase = (itemType: any, cost: number, id: string) => {
-    const success = buyItem(itemType, cost);
-    if (success) {
-      setFeedback({ id, message: 'ACQUIRED', type: 'success' });
+  const setCoins = (updater: any) => {
+    useQuizStore.setState(state => ({
+      coinsEarned: typeof updater === 'function' ? updater(state.coinsEarned) : updater
+    }));
+  };
+
+  const setInventory = (updater: any) => {
+    useQuizStore.setState(state => {
+      const prevInv: any[] = [];
+      for (const [key, val] of Object.entries(state.inventory)) {
+        for (let i = 0; i < (val as number); i++) {
+          prevInv.push({ type: key });
+        }
+      }
+      const nextInv = updater(prevInv);
+      const newObj = { ...state.inventory };
+      const addedItem = nextInv[nextInv.length - 1];
+      if (addedItem && addedItem.type && newObj[addedItem.type as keyof typeof newObj] !== undefined) {
+        newObj[addedItem.type as keyof typeof newObj] += 1;
+      }
+      return { inventory: newObj };
+    });
+  };
+
+  const handlePurchase = (item: any) => {
+    // Check if player has enough funds
+    if (coins >= item.price) {
+      // 🟢 TRANSACTION APPROVED
+      setCoins((prevCoins: number) => prevCoins - item.price);
+      setInventory((prevInv: any[]) => [...prevInv, item]);
+      console.log(`Successfully purchased: ${item.name}`);
+      setFeedback({ id: item.id, message: 'ACQUIRED', type: 'success' });
+      setTimeout(() => setFeedback(null), 2000);
     } else {
-      setFeedback({ id, message: 'INSUFFICIENT FUNDS', type: 'error' });
+      // 🔴 INSUFFICIENT FUNDS
+      console.log("Transaction denied: Not enough coins.");
+      setFeedback({ id: item.id, message: 'INSUFFICIENT FUNDS', type: 'error' });
+      setTimeout(() => setFeedback(null), 2000);
     }
-    setTimeout(() => setFeedback(null), 2000);
   };
 
   const boosters = [
@@ -30,7 +61,7 @@ export default function ItemShopModal({ onClose, players = [], socket }: ItemSho
       id: 'hint-hacker',
       type: 'hints' as const,
       name: 'Hint Hacker',
-      cost: 50,
+      price: 50,
       description: 'Scrambles and eliminates 50% of incorrect choices.',
       icon: '🧠',
       offensive: false
@@ -39,7 +70,7 @@ export default function ItemShopModal({ onClose, players = [], socket }: ItemSho
       id: 'chronos-freeze',
       type: 'timeFreezes' as const,
       name: 'Chronos Freeze',
-      cost: 30,
+      price: 30,
       description: 'Freezes question countdown timer for 15 seconds.',
       icon: '⏱️',
       offensive: false
@@ -48,7 +79,7 @@ export default function ItemShopModal({ onClose, players = [], socket }: ItemSho
       id: 'firewall-shield',
       type: 'shields' as const,
       name: 'Firewall Shield',
-      cost: 100,
+      price: 100,
       description: 'Absorbs 1 wrong answer penalty without breaking streak.',
       icon: '🛡️',
       offensive: false
@@ -57,7 +88,7 @@ export default function ItemShopModal({ onClose, players = [], socket }: ItemSho
       id: 'zero-day-sabotager',
       type: 'sabotagers' as const,
       name: 'Zero-Day Sabotager',
-      cost: 300,
+      price: 300,
       description: 'Deploy a jumpscare and deduct 150 XP from a target.',
       icon: '💀',
       offensive: true
@@ -66,7 +97,7 @@ export default function ItemShopModal({ onClose, players = [], socket }: ItemSho
       id: 'decoy-proxy',
       type: 'decoys' as const,
       name: 'Decoy Proxy',
-      cost: 120,
+      price: 120,
       description: 'Deflects the next sabotage attempt.',
       icon: '🎭',
       offensive: false
@@ -75,7 +106,7 @@ export default function ItemShopModal({ onClose, players = [], socket }: ItemSho
       id: 'ddos-emp',
       type: 'ddosEmps' as const,
       name: 'DDoS EMP',
-      cost: 200,
+      price: 200,
       description: 'Blinds all opponents screens for 5 seconds.',
       icon: '🔌',
       offensive: true
@@ -84,7 +115,7 @@ export default function ItemShopModal({ onClose, players = [], socket }: ItemSho
       id: 'overclock-rig',
       type: 'overclocks' as const,
       name: 'Overclock Rig',
-      cost: 150,
+      price: 150,
       description: 'Double XP gains for the next 3 questions.',
       icon: '⚡',
       offensive: false
@@ -100,7 +131,7 @@ export default function ItemShopModal({ onClose, players = [], socket }: ItemSho
             Black Market
           </h2>
           <div className="flex gap-6 font-mono font-bold text-lg">
-            <span className="text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.5)]">🪙 Coins: {coinsEarned}</span>
+            <span className="text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.5)]">🪙 Coins: {coins}</span>
             <span className="text-cyan-400 drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]">⚡ XP: {xpEarned}</span>
           </div>
         </div>
@@ -123,7 +154,7 @@ export default function ItemShopModal({ onClose, players = [], socket }: ItemSho
                 </p>
                 <div className="flex justify-between items-center mb-4 font-mono font-bold">
                   <span className="text-yellow-400">Cost:</span>
-                  <span className="text-white bg-black/50 px-3 py-1 rounded border border-gray-600">{booster.cost} 🪙</span>
+                  <span className="text-white bg-black/50 px-3 py-1 rounded border border-gray-600">{booster.price} 🪙</span>
                 </div>
                 
                 {showAttackBtn ? (
@@ -135,7 +166,7 @@ export default function ItemShopModal({ onClose, players = [], socket }: ItemSho
                   </button>
                 ) : (
                   <button
-                    onClick={() => handlePurchase(booster.type, booster.cost, booster.id)}
+                    onClick={() => handlePurchase(booster)}
                     className={`w-full py-3 text-white font-black uppercase tracking-widest rounded transition-colors active:scale-95 ${booster.offensive ? 'bg-red-700 hover:bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.4)]' : 'bg-cyan-700 hover:bg-cyan-600 shadow-[0_0_15px_rgba(34,211,238,0.4)]'}`}
                   >
                     Purchase {isOwned ? `(${inventory[booster.type]})` : ''}

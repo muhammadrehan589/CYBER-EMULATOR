@@ -5,6 +5,7 @@ import { useQuizStore } from '@/store/quizStore';
 import quizData from '@/data/questions.json';
 import { useRouter } from 'next/navigation';
 import LiveLeaderboard from './LiveLeaderboard';
+import { QRCodeSVG } from 'qrcode.react';
 
 const shuffleArray = (array: any[]) => {
   let shuffled = [...array];
@@ -23,6 +24,28 @@ export default function QuizEngine() {
   
   useEffect(() => {
     setQuestions(shuffleArray(initialQuestions));
+  }, []);
+
+  const [qrEvent, setQrEvent] = useState({ active: false, payload: "" });
+  const publicAssets = [
+    "/secret-gadget-blueprint.png",
+    "/classified-intel-01.jpg",
+    "/black-market-voucher.pdf"
+  ];
+
+  useEffect(() => {
+    const popTime = Math.floor(Math.random() * 20000) + 10000; // 10s to 30s delay
+    
+    const dropTimer = setTimeout(() => {
+      // Pick a random asset from the array
+      const randomAsset = publicAssets[Math.floor(Math.random() * publicAssets.length)];
+      // Generate the full URL so a mobile scanner can actually open the file
+      const fullUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://cyber-emulator.vercel.app'}${randomAsset}`;
+      
+      setQrEvent({ active: true, payload: fullUrl });
+    }, popTime);
+
+    return () => clearTimeout(dropTimer);
   }, []);
   const [isBriefing, setIsBriefing] = useState(true);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -460,6 +483,49 @@ export default function QuizEngine() {
           <h2 className="text-4xl font-black text-white">🔥 HIGH STAKES WAGER 🔥</h2>
           <p className="text-xl text-red-200 mt-2">Bet your coins. Double the payout, or lose it all.</p>
           {/* Betting input and Wager Question component go here */}
+        </div>
+      )}
+
+      {qrEvent.active && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-950 border-2 border-yellow-500 p-8 rounded-lg shadow-[0_0_50px_rgba(234,179,8,0.4)] z-50 text-center animate-pulse w-[90%] max-w-md">
+          
+          {/* Quick Close 'X' in top right */}
+          <button 
+            onClick={() => setQrEvent({ active: false, payload: "" })} 
+            className="absolute top-3 right-4 text-gray-500 hover:text-white font-mono text-2xl transition-colors"
+          >
+            &times;
+          </button>
+
+          <h3 className="text-yellow-500 font-bold font-mono text-3xl mb-2 tracking-widest uppercase drop-shadow-[0_0_10px_rgba(234,179,8,0.8)]">
+            🎁 LOOT DROP 🎁
+          </h3>
+          
+          <p className="text-gray-200 text-sm mb-4 font-mono leading-relaxed">
+            Scan immediately to claim:
+            <br/>
+            <span className="text-blue-400 font-bold text-lg drop-shadow-[0_0_5px_rgba(96,165,250,0.8)]">⚡ FREE XP</span> | 
+            <span className="text-green-400 font-bold text-lg drop-shadow-[0_0_5px_rgba(74,222,128,0.8)]"> 💰 BONUS COINS</span> | 
+            <span className="text-purple-400 font-bold text-lg drop-shadow-[0_0_5px_rgba(168,85,247,0.8)]"> 🛠️ GADGETS</span>
+          </p>
+          
+          <div className="bg-white p-4 inline-block rounded-xl shadow-[0_0_25px_rgba(255,255,255,0.3)] mb-6">
+            <QRCodeSVG 
+              value={qrEvent.payload} 
+              size={200} 
+              bgColor={"#ffffff"} 
+              fgColor={"#000000"} 
+              level={"H"}
+            />
+          </div>
+          
+          {/* Massive Skip Button */}
+          <button 
+            onClick={() => setQrEvent({ active: false, payload: "" })} 
+            className="block w-full bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white py-4 rounded font-mono text-sm tracking-[0.2em] transition-all"
+          >
+            SKIP & RETURN TO QUIZ
+          </button>
         </div>
       )}
     </div>
