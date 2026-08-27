@@ -206,6 +206,24 @@ export default function Phase3RealtimeDashboard() {
   const [isAuthenticating, setIsAuthenticating] = useState(true);
   const { coinsEarned, addCoins } = useQuizStore();
 
+  const setMyScore = (s: number) => useQuizStore.setState({ score: s });
+  const setCoins = (c: number) => useQuizStore.setState({ coinsEarned: c });
+
+  useEffect(() => {
+    // 1. Retrieve the encrypted save file
+    const savedData = localStorage.getItem('simulation_save');
+    
+    if (savedData) {
+      // 2. Decrypt (Parse) the JSON payload
+      const parsed = JSON.parse(savedData);
+      
+      // 3. Inject the saved values into your active state
+      // (Ensure you have setMyScore and setCoins state functions in this file)
+      if (parsed.score !== undefined) setMyScore(parsed.score);
+      if (parsed.coins !== undefined) setCoins(parsed.coins);
+    }
+  }, []);
+
   useEffect(() => {
     // Check for your specific auth token or user state here
     const isAuthenticated = localStorage.getItem('currentUserEmpId'); 
