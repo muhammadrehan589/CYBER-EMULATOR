@@ -23,7 +23,21 @@ export default function QuizEngine() {
   const [questions, setQuestions] = useState(initialQuestions);
   
   useEffect(() => {
-    setQuestions(shuffleArray(initialQuestions));
+    // Fetch the burn list
+    const burnedQuestions = JSON.parse(localStorage.getItem('burned_questions') || '[]');
+    
+    // Filter out any question whose ID is in the burn list
+    const freshQuestions = initialQuestions.filter((q: any) => !burnedQuestions.includes(q.id));
+    
+    // Failsafe: If they answer every question in the DB, clear the burn list to restart
+    if (freshQuestions.length === 0) {
+       console.log("Database exhausted. Resetting matrix...");
+       localStorage.removeItem('burned_questions');
+       setQuestions(shuffleArray(initialQuestions).slice(0, 10)); 
+    } else {
+       // Proceed with the fresh, unplayed questions
+       setQuestions(shuffleArray(freshQuestions).slice(0, 10));
+    }
   }, []);
 
   const [qrEvent, setQrEvent] = useState({ active: false, payload: "" });
@@ -324,6 +338,13 @@ export default function QuizEngine() {
       if (!selectedOption) return;
       submitAnswer(selectedOption);
     } else {
+      // Log question ID to the permanent burn list
+      const burnedQuestions = JSON.parse(localStorage.getItem('burned_questions') || '[]');
+      if (activeQuestion && !burnedQuestions.includes(activeQuestion.id)) {
+        burnedQuestions.push(activeQuestion.id);
+        localStorage.setItem('burned_questions', JSON.stringify(burnedQuestions));
+      }
+
       setSelectedOption(null);
       setIsSubmitted(false);
       setIsTimeout(false);
