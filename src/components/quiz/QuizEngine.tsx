@@ -331,10 +331,18 @@ export default function QuizEngine() {
     }
   };
 
-  const handleSaveAndAbort = async () => {
+  const handleSaveAndExit = async () => {
     const state = useQuizStore.getState();
     const empId = localStorage.getItem('currentUserEmpId') || 'EMP-456'; 
     
+    // Save locally as requested
+    const playerProgress = {
+       score: state.score,
+       coins: state.coinsEarned,
+       timestamp: new Date().toISOString()
+    };
+    localStorage.setItem('simulation_save', JSON.stringify(playerProgress));
+
     try {
       await fetch('/api/quiz-sessions', {
         method: 'POST',
@@ -362,6 +370,10 @@ export default function QuizEngine() {
       console.error('[QuizEngine] Failed to save session:', error);
     }
     
+    if (socket) {
+      socket.emit('player_extracted', { targetId: socket.id });
+    }
+
     useQuizStore.getState().resetQuiz();
     router.push('/');
   };
@@ -395,6 +407,14 @@ export default function QuizEngine() {
       
       {/* LEFT SIDE: QUIZ UI */}
       <div className="lg:col-span-2 flex flex-col w-full h-auto">
+        <div className="w-full flex justify-between items-center mb-6">
+          <button 
+            onClick={handleSaveAndExit}
+            className="bg-red-600 hover:bg-red-700 text-white font-mono text-sm px-5 py-2 rounded-md flex items-center gap-3 transition-colors shadow-lg z-50 relative cursor-pointer"
+          >
+            <span className="text-xl font-bold">←</span> SAVE AND EXIT
+          </button>
+        </div>
 
         <div className="w-full flex justify-between mb-4 text-gray-500 font-mono text-sm uppercase tracking-wider">
           <span>Unit {currentQuestionIndex + 1} / {questions.length}</span>
@@ -471,13 +491,6 @@ export default function QuizEngine() {
             </button>
           </div>
         </div>
-
-        <button 
-          onClick={handleSaveAndAbort}
-          className="mt-6 w-full max-w-sm mx-auto flex justify-center bg-transparent border-2 border-red-900 text-red-500 hover:bg-red-900/30 hover:text-red-400 py-3 rounded font-mono text-sm tracking-widest transition-all shadow-[0_0_15px_rgba(153,27,27,0.3)] cursor-pointer"
-        >
-          [ SAVE AND ABORT ]
-        </button>
       </div>
 
       {/* RIGHT SIDE: LEADERBOARD */}
@@ -562,7 +575,7 @@ export default function QuizEngine() {
         </div>
       )}
       {/* INJECT GADGET DEPLOYMENT BUTTON */}
-      <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
+      <div className="fixed bottom-8 left-8 z-[100]">
         <button 
           onClick={() => (document.getElementById('inventory-modal') as HTMLDialogElement)?.showModal()}
           className="bg-purple-900/40 hover:bg-purple-600 border border-purple-500 text-white px-6 py-3 rounded-full font-mono text-sm tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.4)] backdrop-blur-sm transition-all cursor-pointer"
