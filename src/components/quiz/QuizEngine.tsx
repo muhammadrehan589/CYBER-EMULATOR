@@ -404,17 +404,15 @@ export default function QuizEngine() {
 
   return (
     <div className={`grid grid-cols-1 lg:grid-cols-3 gap-8 w-full max-w-7xl mx-auto min-h-screen overflow-y-auto p-6 pb-8 relative transition-all ${isSabotaged ? 'animate-cyber-shake border-4 border-red-600' : ''}`}>
+      <button 
+        onClick={handleSaveAndExit}
+        className="absolute top-6 left-6 bg-red-600 hover:bg-red-700 text-white font-mono text-xs px-4 py-2 rounded flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(220,38,38,0.4)] z-50"
+      >
+        <span className="text-lg font-bold">←</span> SAVE AND EXIT
+      </button>
       
       {/* LEFT SIDE: QUIZ UI */}
       <div className="lg:col-span-2 flex flex-col w-full h-auto">
-        <div className="w-full flex justify-between items-center mb-6">
-          <button 
-            onClick={handleSaveAndExit}
-            className="bg-red-600 hover:bg-red-700 text-white font-mono text-sm px-5 py-2 rounded-md flex items-center gap-3 transition-colors shadow-lg z-50 relative cursor-pointer"
-          >
-            <span className="text-xl font-bold">←</span> SAVE AND EXIT
-          </button>
-        </div>
 
         <div className="w-full flex justify-between mb-4 text-gray-500 font-mono text-sm uppercase tracking-wider">
           <span>Unit {currentQuestionIndex + 1} / {questions.length}</span>
@@ -428,7 +426,7 @@ export default function QuizEngine() {
           </div>
         </div>
 
-        <div className="w-full h-auto bg-gray-900 border border-gray-800 p-6 pb-8 rounded-lg shadow-xl text-white flex flex-col">
+        <div className="w-full h-auto bg-gray-900 border border-gray-800 p-6 pb-24 rounded-lg shadow-xl text-white flex flex-col relative min-h-[500px]">
           <div className="mb-4 text-xs font-mono text-[#ff0055] uppercase tracking-widest flex items-center justify-between border-b border-gray-800 pb-2">
             <div className="flex gap-4">
               <span>{activeQuestion.category}</span>
@@ -446,25 +444,38 @@ export default function QuizEngine() {
 
 
           {(activeQuestion.type === 'mcq' || activeQuestion.type === 'true_false') && (
-            <div className="space-y-3 mb-8">
-              {activeQuestion.options?.map((option: string, index: number) => {
-                const isSelected = selectedOption === option;
-                return (
-                  <button
-                    key={index}
-                    onClick={() => !isSubmitted && setSelectedOption(option)}
-                    disabled={isSubmitted}
-                    className={`w-full text-left p-4 rounded border transition-colors ${
-                      isSelected 
-                        ? 'bg-[#ff0055]/20 border-[#ff0055] text-white' 
-                        : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-500 hover:bg-gray-750'
-                    } ${isSubmitted ? 'opacity-75 cursor-not-allowed' : ''}`}
-                  >
-                    {option}
-                  </button>
-                );
-              })}
-            </div>
+            activeQuestion.options && activeQuestion.options.length > 0 ? (
+              <div className="space-y-3 mb-8">
+                {activeQuestion.options.map((option: string, index: number) => {
+                  const isSelected = selectedOption === option;
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => !isSubmitted && setSelectedOption(option)}
+                      disabled={isSubmitted}
+                      className={`w-full text-left p-4 rounded border transition-colors ${
+                        isSelected 
+                          ? 'bg-[#ff0055]/20 border-[#ff0055] text-white' 
+                          : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-500 hover:bg-gray-750'
+                      } ${isSubmitted ? 'opacity-75 cursor-not-allowed' : ''}`}
+                    >
+                      {option}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="bg-red-900/20 border border-red-500 p-6 rounded-lg text-center font-mono mb-8">
+                <span className="text-red-500 text-xl block mb-2">⚠️ DATA CORRUPTION DETECTED</span>
+                <p className="text-gray-300 text-sm">No operational parameters loaded for this sequence. (Check database payload for this question).</p>
+                <button 
+                  onClick={() => advanceQuestion(false, 0)}
+                  className="mt-4 bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded text-xs tracking-widest cursor-pointer"
+                >
+                  FORCE SKIP →
+                </button>
+              </div>
+            )
           )}
 
           {isSubmitted && (
@@ -489,6 +500,45 @@ export default function QuizEngine() {
             >
               {isSubmitted ? 'NEXT QUESTION' : 'Submit Intel'}
             </button>
+          </div>
+
+          {/* INJECT GADGET DEPLOYMENT BUTTON */}
+          <div className="absolute bottom-6 left-6 z-40">
+            <button 
+              onClick={() => (document.getElementById('inventory-modal') as HTMLDialogElement)?.showModal()}
+              className="bg-purple-900/60 hover:bg-purple-600 border border-purple-500 text-white px-6 py-3 rounded-full font-mono text-sm tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all cursor-pointer"
+            >
+              DEPLOY GADGET 🛠️
+            </button>
+            
+            {/* Simple native dialog for inventory */}
+            <dialog id="inventory-modal" className="bg-gray-950 border border-purple-500 p-6 rounded-lg text-white font-mono backdrop:bg-black/80 w-80">
+               <h3 className="text-purple-400 mb-4 border-b border-purple-900/50 pb-2">ACTIVE INVENTORY</h3>
+               {Object.entries(inventory).filter(([_, count]) => count > 0).length === 0 ? (
+                 <p className="text-gray-500 text-xs">No tactical assets available.</p>
+               ) : (
+                 Object.entries(inventory)
+                   .filter(([_, count]) => count > 0)
+                   .map(([key, count], idx) => (
+                   <button 
+                     key={idx} 
+                     onClick={() => {
+                       // Trigger your gadget effect here
+                       console.log(`Deployed: ${key}`);
+                       setIsTimerFrozen(true);
+                       setTimeout(() => setIsTimerFrozen(false), 5000); // Thaws after 5 seconds
+                       (document.getElementById('inventory-modal') as HTMLDialogElement)?.close();
+                     }}
+                     className="block w-full text-left p-3 mb-2 bg-purple-900/20 hover:bg-purple-600 text-sm border border-purple-900 rounded cursor-pointer"
+                   >
+                     {">"} {key.toUpperCase()} (x{count})
+                   </button>
+                 ))
+               )}
+               <button onClick={() => (document.getElementById('inventory-modal') as HTMLDialogElement)?.close()} className="mt-4 text-gray-500 hover:text-white text-xs w-full text-right cursor-pointer">
+                 [ CLOSE ]
+               </button>
+            </dialog>
           </div>
         </div>
       </div>
@@ -574,44 +624,6 @@ export default function QuizEngine() {
           </button>
         </div>
       )}
-      {/* INJECT GADGET DEPLOYMENT BUTTON */}
-      <div className="fixed bottom-8 left-8 z-[100]">
-        <button 
-          onClick={() => (document.getElementById('inventory-modal') as HTMLDialogElement)?.showModal()}
-          className="bg-purple-900/40 hover:bg-purple-600 border border-purple-500 text-white px-6 py-3 rounded-full font-mono text-sm tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.4)] backdrop-blur-sm transition-all cursor-pointer"
-        >
-          DEPLOY GADGET 🛠️
-        </button>
-        
-        {/* Simple native dialog for inventory */}
-        <dialog id="inventory-modal" className="bg-gray-950 border border-purple-500 p-6 rounded-lg text-white font-mono backdrop:bg-black/80 w-80">
-           <h3 className="text-purple-400 mb-4 border-b border-purple-900/50 pb-2">ACTIVE INVENTORY</h3>
-           {Object.entries(inventory).filter(([_, count]) => count > 0).length === 0 ? (
-             <p className="text-gray-500 text-xs">No tactical assets available.</p>
-           ) : (
-             Object.entries(inventory)
-               .filter(([_, count]) => count > 0)
-               .map(([key, count], idx) => (
-               <button 
-                 key={idx} 
-                 onClick={() => {
-                   // Trigger your gadget effect here
-                   console.log(`Deployed: ${key}`);
-                   setIsTimerFrozen(true);
-                   setTimeout(() => setIsTimerFrozen(false), 5000); // Thaws after 5 seconds
-                   (document.getElementById('inventory-modal') as HTMLDialogElement)?.close();
-                 }}
-                 className="block w-full text-left p-3 mb-2 bg-purple-900/20 hover:bg-purple-600 text-sm border border-purple-900 rounded cursor-pointer"
-               >
-                 {">"} {key.toUpperCase()} (x{count})
-               </button>
-             ))
-           )}
-           <button onClick={() => (document.getElementById('inventory-modal') as HTMLDialogElement)?.close()} className="mt-4 text-gray-500 hover:text-white text-xs w-full text-right cursor-pointer">
-             [ CLOSE ]
-           </button>
-        </dialog>
-      </div>
     </div>
   );
 }
