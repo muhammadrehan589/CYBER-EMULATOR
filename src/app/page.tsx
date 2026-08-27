@@ -487,20 +487,6 @@ export default function Phase3RealtimeDashboard() {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#120315] border border-[#ff0055]/40 font-mono text-xs text-[#ff0055]">
-              {isConnected ? (
-                <>
-                  <Wifi className="w-4 h-4 text-emerald-400 animate-pulse" />
-                  <span className="text-emerald-400 font-bold">SOCKET LIVE (PORT 3001)</span>
-                </>
-              ) : (
-                <>
-                  <WifiOff className="w-4 h-4 text-amber-400" />
-                  <span className="text-amber-400">SOCKET SYNC READY</span>
-                </>
-              )}
-            </div>
-
             <Link
               href="/avatar"
               className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#ff0055] to-[#e60039] hover:from-[#e60039] hover:to-[#ff0055] text-white text-xs font-extrabold uppercase tracking-wider flex items-center gap-2 shadow-[0_0_20px_rgba(255,0,85,0.5)] border border-white/20 transition-all active:scale-95 cursor-pointer"
@@ -526,23 +512,6 @@ export default function Phase3RealtimeDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 items-start">
           <div className="lg:col-span-6 xl:col-span-7 space-y-6">
             <div className="squid-panel rounded-3xl p-6 sm:p-8 border border-[#ff0055]/40 backdrop-blur-xl shadow-[0_0_35px_rgba(255,0,85,0.25)] relative overflow-hidden space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#ff0055]/20 border border-[#ff0055]/40 text-xs font-mono text-[#ff0055]">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#ff0055] animate-ping" />
-                  <span>PHASE 3 // REAL-TIME MULTIPLAYER LEADERBOARD</span>
-                </div>
-                <span className="text-xs font-mono text-zinc-400">SECTOR 04</span>
-              </div>
-
-              <div className="space-y-2">
-                <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-pink-200 to-[#ff0055]">
-                  Live Synchronized Arena
-                </h1>
-                <p className="text-xs sm:text-sm text-zinc-300 max-w-xl leading-relaxed">
-                  Real-time Socket.io pipeline active. Score updates and emoji reaction streams are broadcast instantly across all connected operants.
-                </p>
-              </div>
-
               <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                 <button 
                   onClick={() => window.location.href = '/simulation-matrix'}
@@ -552,10 +521,6 @@ export default function Phase3RealtimeDashboard() {
                   ENTER SIMULATION MATRIX
                 </button>
 
-                <div className="flex items-center gap-4 text-xs font-mono text-zinc-400 px-4 py-2 rounded-xl bg-[#050008] border border-zinc-800">
-                  <div>LATENCY: <span className="text-emerald-400 font-bold">12 MS</span></div>
-                  <div>BROADCAST: <span className="text-[#ff0055] font-bold">SOCKET.IO</span></div>
-                </div>
               </div>
             </div>
 
@@ -578,10 +543,6 @@ export default function Phase3RealtimeDashboard() {
               >
                 <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">OPERANTS</span>
                 <span className="text-xl font-extrabold text-emerald-400 font-mono">{leaderboard.length} ACTIVE</span>
-              </div>
-              <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
-                <span className="text-[10px] font-mono text-zinc-400 uppercase">REACTIONS</span>
-                <span className="text-xl font-extrabold text-white font-mono">LIVE STREAM</span>
               </div>
             </div>
           </div>
