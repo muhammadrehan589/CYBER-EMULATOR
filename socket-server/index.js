@@ -87,8 +87,8 @@ io.on('connection', (socket) => {
     const challengerSocketId = userSockets.get(challengerId);
     if (challengerSocketId) {
       console.log(`[SOCKET_SERVER] ${currentEmpId} accepted challenge from ${challengerId}`);
-      io.to(challengerSocketId).emit('1v1_challenge_accepted');
-      socket.emit('1v1_challenge_accepted'); // also send to the acceptor so they start too
+      io.to(challengerSocketId).emit('1v1_challenge_accepted', { challengerId, targetId: currentEmpId });
+      socket.emit('1v1_challenge_accepted', { challengerId, targetId: currentEmpId });
     }
   });
 

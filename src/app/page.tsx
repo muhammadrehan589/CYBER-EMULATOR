@@ -268,7 +268,7 @@ export default function Phase3RealtimeDashboard() {
     alert(`[!] CHALLENGE SENT TO ${targetName.toUpperCase()}`); // Temporary feedback
   };
 
-  const triggerDuelCountdown = () => {
+  const triggerDuelCountdown = (matchData?: { challengerId: string, targetId: string }) => {
     setDuelCountdown(3);
     let timeLeft = 3;
     const timer = setInterval(() => {
@@ -279,15 +279,9 @@ export default function Phase3RealtimeDashboard() {
         clearInterval(timer);
         setDuelCountdown(null);
         
-        const currentEmpId = localStorage.getItem('currentUserEmpId');
-        
-        // LAUNCH THE BATTLE
-        if (incomingChallenge) {
-          window.location.href = `/battle?matchId=battle_${incomingChallenge.challengerId}_${currentEmpId}&challengerId=${incomingChallenge.challengerId}&targetId=${currentEmpId}`;
-        } else if (pendingChallengeTarget) {
-          window.location.href = `/battle?matchId=battle_${currentEmpId}_${pendingChallengeTarget}&challengerId=${currentEmpId}&targetId=${pendingChallengeTarget}`;
+        if (matchData) {
+          window.location.href = `/battle?matchId=battle_${matchData.challengerId}_${matchData.targetId}&challengerId=${matchData.challengerId}&targetId=${matchData.targetId}`;
         } else {
-          // Fallback just in case
           window.location.href = '/simulation-matrix';
         }
       }
@@ -381,8 +375,8 @@ export default function Phase3RealtimeDashboard() {
       setChallengeTimer(15);
     });
 
-    newSocket.on('1v1_challenge_accepted', () => {
-      triggerDuelCountdown();
+    newSocket.on('1v1_challenge_accepted', (data: { challengerId: string, targetId: string }) => {
+      triggerDuelCountdown(data);
     });
 
     newSocket.on('1v1_challenge_denied', (data: { reason: string }) => {
@@ -741,8 +735,8 @@ export default function Phase3RealtimeDashboard() {
               <button 
                 onClick={() => {
                   socket?.emit('accept_1v1_challenge', { challengerId: incomingChallenge.challengerId });
+                  triggerDuelCountdown({ challengerId: incomingChallenge.challengerId, targetId: localStorage.getItem('currentUserEmpId') || '' });
                   setIncomingChallenge(null);
-                  triggerDuelCountdown();
                 }}
                 className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded font-black tracking-widest w-1/2 transition-colors"
               >
