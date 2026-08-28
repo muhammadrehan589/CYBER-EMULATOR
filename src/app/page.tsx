@@ -132,7 +132,7 @@ const LeaderboardItem = ({
         <div className="flex items-center gap-1.5 shrink-0 ml-auto">
           <div className="flex flex-col items-end">
             <span className="text-sm font-mono font-bold text-white tabular-nums">
-              {player.score.toLocaleString()} PTS
+              {player.coins?.toLocaleString() || 0} COINS
             </span>
             <span className="text-[10px] font-mono text-[#ff0055] font-black">
               {player.xp} XP
@@ -257,10 +257,13 @@ export default function Phase3RealtimeDashboard() {
   const [incomingChallenge, setIncomingChallenge] = useState<{challengerId: string, challengerName: string} | null>(null);
   const [challengeTimer, setChallengeTimer] = useState<number | null>(null);
   const [duelCountdown, setDuelCountdown] = useState<number | null>(null);
+  const [pendingChallengeTarget, setPendingChallengeTarget] = useState<string | null>(null);
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   
   const sendDuelChallenge = (targetId: string, targetName: string) => {
     if (!socket) return;
     const currentUser = leaderboard.find(p => p.empId === localStorage.getItem('currentUserEmpId'));
+    setPendingChallengeTarget(targetId);
     socket.emit('initiate_1v1_challenge', { targetId, challengerName: currentUser?.name || 'A Player' });
     alert(`[!] CHALLENGE SENT TO ${targetName.toUpperCase()}`); // Temporary feedback
   };
@@ -275,8 +278,18 @@ export default function Phase3RealtimeDashboard() {
       } else {
         clearInterval(timer);
         setDuelCountdown(null);
-        // LAUNCH THE MATRIX 
-        window.location.href = '/simulation-matrix';
+        
+        const currentEmpId = localStorage.getItem('currentUserEmpId');
+        
+        // LAUNCH THE BATTLE
+        if (incomingChallenge) {
+          window.location.href = `/battle?matchId=battle_${incomingChallenge.challengerId}_${currentEmpId}&challengerId=${incomingChallenge.challengerId}&targetId=${currentEmpId}`;
+        } else if (pendingChallengeTarget) {
+          window.location.href = `/battle?matchId=battle_${currentEmpId}_${pendingChallengeTarget}&challengerId=${currentEmpId}&targetId=${pendingChallengeTarget}`;
+        } else {
+          // Fallback just in case
+          window.location.href = '/simulation-matrix';
+        }
       }
     }, 1000);
   };
@@ -332,6 +345,10 @@ export default function Phase3RealtimeDashboard() {
       setIsConnected(false);
     });
 
+    newSocket.on('online_users', (users: string[]) => {
+      setOnlineUsers(users);
+    });
+
     newSocket.on('refresh_leaderboard', () => {
       console.log('[FRONTEND] Refreshing leaderboard from socket event');
       fetchLeaderboard();
@@ -340,9 +357,9 @@ export default function Phase3RealtimeDashboard() {
     newSocket.on('update_score', (data: { empId: string; newScore: number }) => {
       setLeaderboard((prevLeaderboard) => {
         const updated = prevLeaderboard.map((p) =>
-          p.empId === data.empId ? { ...p, score: data.newScore } : p
+          p.empId === data.empId ? { ...p, coins: data.newScore } : p
         );
-        updated.sort((a, b) => b.score - a.score);
+        updated.sort((a, b) => (b.coins || 0) - (a.coins || 0));
         return updated.map((p, idx) => ({ ...p, rank: idx + 1 }));
       });
     });
@@ -399,13 +416,13 @@ export default function Phase3RealtimeDashboard() {
     return () => clearInterval(interval);
   }, [challengeTimer, incomingChallenge, socket]);
 
-  const handleScoreBoost = async (empId: string) => {
+  const handleScoreBoost = async (empId: string, xpAmount: number, coinCost: number) => {
     const currentEmpId = localStorage.getItem('currentUserEmpId');
     if (!currentEmpId || currentEmpId === empId) return; // Cannot boost yourself
 
     const sender = leaderboard.find(p => p.empId === currentEmpId);
-    if (!sender || sender.xp < 250) {
-      alert("Not enough XP to boost!");
+    if (!sender || sender.coins < coinCost) {
+      alert(`Not enough coins! You need ${coinCost} coins to send ${xpAmount} XP.`);
       return;
     }
 
@@ -414,12 +431,12 @@ export default function Phase3RealtimeDashboard() {
         fetch('/api/users', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ empId: currentEmpId, inc: { xp: -250 } }),
+          body: JSON.stringify({ empId: currentEmpId, inc: { coins: -coinCost } }),
         }),
         fetch('/api/users', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ empId, inc: { xp: 250 } }),
+          body: JSON.stringify({ empId, inc: { xp: xpAmount } }),
         })
       ]);
 
@@ -436,7 +453,7 @@ export default function Phase3RealtimeDashboard() {
           empId,
           action: 'XP Boost',
           type: 'xp',
-          details: `XP boosted by +250 from ${sender.name}.`,
+          details: `XP boosted by +${xpAmount} from ${sender.name}.`,
         }),
       }).catch((err) => console.error('[Dashboard] Log persist failed:', err));
     } catch (err) {
@@ -544,9 +561,9 @@ export default function Phase3RealtimeDashboard() {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
-                <span className="text-[10px] font-mono text-zinc-400 uppercase">TOP SCORE</span>
+                <span className="text-[10px] font-mono text-zinc-400 uppercase">TOP COINS</span>
                 <span className="text-xl font-extrabold text-[#ff0055] font-mono">
-                  {leaderboard[0]?.score.toLocaleString()} PTS
+                  {leaderboard[0]?.coins?.toLocaleString() || 0} COINS
                 </span>
               </div>
               <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
@@ -560,7 +577,11 @@ export default function Phase3RealtimeDashboard() {
                 className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 hover:border-emerald-500/50 hover:bg-[#111] backdrop-blur-md flex flex-col justify-between space-y-2 cursor-pointer transition-all"
               >
                 <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">OPERANTS</span>
-                <span className="text-xl font-extrabold text-emerald-400 font-mono">{leaderboard.length} ACTIVE</span>
+                <span className="text-xl font-extrabold text-emerald-400 font-mono">
+                  {typeof window !== 'undefined' 
+                    ? leaderboard.filter(p => p.empId !== localStorage.getItem('currentUserEmpId') && onlineUsers.includes(p.empId)).length 
+                    : 0} ACTIVE
+                </span>
               </div>
             </div>
           </div>
@@ -637,26 +658,7 @@ export default function Phase3RealtimeDashboard() {
                   <button 
                      key={tier.xp}
                      disabled={!selectedTarget}
-                     onClick={async () => {
-                       if (!selectedTarget) return;
-                       if (coinsEarned >= tier.cost) {
-                         addCoins(-tier.cost);
-                         try {
-                           await fetch('/api/users', {
-                             method: 'PATCH',
-                             headers: { 'Content-Type': 'application/json' },
-                             body: JSON.stringify({ empId: selectedTarget.empId, inc: { xp: tier.xp } }),
-                           });
-                           if (socket && isConnected) {
-                             socket.emit('trigger_refresh'); 
-                           }
-                         } catch (err) {
-                           console.error('Failed to send XP', err);
-                         }
-                       } else {
-                         alert("INSUFFICIENT FUNDS.");
-                       }
-                     }}
+                     onClick={() => selectedTarget && handleScoreBoost(selectedTarget.empId, tier.xp, tier.cost)}
                      className="bg-gray-950 group flex justify-between items-center p-3 font-mono border border-green-900/50 hover:bg-green-900/20 disabled:opacity-20 rounded transition-all cursor-pointer"
                   >
                      <span className="text-green-500 text-sm font-bold group-hover:text-green-400">+{tier.xp} XP</span>
@@ -694,14 +696,14 @@ export default function Phase3RealtimeDashboard() {
               <button onClick={() => setShowOperantsList(false)} className="text-gray-500 hover:text-white transition-colors">✕</button>
             </div>
             <div className="max-h-[40vh] overflow-y-auto cyber-scrollbar flex flex-col gap-2">
-              {leaderboard.map((player, idx) => (
+              {leaderboard.filter(p => p.empId !== localStorage.getItem('currentUserEmpId') && onlineUsers.includes(p.empId)).map((player, idx) => (
                 <div key={player.empId || idx} className="flex items-center gap-3 bg-[#111] p-2 border border-gray-800/50 rounded hover:border-gray-700 transition-colors">
                   <div className="w-8 h-8 rounded bg-gray-800 flex items-center justify-center text-xs overflow-hidden">
                     <MiniAvatar avatar={player.avatar as AvatarState} />
                   </div>
                   <div className="flex flex-col">
                     <span className="text-gray-200 text-sm font-bold">{player.name || `Operant-${idx}`}</span>
-                    <span className="text-gray-600 text-[10px] uppercase tracking-wider">Sector 04 Link</span>
+                    <span className="text-green-500 text-[10px] uppercase tracking-wider flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-500"></span> ONLINE</span>
                   </div>
                   <div className="ml-auto text-green-500 text-xs font-mono">12ms</div>
                   <button 
@@ -715,8 +717,8 @@ export default function Phase3RealtimeDashboard() {
                   </button>
                 </div>
               ))}
-              {leaderboard.length === 0 && (
-                <div className="text-gray-600 text-center py-6 font-mono text-sm">NO SIGNAL DETECTED</div>
+              {leaderboard.filter(p => p.empId !== localStorage.getItem('currentUserEmpId') && onlineUsers.includes(p.empId)).length === 0 && (
+                <div className="text-gray-600 text-center py-6 font-mono text-sm">NO OTHER ONLINE OPERANTS DETECTED</div>
               )}
             </div>
           </div>

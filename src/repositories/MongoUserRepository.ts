@@ -3,7 +3,7 @@ import { IUserRepository } from './IUserRepository';
 
 export class MongoUserRepository implements IUserRepository {
   async findUsers(filter: Record<string, any>): Promise<any[]> {
-    return User.find(filter).sort({ score: -1 }).lean();
+    return User.find(filter).sort({ coins: -1 }).lean();
   }
 
   async findByUsername(username: string): Promise<any> {

@@ -71,7 +71,9 @@ export class UserService {
       username: userData.username,
       department: userData.department,
       role: userData.role || 'Player',
-      score: 1000,
+      score: 0,
+      coins: 0,
+      xp: 0,
       status: 'active',
       ...(passwordHash && { passwordHash }),
     });

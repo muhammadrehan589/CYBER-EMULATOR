@@ -32,6 +32,9 @@ io.on('connection', (socket) => {
     currentEmpId = empId;
     userSockets.set(empId, socket.id);
     console.log(`[SOCKET_SERVER] User registered: ${empId} with socket ${socket.id}`);
+    
+    // Broadcast updated online users list
+    io.emit('online_users', Array.from(userSockets.keys()));
   });
 
   // Event listener for sending real-time emoji reactions
@@ -57,7 +60,7 @@ io.on('connection', (socket) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           empId: data.empId,
-          updates: { score: data.newScore }
+          updates: { coins: data.newScore }
         })
       });
     } catch (err) {
@@ -97,10 +100,94 @@ io.on('connection', (socket) => {
     }
   });
 
+  // === 1V1 BATTLE LOGIC ===
+  const battleRooms = new Map(); // matchId -> { p1Hp: 100, p2Hp: 100, answersThisRound: 0, questions: [], round: 0 }
+
+  socket.on('join_battle', ({ matchId, empId }) => {
+    socket.join(matchId);
+    console.log(`[SOCKET_SERVER] ${empId} joined battle room ${matchId}`);
+    if (!battleRooms.has(matchId)) {
+      battleRooms.set(matchId, { p1Hp: 100, p2Hp: 100, answersThisRound: 0, p1Answer: null, p2Answer: null });
+    }
+  });
+
+  socket.on('init_battle_data', ({ matchId, questions }) => {
+    const battle = battleRooms.get(matchId);
+    if (battle) {
+      battle.questions = questions;
+      io.to(matchId).emit('battle_data_sync', { questions });
+    }
+  });
+
+  socket.on('submit_battle_answer', ({ matchId, empId, isCorrect, damage, isChallenger }) => {
+    const battle = battleRooms.get(matchId);
+    if (!battle) return;
+
+    if (isChallenger) {
+      battle.p1Answer = { isCorrect, damage };
+    } else {
+      battle.p2Answer = { isCorrect, damage };
+    }
+
+    battle.answersThisRound++;
+
+    // When both players have answered
+    if (battle.answersThisRound === 2) {
+      // If both are correct, 0 damage to both
+      if (battle.p1Answer.isCorrect && battle.p2Answer.isCorrect) {
+        battle.p1Answer.damage = 0;
+        battle.p2Answer.damage = 0;
+      }
+
+      // Apply damage (you take damage if you are wrong)
+      battle.p1Hp -= battle.p1Answer.damage;
+      battle.p2Hp -= battle.p2Answer.damage;
+
+      // Prevent negative HP
+      battle.p1Hp = Math.max(0, battle.p1Hp);
+      battle.p2Hp = Math.max(0, battle.p2Hp);
+
+      const p1Dead = battle.p1Hp <= 0;
+      const p2Dead = battle.p2Hp <= 0;
+
+      // Send update WITH answers so frontend can animate before advancing
+      io.to(matchId).emit('battle_update', {
+        p1Hp: battle.p1Hp,
+        p2Hp: battle.p2Hp,
+        nextRound: !(p1Dead || p2Dead),
+        p1Answer: battle.p1Answer,
+        p2Answer: battle.p2Answer
+      });
+
+      if (p1Dead || p2Dead) {
+        // Game Over
+        let winner = null;
+        if (battle.p1Hp > battle.p2Hp) winner = 'challenger';
+        else if (battle.p2Hp > battle.p1Hp) winner = 'target';
+        else winner = 'draw';
+        
+        // Wait for animations before sending battle_over
+        setTimeout(() => {
+          io.to(matchId).emit('battle_over', { winner });
+          battleRooms.delete(matchId);
+        }, 3000);
+      } else {
+        // Next round
+        battle.answersThisRound = 0;
+        battle.p1Answer = null;
+        battle.p2Answer = null;
+        if (battle.round === undefined) battle.round = 0;
+        battle.round++;
+      }
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log(`[SOCKET_SERVER] Client disconnected: ${socket.id}`);
     if (currentEmpId) {
       userSockets.delete(currentEmpId);
+      // Broadcast updated online users list
+      io.emit('online_users', Array.from(userSockets.keys()));
     }
   });
 });
