@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
-import ActivityLog from '@/models/ActivityLog';
+import { ActivityLogService } from '@/services/ActivityLogService';
+import { MongoActivityLogRepository } from '@/repositories/MongoActivityLogRepository';
+
+const activityLogRepository = new MongoActivityLogRepository();
+const activityLogService = new ActivityLogService(activityLogRepository);
 
 // GET /api/activity-logs - Fetch logs, optionally filtered by empId
 export async function GET(request: NextRequest) {
@@ -10,15 +14,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const empId = searchParams.get('empId');
 
-    const filter: Record<string, any> = {};
-    if (empId) {
-      filter.empId = empId;
-    }
-
-    const logs = await ActivityLog.find(filter)
-      .sort({ timestamp: -1 })
-      .limit(100)
-      .lean();
+    const logs = await activityLogService.getLogs(empId);
 
     return NextResponse.json({ success: true, data: logs });
   } catch (error: any) {
@@ -36,14 +32,7 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
-    const { empId, action, type, details } = body;
-
-    const log = await ActivityLog.create({
-      empId,
-      action,
-      type,
-      details,
-    });
+    const log = await activityLogService.createLog(body);
 
     return NextResponse.json({ success: true, data: log }, { status: 201 });
   } catch (error: any) {
