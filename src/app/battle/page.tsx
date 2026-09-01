@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AvatarSVG, DEFAULT_AVATAR as DEFAULT_AVATAR_OBJ } from '@/components/Avatar';
 
-export default function BattlePage() {
+function BattleArena() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const matchId = searchParams.get('matchId');
@@ -218,5 +218,13 @@ export default function BattlePage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function BattlePage() {
+  return (
+    <Suspense fallback={<div className="h-screen w-screen bg-[#030005] flex items-center justify-center"><p className="text-[#ff0055] font-black tracking-[0.3em] text-xl uppercase animate-pulse">Initializing Matrix Duel...</p></div>}>
+      <BattleArena />
+    </Suspense>
   );
 }
