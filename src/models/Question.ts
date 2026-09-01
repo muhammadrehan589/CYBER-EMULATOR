@@ -4,12 +4,13 @@ export interface IQuestion extends Document {
   questionId: number;
   category: string;
   difficulty: 'easy' | 'medium' | 'difficult';
-  type: 'mcq' | 'true_false' | 'sequence' | 'visual';
+  type: 'mcq' | 'true_false' | 'sequence' | 'drag_and_drop' | 'visual';
   question: string;
   options: string[];
   correctAnswer: string;
   explanation: string;
   items?: any[];
+  draggableItems?: any[];
   correctOrder?: string[];
   imageUrl?: string;
 }
@@ -26,13 +27,14 @@ const QuestionSchema = new Schema<IQuestion>(
     type: {
       type: String,
       required: true,
-      enum: ['mcq', 'true_false', 'sequence', 'visual'],
+      enum: ['mcq', 'true_false', 'sequence', 'drag_and_drop', 'visual'],
     },
     question: { type: String, required: true },
     options: { type: [String] },
     correctAnswer: { type: String, required: true },
     explanation: { type: String },
     items: { type: [Schema.Types.Mixed] },
+    draggableItems: { type: [Schema.Types.Mixed] },
     correctOrder: { type: [String] },
     imageUrl: { type: String },
   },
@@ -41,3 +43,6 @@ const QuestionSchema = new Schema<IQuestion>(
 
 export default mongoose.models.Question ||
   mongoose.model<IQuestion>('Question', QuestionSchema);
+
+
+

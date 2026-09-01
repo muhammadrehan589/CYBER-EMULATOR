@@ -5,6 +5,7 @@ import { useQuizStore } from '@/store/quizStore';
 import quizData from '@/data/questions.json';
 import { useRouter } from 'next/navigation';
 import LiveLeaderboard from './LiveLeaderboard';
+import SequenceOrdering from './SequenceOrdering';
 import { QRCodeSVG } from 'qrcode.react';
 
 const shuffleArray = (array: any[]) => {
@@ -84,6 +85,7 @@ export default function QuizEngine() {
   
   const [isSabotaged, setIsSabotaged] = useState(false);
   const [sabotageMessage, setSabotageMessage] = useState<string | null>(null);
+    const [eliminatedOptions, setEliminatedOptions] = useState<string[]>([]);
   const [socket, setSocket] = useState<any>(null);
 
   const [quizMode, setQuizMode] = useState<'standard' | 'wager'>('standard');
@@ -286,7 +288,13 @@ export default function QuizEngine() {
     const answer = activeQuestion.correctAnswer || '';
     let correct = false;
     
-    if (selected) {
+    
+      if (activeQuestion.type === 'sequence' || activeQuestion.type === 'drag_and_drop') {
+        try {
+          const orderIds = JSON.parse(selected || '[]');
+          correct = JSON.stringify(orderIds) === JSON.stringify(activeQuestion.correctOrder);
+        } catch(e) { correct = false; }
+      } else if (selected) {
       correct = 
         selected === answer || 
         selected.startsWith(answer + '.') || 
@@ -358,8 +366,15 @@ export default function QuizEngine() {
       setSelectedOption(null);
       setIsSubmitted(false);
       setIsTimeout(false);
+      setEliminatedOptions([]);
+      
       // Call store for score/streak/multiplier side-effects only
-      advanceQuestion(isCorrect, 10);
+      if (!isCorrect && useQuizStore.getState().inventory.shields > 0) {
+         useQuizStore.getState().consumeItem('shields');
+         advanceQuestion(true, 0); // Shield prevents streak loss
+      } else {
+         advanceQuestion(isCorrect, 10);
+      }
       // Advance the local index — this is the ONLY index that drives which
       // question is displayed. It stays within the local 10-question array.
       setSoloQuestionIndex(prev => prev + 1);
@@ -474,11 +489,20 @@ export default function QuizEngine() {
           </h2>
 
 
-          {(activeQuestion.type === 'mcq' || activeQuestion.type === 'true_false') && (
+          {(activeQuestion.type === 'sequence' || activeQuestion.type === 'drag_and_drop') && (
+              <SequenceOrdering 
+                items={activeQuestion.items || activeQuestion.draggableItems || []}
+                onChange={(val) => !isSubmitted && setSelectedOption(val)}
+                disabled={isSubmitted}
+              />
+            )}
+
+            {(activeQuestion.type === 'mcq' || activeQuestion.type === 'true_false') && (
             activeQuestion.options && activeQuestion.options.length > 0 ? (
-              <div className="space-y-3 mb-8">
-                {activeQuestion.options.map((option: string, index: number) => {
-                  const isSelected = selectedOption === option;
+                <div className="space-y-3 mb-8">
+                  {activeQuestion.options.map((option: string, index: number) => {
+                    if (eliminatedOptions.includes(option)) return null;
+                    const isSelected = selectedOption === option;
                   return (
                     <button
                       key={index}
@@ -554,10 +578,24 @@ export default function QuizEngine() {
                    <button 
                      key={idx} 
                      onClick={() => {
-                       // Trigger your gadget effect here
-                       console.log(`Deployed: ${key}`);
-                       setIsTimerFrozen(true);
-                       setTimeout(() => setIsTimerFrozen(false), 5000); // Thaws after 5 seconds
+                       const store = useQuizStore.getState();
+                       store.consumeItem(key as any);
+                       
+                       if (key === 'timeFreezes') {
+                         setIsTimerFrozen(true);
+                         setTimeout(() => setIsTimerFrozen(false), 10000); // Thaws after 10 seconds
+                       } else if (key === 'overclocks') {
+                         store.addXP(250);
+                       } else if (key === 'hints') {
+                           const wrongOptions = activeQuestion.options?.filter((o: string) => o !== activeQuestion.correctAnswer) || [];
+                           if (wrongOptions.length > 0) {
+                             setEliminatedOptions([wrongOptions[0], wrongOptions[1]].filter(Boolean));
+                           }
+                         } else if (['sabotagers', 'ddosEmps', 'decoys'].includes(key)) {
+                           alert('This tactical asset is reserved for 1v1 Multiplayer engagements.');
+                           store.inventory[key as keyof QuizState['inventory']] += 1; // refund
+                         }
+                       
                        (document.getElementById('inventory-modal') as HTMLDialogElement)?.close();
                      }}
                      className="block w-full text-left p-3 mb-2 bg-purple-900/20 hover:bg-purple-600 text-sm border border-purple-900 rounded cursor-pointer"
@@ -658,3 +696,8 @@ export default function QuizEngine() {
     </div>
   );
 }
+
+
+
+
+

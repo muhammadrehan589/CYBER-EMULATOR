@@ -41,6 +41,19 @@ io.on('connection', (socket) => {
   });
 
   // Event listener for sending real-time emoji reactions
+  socket.on('player_ddos', (data) => {
+    const targetSocketId = userSockets.get(data.targetId);
+    if (targetSocketId) io.to(targetSocketId).emit('ddos_received', { attackerName: socket.empId || 'Anonymous' });
+  });
+
+  socket.on('player_sabotage', (data) => {
+    // Forward sabotage to target player
+    const targetSocketId = userSockets.get(data.targetId);
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('sabotage_received', { attackerName: socket.empId || 'Anonymous', penaltyXp: data.penaltyXp || 150 });
+    }
+  });
+
   socket.on('send_emoji', (data) => {
     console.log(`[SOCKET_SERVER] Broadcast send_emoji:`, data);
     io.emit('send_emoji', data);
@@ -215,3 +228,5 @@ server.listen(PORT, () => {
   console.log(`📡 Listening on http://localhost:${PORT}`);
   console.log(`====================================================`);
 });
+
+

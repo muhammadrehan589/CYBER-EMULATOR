@@ -21,6 +21,7 @@ import {
 import { MiniAvatar, AvatarSVG, DEFAULT_AVATAR, type AvatarState } from '@/components/Avatar';
 import ItemShopModal from '@/components/shop/ItemShopModal';
 import PasswordQuest from '@/components/dashboard/PasswordQuest';
+import InventoryModal from '@/components/dashboard/InventoryModal';
 import { useQuizStore } from '@/store/quizStore';
 
 import { LeaderboardPlayer, FloatingEmoji, FloatingStat } from '@/types/dashboard';
@@ -40,13 +41,12 @@ export default function Phase3RealtimeDashboard() {
   useEffect(() => {
     // Check for your specific auth token or user state here
     const isAuthenticated = localStorage.getItem('currentUserEmpId'); 
-    
-    if (!isAuthenticated) {
-      // Eject unauthenticated users to the login route
-      router.push('/login'); 
-    } else {
-      setIsAuthenticating(false); // Green light, lift the blackout cloak
-    }
+        if (!isAuthenticated) {
+        // Eject unauthenticated users to the login route
+        window.location.href = '/login'; 
+      } else {
+        setIsAuthenticating(false); // Green light, lift the blackout cloak
+      }
   }, [router]);
 
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -67,6 +67,7 @@ export default function Phase3RealtimeDashboard() {
   const [isFullLeaderboardOpen, setIsFullLeaderboardOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isQuestOpen, setIsQuestOpen] = useState(false);
+  const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [showOperantsList, setShowOperantsList] = useState(false);
   const [incomingChallenge, setIncomingChallenge] = useState<{challengerId: string, challengerName: string} | null>(null);
   const [challengeTimer, setChallengeTimer] = useState<number | null>(null);
@@ -234,7 +235,7 @@ export default function Phase3RealtimeDashboard() {
     return () => clearInterval(interval);
   }, [challengeTimer, incomingChallenge, socket]);
 
-  const handleScoreBoost = async (empId: string, xpAmount: number, coinCost: number) => {
+  const handleScoreBoost = async (empId: string, xpAmount: number = 10, coinCost: number = 50) => {
     const currentEmpId = localStorage.getItem('currentUserEmpId');
     if (!currentEmpId || currentEmpId === empId) return; // Cannot boost yourself
 
@@ -366,6 +367,12 @@ export default function Phase3RealtimeDashboard() {
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold border border-blue-400 font-mono tracking-widest text-xs shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all active:scale-95 cursor-pointer"
             >
               🛡️ SIDE QUESTS
+            </button>
+            <button 
+              onClick={() => setIsInventoryOpen(true)}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl font-bold border border-green-400 font-mono tracking-widest text-xs shadow-[0_0_15px_rgba(34,197,94,0.5)] transition-all active:scale-95 cursor-pointer"
+            >
+              📦 INVENTORY
             </button>
           </div>
         </header>
@@ -552,7 +559,8 @@ export default function Phase3RealtimeDashboard() {
       />
 
       {isShopOpen && <ItemShopModal onClose={() => setIsShopOpen(false)} players={leaderboard} socket={socket} />}
-      {isQuestOpen && <PasswordQuest onClose={() => setIsQuestOpen(false)} />}
+      {isQuestOpen && <PasswordQuest onClose={() => setIsQuestOpen(false)} onClaimed={() => socket?.emit('trigger_refresh')} />}
+        {isInventoryOpen && <InventoryModal onClose={() => setIsInventoryOpen(false)} />}
       
       {showOperantsList && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setShowOperantsList(false)}>
@@ -644,3 +652,5 @@ export default function Phase3RealtimeDashboard() {
     </div>
   );
 }
+
+
