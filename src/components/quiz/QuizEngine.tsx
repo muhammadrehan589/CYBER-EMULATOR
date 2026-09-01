@@ -593,7 +593,7 @@ export default function QuizEngine() {
                            }
                          } else if (['sabotagers', 'ddosEmps', 'decoys'].includes(key)) {
                            alert('This tactical asset is reserved for 1v1 Multiplayer engagements.');
-                           store.inventory[key as keyof QuizState['inventory']] += 1; // refund
+                           (store.inventory as any)[key] += 1; // refund
                          }
                        
                        (document.getElementById('inventory-modal') as HTMLDialogElement)?.close();

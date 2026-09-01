@@ -10,7 +10,7 @@ interface ItemShopModalProps {
 }
 
 export default function ItemShopModal({ onClose, players = [], socket }: ItemShopModalProps) {
-  const { inventory, buyItem } = useQuizStore();
+  const { inventory, buyItem, executeSabotage } = useQuizStore();
   const currentEmpId = typeof window !== 'undefined' ? localStorage.getItem('currentUserEmpId') : null;
   const me = players.find(p => p.empId === currentEmpId);
   const coins = me?.coins || 0;
