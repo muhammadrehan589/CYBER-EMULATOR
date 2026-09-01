@@ -161,9 +161,9 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
                       </span>
                     </td>
 
-                    {/* Score */}
+                    {/* Coins */}
                     <td className="p-3.5 font-mono font-bold text-white">
-                      {player.score.toLocaleString()} PTS
+                      {player.coins?.toLocaleString() || 0} COINS
                     </td>
 
                     {/* Status Badge */}

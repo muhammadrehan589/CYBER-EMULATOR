@@ -38,6 +38,7 @@ interface QuizState {
   buyItem: (item: 'hints' | 'timeFreezes' | 'shields' | 'sabotagers' | 'decoys' | 'ddosEmps' | 'overclocks', cost: number) => boolean;
   executeSabotage: (targetPlayerId: string, socket: any) => void;
   consumeDecoy: () => void;
+  consumeItem: (item: keyof QuizState['inventory']) => void;
   deductXP: (amount: number) => void;
   addCoins: (amount: number) => void;
   addXP: (amount: number) => void;
@@ -142,8 +143,7 @@ export const useQuizStore = create<QuizState>()(
         timer: 0, 
         sessionLogs: [],
         coinsEarned: 0,
-        xpEarned: 0,
-        inventory: { hints: 0, timeFreezes: 0, shields: 0, sabotagers: 0, decoys: 0, ddosEmps: 0, overclocks: 0 },
+        xpEarned: 0
       }),
       buyItem: (item, cost) => {
         const state = get();
@@ -173,7 +173,15 @@ export const useQuizStore = create<QuizState>()(
           }
         }
       },
-      consumeDecoy: () => {
+      consumeItem: (item) => {
+          set(state => ({
+            inventory: {
+              ...state.inventory,
+              [item]: Math.max(0, state.inventory[item] - 1)
+            }
+          }));
+        },
+        consumeDecoy: () => {
         set(state => ({
           inventory: {
             ...state.inventory,
@@ -195,8 +203,11 @@ export const useQuizStore = create<QuizState>()(
     }),
     {
       name: 'quiz-storage',
+      // currentQuestionIndex is intentionally NOT persisted.
+      // QuizEngine owns its own local soloQuestionIndex bounded to the
+      // 10-item session array; persisting the store's index was the root
+      // cause of the "1-question then back to Dashboard" bug.
       partialize: (state) => ({
-        currentQuestionIndex: state.currentQuestionIndex,
         score: state.score,
         streak: state.streak,
         multiplier: state.multiplier,
@@ -208,3 +219,4 @@ export const useQuizStore = create<QuizState>()(
     }
   )
 );
+

@@ -5,9 +5,10 @@ import { useQuizStore } from '@/store/quizStore';
 
 interface PasswordQuestProps {
   onClose: () => void;
+  onClaimed?: () => void;
 }
 
-export default function PasswordQuest({ onClose }: PasswordQuestProps) {
+export default function PasswordQuest({ onClose, onClaimed }: PasswordQuestProps) {
   const [password, setPassword] = useState('');
   const [strength, setStrength] = useState(0);
   const [success, setSuccess] = useState(false);
@@ -23,11 +24,21 @@ export default function PasswordQuest({ onClose }: PasswordQuestProps) {
     setStrength(score);
   };
 
-  const claimReward = () => {
+  const claimReward = async () => {
     if (strength === 100) {
+      const currentEmpId = localStorage.getItem('currentUserEmpId');
+      if (currentEmpId) {
+        await fetch('/api/users', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ empId: currentEmpId, inc: { coins: 50, xp: 100 } }),
+        });
+      }
+      
       addCoins(50);
       addXP(100);
       setSuccess(true);
+      if (onClaimed) onClaimed();
       setTimeout(() => {
         onClose();
       }, 2000);

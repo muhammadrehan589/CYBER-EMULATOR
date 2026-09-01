@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@/lib/mongodb';
-import User from '@/models/User';
-import bcrypt from 'bcryptjs';
+import { UserService } from '@/services/UserService';
+import { MongoUserRepository } from '@/repositories/MongoUserRepository';
+
+const userRepository = new MongoUserRepository();
+const userService = new UserService(userRepository);
 
 // POST /api/auth/login - Authenticate a user with username + password
 export async function POST(request: NextRequest) {
@@ -11,58 +14,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { username, password } = body;
 
-    if (!username || !password) {
-      return NextResponse.json(
-        { success: false, error: 'Username and password are required.' },
-        { status: 400 }
-      );
-    }
-
-    // Strip leading @ if present
-    const cleanUsername = username.trim().toLowerCase().replace(/^@/, '');
-
-    // Find user by username (case-insensitive)
-    const user = await User.findOne({
-      username: { $regex: new RegExp(`^${cleanUsername}$`, 'i') },
-    }).lean();
-
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid username or password.' },
-        { status: 401 }
-      );
-    }
-
-    // Check if user is suspended
-    if ((user as any).status === 'suspended') {
-      return NextResponse.json(
-        { success: false, error: 'Account suspended. Contact your administrator.' },
-        { status: 403 }
-      );
-    }
-
-    // Verify password
-    const storedHash = (user as any).passwordHash;
-
-    if (!storedHash) {
-      // User has no password set yet — deny login
-      return NextResponse.json(
-        { success: false, error: 'No password set. Contact your administrator.' },
-        { status: 401 }
-      );
-    }
-
-    const isMatch = await bcrypt.compare(password, storedHash);
-
-    if (!isMatch) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid username or password.' },
-        { status: 401 }
-      );
-    }
-
-    // Strip passwordHash from response
-    const { passwordHash, ...safeUser } = user as any;
+    const safeUser = await userService.authenticate(username, password);
 
     return NextResponse.json({
       success: true,
@@ -70,9 +22,16 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[API] POST /api/auth/login error:', error);
+    
+    // Map specific errors to status codes to respect the original behavior
+    let status = 500;
+    if (error.message.includes('required')) status = 400;
+    else if (error.message.includes('suspended')) status = 403;
+    else if (error.message.includes('Invalid') || error.message.includes('No password set')) status = 401;
+
     return NextResponse.json(
       { success: false, error: error.message },
-      { status: 500 }
+      { status }
     );
   }
 }

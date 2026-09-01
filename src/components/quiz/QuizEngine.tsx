@@ -5,6 +5,7 @@ import { useQuizStore } from '@/store/quizStore';
 import quizData from '@/data/questions.json';
 import { useRouter } from 'next/navigation';
 import LiveLeaderboard from './LiveLeaderboard';
+import SequenceOrdering from './SequenceOrdering';
 import { QRCodeSVG } from 'qrcode.react';
 
 const shuffleArray = (array: any[]) => {
@@ -17,10 +18,20 @@ const shuffleArray = (array: any[]) => {
 };
 
 const initialQuestions = quizData.questions;
+
+// QuizEngine owns its own local question index (soloQuestionIndex) that is
+// always bounded to the local 10-question shuffled array.
+// The store's advanceQuestion is called only for score/streak side-effects.
+// This keeps solo mode fully decoupled from the battle page which has its
+// own socket-fetched question list and no dependency on quizStore.
 export default function QuizEngine() {
   const router = useRouter();
-  const { currentQuestionIndex, advanceQuestion, score, multiplier, resetStreak, coinsEarned, xpEarned, inventory } = useQuizStore();
-  const [questions, setQuestions] = useState(initialQuestions);
+  const { advanceQuestion, score, multiplier, resetStreak, coinsEarned, xpEarned, inventory } = useQuizStore();
+
+  // Local 10-question session array — shuffled & burn-filtered on mount
+  const [questions, setQuestions] = useState<any[]>([]);
+  // soloQuestionIndex is owned entirely by QuizEngine — always within [0, questions.length)
+  const [soloQuestionIndex, setSoloQuestionIndex] = useState(0);
   
   useEffect(() => {
     // Fetch the burn list
@@ -74,6 +85,7 @@ export default function QuizEngine() {
   
   const [isSabotaged, setIsSabotaged] = useState(false);
   const [sabotageMessage, setSabotageMessage] = useState<string | null>(null);
+    const [eliminatedOptions, setEliminatedOptions] = useState<string[]>([]);
   const [socket, setSocket] = useState<any>(null);
 
   const [quizMode, setQuizMode] = useState<'standard' | 'wager'>('standard');
@@ -81,7 +93,7 @@ export default function QuizEngine() {
 
   useEffect(() => {
     import('socket.io-client').then(({ io }) => {
-      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || `http://${window.location.hostname}:3001`;
       const newSocket = io(socketUrl, { transports: ['websocket', 'polling'] });
       setSocket(newSocket);
     });
@@ -124,7 +136,7 @@ export default function QuizEngine() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const activeQuestion = questions[currentQuestionIndex];
+  const activeQuestion = questions[soloQuestionIndex];
 
 
   useEffect(() => {
@@ -174,7 +186,7 @@ export default function QuizEngine() {
     }
     
     setTimeLeft(initialTime);
-  }, [currentQuestionIndex, activeQuestion]);
+  }, [soloQuestionIndex, activeQuestion]);
 
   // Countdown Logic
   useEffect(() => {
@@ -276,7 +288,13 @@ export default function QuizEngine() {
     const answer = activeQuestion.correctAnswer || '';
     let correct = false;
     
-    if (selected) {
+    
+      if (activeQuestion.type === 'sequence' || activeQuestion.type === 'drag_and_drop') {
+        try {
+          const orderIds = JSON.parse(selected || '[]');
+          correct = JSON.stringify(orderIds) === JSON.stringify(activeQuestion.correctOrder);
+        } catch(e) { correct = false; }
+      } else if (selected) {
       correct = 
         selected === answer || 
         selected.startsWith(answer + '.') || 
@@ -325,7 +343,7 @@ export default function QuizEngine() {
         })
       }).then(() => {
         // Broadcast to all connected clients that the leaderboard has updated
-        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || `http://${window.location.hostname}:3001`;
         const tempSocket = require('socket.io-client').io(socketUrl, { transports: ['websocket', 'polling'] });
         tempSocket.emit('trigger_refresh');
         setTimeout(() => tempSocket.disconnect(), 1000);
@@ -348,7 +366,18 @@ export default function QuizEngine() {
       setSelectedOption(null);
       setIsSubmitted(false);
       setIsTimeout(false);
-      advanceQuestion(isCorrect, 10);
+      setEliminatedOptions([]);
+      
+      // Call store for score/streak/multiplier side-effects only
+      if (!isCorrect && useQuizStore.getState().inventory.shields > 0) {
+         useQuizStore.getState().consumeItem('shields');
+         advanceQuestion(true, 0); // Shield prevents streak loss
+      } else {
+         advanceQuestion(isCorrect, 10);
+      }
+      // Advance the local index — this is the ONLY index that drives which
+      // question is displayed. It stays within the local 10-question array.
+      setSoloQuestionIndex(prev => prev + 1);
     }
   };
 
@@ -356,14 +385,6 @@ export default function QuizEngine() {
     const state = useQuizStore.getState();
     const empId = localStorage.getItem('currentUserEmpId') || 'EMP-456'; 
     
-    // Save locally as requested
-    const playerProgress = {
-       score: state.score,
-       coins: state.coinsEarned,
-       timestamp: new Date().toISOString()
-    };
-    localStorage.setItem('simulation_save', JSON.stringify(playerProgress));
-
     try {
       await fetch('/api/quiz-sessions', {
         method: 'POST',
@@ -377,16 +398,21 @@ export default function QuizEngine() {
         }),
       });
 
+      // Increment total player coins and xp by the amounts earned in this session
       await fetch('/api/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           empId,
-          updates: { score: state.score }
+          inc: { 
+            coins: state.coinsEarned,
+            xp: state.xpEarned 
+          }
         }),
       });
       
       console.log("Progress saved. Aborting simulation...");
+
     } catch (error) {
       console.error('[QuizEngine] Failed to save session:', error);
     }
@@ -436,14 +462,13 @@ export default function QuizEngine() {
       <div className="lg:col-span-2 flex flex-col w-full h-auto">
 
         <div className="w-full flex justify-between mb-4 text-gray-500 font-mono text-sm uppercase tracking-wider">
-          <span>Unit {currentQuestionIndex + 1} / {questions.length}</span>
+          <span>Unit {soloQuestionIndex + 1} / {questions.length}</span>
           <div className="flex items-center gap-4">
             {multiplier > 1 && (
               <span className="text-[#ff9900] font-black animate-pulse">🔥 {multiplier}X ACTIVE</span>
             )}
             <span className="text-yellow-400">🪙 {coinsEarned}</span>
             <span className="text-blue-400">✨ {xpEarned} XP</span>
-            <span className="text-[#ff0055]">Score {score}</span>
           </div>
         </div>
 
@@ -464,11 +489,20 @@ export default function QuizEngine() {
           </h2>
 
 
-          {(activeQuestion.type === 'mcq' || activeQuestion.type === 'true_false') && (
+          {(activeQuestion.type === 'sequence' || activeQuestion.type === 'drag_and_drop') && (
+              <SequenceOrdering 
+                items={activeQuestion.items || activeQuestion.draggableItems || []}
+                onChange={(val) => !isSubmitted && setSelectedOption(val)}
+                disabled={isSubmitted}
+              />
+            )}
+
+            {(activeQuestion.type === 'mcq' || activeQuestion.type === 'true_false') && (
             activeQuestion.options && activeQuestion.options.length > 0 ? (
-              <div className="space-y-3 mb-8">
-                {activeQuestion.options.map((option: string, index: number) => {
-                  const isSelected = selectedOption === option;
+                <div className="space-y-3 mb-8">
+                  {activeQuestion.options.map((option: string, index: number) => {
+                    if (eliminatedOptions.includes(option)) return null;
+                    const isSelected = selectedOption === option;
                   return (
                     <button
                       key={index}
@@ -544,10 +578,24 @@ export default function QuizEngine() {
                    <button 
                      key={idx} 
                      onClick={() => {
-                       // Trigger your gadget effect here
-                       console.log(`Deployed: ${key}`);
-                       setIsTimerFrozen(true);
-                       setTimeout(() => setIsTimerFrozen(false), 5000); // Thaws after 5 seconds
+                       const store = useQuizStore.getState();
+                       store.consumeItem(key as any);
+                       
+                       if (key === 'timeFreezes') {
+                         setIsTimerFrozen(true);
+                         setTimeout(() => setIsTimerFrozen(false), 10000); // Thaws after 10 seconds
+                       } else if (key === 'overclocks') {
+                         store.addXP(250);
+                       } else if (key === 'hints') {
+                           const wrongOptions = activeQuestion.options?.filter((o: string) => o !== activeQuestion.correctAnswer) || [];
+                           if (wrongOptions.length > 0) {
+                             setEliminatedOptions([wrongOptions[0], wrongOptions[1]].filter(Boolean));
+                           }
+                         } else if (['sabotagers', 'ddosEmps', 'decoys'].includes(key)) {
+                           alert('This tactical asset is reserved for 1v1 Multiplayer engagements.');
+                           store.inventory[key as keyof QuizState['inventory']] += 1; // refund
+                         }
+                       
                        (document.getElementById('inventory-modal') as HTMLDialogElement)?.close();
                      }}
                      className="block w-full text-left p-3 mb-2 bg-purple-900/20 hover:bg-purple-600 text-sm border border-purple-900 rounded cursor-pointer"
@@ -648,3 +696,8 @@ export default function QuizEngine() {
     </div>
   );
 }
+
+
+
+
+

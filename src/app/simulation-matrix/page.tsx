@@ -34,7 +34,10 @@ export default function Home() {
               Simulation Matrix
             </h1>
             <button 
-              onClick={() => setIsQuizActive(true)}
+              onClick={() => {
+                resetQuiz();
+                setIsQuizActive(true);
+              }}
               className="px-10 py-5 bg-[#0a0a0a] border border-red-500 text-[#ff003c] font-black uppercase tracking-widest hover:bg-[#ff003c] hover:text-white transition-all duration-300 shadow-[0_0_15px_rgba(255,0,60,0.5)] rounded-2xl flex items-center gap-3 group"
             >
               <span className="w-2 h-2 rounded-full bg-[#ff003c] animate-pulse group-hover:bg-white" />
@@ -63,3 +66,4 @@ export default function Home() {
     </div>
   );
 }
+
