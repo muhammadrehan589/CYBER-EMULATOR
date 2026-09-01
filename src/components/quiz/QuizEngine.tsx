@@ -17,10 +17,20 @@ const shuffleArray = (array: any[]) => {
 };
 
 const initialQuestions = quizData.questions;
+
+// QuizEngine owns its own local question index (soloQuestionIndex) that is
+// always bounded to the local 10-question shuffled array.
+// The store's advanceQuestion is called only for score/streak side-effects.
+// This keeps solo mode fully decoupled from the battle page which has its
+// own socket-fetched question list and no dependency on quizStore.
 export default function QuizEngine() {
   const router = useRouter();
-  const { currentQuestionIndex, advanceQuestion, score, multiplier, resetStreak, coinsEarned, xpEarned, inventory } = useQuizStore();
-  const [questions, setQuestions] = useState(initialQuestions);
+  const { advanceQuestion, score, multiplier, resetStreak, coinsEarned, xpEarned, inventory } = useQuizStore();
+
+  // Local 10-question session array — shuffled & burn-filtered on mount
+  const [questions, setQuestions] = useState<any[]>([]);
+  // soloQuestionIndex is owned entirely by QuizEngine — always within [0, questions.length)
+  const [soloQuestionIndex, setSoloQuestionIndex] = useState(0);
   
   useEffect(() => {
     // Fetch the burn list
@@ -124,7 +134,7 @@ export default function QuizEngine() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const activeQuestion = questions[currentQuestionIndex];
+  const activeQuestion = questions[soloQuestionIndex];
 
 
   useEffect(() => {
@@ -174,7 +184,7 @@ export default function QuizEngine() {
     }
     
     setTimeLeft(initialTime);
-  }, [currentQuestionIndex, activeQuestion]);
+  }, [soloQuestionIndex, activeQuestion]);
 
   // Countdown Logic
   useEffect(() => {
@@ -348,7 +358,11 @@ export default function QuizEngine() {
       setSelectedOption(null);
       setIsSubmitted(false);
       setIsTimeout(false);
+      // Call store for score/streak/multiplier side-effects only
       advanceQuestion(isCorrect, 10);
+      // Advance the local index — this is the ONLY index that drives which
+      // question is displayed. It stays within the local 10-question array.
+      setSoloQuestionIndex(prev => prev + 1);
     }
   };
 
@@ -436,7 +450,7 @@ export default function QuizEngine() {
       <div className="lg:col-span-2 flex flex-col w-full h-auto">
 
         <div className="w-full flex justify-between mb-4 text-gray-500 font-mono text-sm uppercase tracking-wider">
-          <span>Unit {currentQuestionIndex + 1} / {questions.length}</span>
+          <span>Unit {soloQuestionIndex + 1} / {questions.length}</span>
           <div className="flex items-center gap-4">
             {multiplier > 1 && (
               <span className="text-[#ff9900] font-black animate-pulse">🔥 {multiplier}X ACTIVE</span>

@@ -195,8 +195,11 @@ export const useQuizStore = create<QuizState>()(
     }),
     {
       name: 'quiz-storage',
+      // currentQuestionIndex is intentionally NOT persisted.
+      // QuizEngine owns its own local soloQuestionIndex bounded to the
+      // 10-item session array; persisting the store's index was the root
+      // cause of the "1-question then back to Dashboard" bug.
       partialize: (state) => ({
-        currentQuestionIndex: state.currentQuestionIndex,
         score: state.score,
         streak: state.streak,
         multiplier: state.multiplier,

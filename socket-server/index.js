@@ -18,6 +18,9 @@ const io = new Server(server, {
 // Map of empId -> socket.id
 const userSockets = new Map();
 
+// === SHARED BATTLE STATE (module-level so all sockets share it) ===
+const battleRooms = new Map(); // matchId -> { p1Hp, p2Hp, answersThisRound, p1Answer, p2Answer, round }
+
 // Healthcheck Endpoint
 app.get('/', (req, res) => {
   res.json({ status: 'active', service: 'Cyber Simulator Realtime Socket Server', port: 3001 });
@@ -101,13 +104,12 @@ io.on('connection', (socket) => {
   });
 
   // === 1V1 BATTLE LOGIC ===
-  const battleRooms = new Map(); // matchId -> { p1Hp: 100, p2Hp: 100, answersThisRound: 0, questions: [], round: 0 }
-
   socket.on('join_battle', ({ matchId, empId }) => {
     socket.join(matchId);
     console.log(`[SOCKET_SERVER] ${empId} joined battle room ${matchId}`);
     if (!battleRooms.has(matchId)) {
-      battleRooms.set(matchId, { p1Hp: 100, p2Hp: 100, answersThisRound: 0, p1Answer: null, p2Answer: null });
+      battleRooms.set(matchId, { p1Hp: 100, p2Hp: 100, answersThisRound: 0, p1Answer: null, p2Answer: null, round: 0 });
+      console.log(`[SOCKET_SERVER] Created new battle room: ${matchId}`);
     }
   });
 
@@ -121,7 +123,12 @@ io.on('connection', (socket) => {
 
   socket.on('submit_battle_answer', ({ matchId, empId, isCorrect, damage, isChallenger }) => {
     const battle = battleRooms.get(matchId);
-    if (!battle) return;
+    if (!battle) {
+      console.log(`[SOCKET_SERVER] WARNING: No battle room found for ${matchId}. Current rooms: ${[...battleRooms.keys()].join(', ')}`);
+      return;
+    }
+
+    console.log(`[SOCKET_SERVER] Answer from ${empId} (isChallenger=${isChallenger}): correct=${isCorrect}, damage=${damage}. AnswersThisRound BEFORE: ${battle.answersThisRound}`);
 
     if (isChallenger) {
       battle.p1Answer = { isCorrect, damage };
@@ -130,16 +137,19 @@ io.on('connection', (socket) => {
     }
 
     battle.answersThisRound++;
+    console.log(`[SOCKET_SERVER] AnswersThisRound AFTER: ${battle.answersThisRound}`);
 
     // When both players have answered
     if (battle.answersThisRound === 2) {
-      // If both are correct, 0 damage to both
+      console.log(`[SOCKET_SERVER] Both players answered! Processing round ${battle.round}...`);
+
+      // If both are correct, 0 damage to both (bump animation)
       if (battle.p1Answer.isCorrect && battle.p2Answer.isCorrect) {
         battle.p1Answer.damage = 0;
         battle.p2Answer.damage = 0;
       }
 
-      // Apply damage (you take damage if you are wrong)
+      // Apply damage: wrong answer player takes damage
       battle.p1Hp -= battle.p1Answer.damage;
       battle.p2Hp -= battle.p2Answer.damage;
 
@@ -150,7 +160,9 @@ io.on('connection', (socket) => {
       const p1Dead = battle.p1Hp <= 0;
       const p2Dead = battle.p2Hp <= 0;
 
-      // Send update WITH answers so frontend can animate before advancing
+      console.log(`[SOCKET_SERVER] After round: P1 HP=${battle.p1Hp}, P2 HP=${battle.p2Hp}. nextRound=${!(p1Dead || p2Dead)}`);
+
+      // Emit update to both players
       io.to(matchId).emit('battle_update', {
         p1Hp: battle.p1Hp,
         p2Hp: battle.p2Hp,
@@ -160,24 +172,22 @@ io.on('connection', (socket) => {
       });
 
       if (p1Dead || p2Dead) {
-        // Game Over
-        let winner = null;
+        let winner = 'draw';
         if (battle.p1Hp > battle.p2Hp) winner = 'challenger';
         else if (battle.p2Hp > battle.p1Hp) winner = 'target';
-        else winner = 'draw';
-        
-        // Wait for animations before sending battle_over
+
+        console.log(`[SOCKET_SERVER] Battle over! Winner: ${winner}`);
         setTimeout(() => {
           io.to(matchId).emit('battle_over', { winner });
           battleRooms.delete(matchId);
         }, 3000);
       } else {
-        // Next round
+        // Reset for next round
         battle.answersThisRound = 0;
         battle.p1Answer = null;
         battle.p2Answer = null;
-        if (battle.round === undefined) battle.round = 0;
         battle.round++;
+        console.log(`[SOCKET_SERVER] Moving to round ${battle.round}`);
       }
     }
   });

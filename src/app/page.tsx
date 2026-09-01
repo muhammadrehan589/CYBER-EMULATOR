@@ -31,6 +31,7 @@ interface LeaderboardPlayer {
   role: string;
   score: number;
   xp: number;
+  coins: number;
   badgeColor: string;
   avatar: AvatarState;
 }
@@ -74,7 +75,7 @@ const LeaderboardItem = ({
     <div
       key={player.empId} 
       onClick={() => setSelectedTarget && setSelectedTarget(player)}
-      className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all ${selectedTarget?.empId === player.empId ? 'bg-red-900/40 border border-red-500' : 'bg-gray-900 border border-transparent hover:bg-gray-800'}`}
+      className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all ${selectedTarget?.empId === player.empId ? 'bg-red-900/40 border border-red-500' : 'bg-[#0a0a0a] border border-white/5 hover:bg-[#111]'}`}
     >
       <AnimatePresence>
         {rowEmojis.map((e) => (
@@ -128,14 +129,11 @@ const LeaderboardItem = ({
           </span>
         </div>
 
-        {/* Score + Actions */}
+        {/* XP */}
         <div className="flex items-center gap-1.5 shrink-0 ml-auto">
           <div className="flex flex-col items-end">
-            <span className="text-sm font-mono font-bold text-white tabular-nums">
-              {player.coins?.toLocaleString() || 0} COINS
-            </span>
-            <span className="text-[10px] font-mono text-[#ff0055] font-black">
-              {player.xp} XP
+            <span className="text-sm font-mono font-bold text-[#ff0055] tabular-nums">
+              {(player.xp || 0).toLocaleString()} XP
             </span>
           </div>
         </div>
@@ -293,15 +291,17 @@ export default function Phase3RealtimeDashboard() {
       const res = await fetch('/api/users');
       const json = await res.json();
       if (json.success && json.data.length > 0) {
-        const sorted = json.data.sort((a: any, b: any) => (b.score - a.score) || (b.xp - a.xp));
+        // Rank by XP descending; use coins as tiebreaker
+        const sorted = json.data.sort((a: any, b: any) => (b.xp - a.xp) || (b.coins - a.coins));
         const mapped: LeaderboardPlayer[] = sorted.map((u: any, idx: number) => ({
           rank: idx + 1,
           empId: u.empId,
           name: u.name,
           username: u.username,
           role: u.role,
-          score: u.score,
+          score: u.score || 0,
           xp: u.xp || 0,
+          coins: u.coins || 0,
           badgeColor: BADGE_COLORS[idx % BADGE_COLORS.length],
           avatar: (u.activeAvatar && Object.keys(u.activeAvatar).length > 0)
             ? { ...DEFAULT_AVATAR, ...u.activeAvatar }
@@ -351,9 +351,9 @@ export default function Phase3RealtimeDashboard() {
     newSocket.on('update_score', (data: { empId: string; newScore: number }) => {
       setLeaderboard((prevLeaderboard) => {
         const updated = prevLeaderboard.map((p) =>
-          p.empId === data.empId ? { ...p, coins: data.newScore } : p
+          p.empId === data.empId ? { ...p, xp: data.newScore } : p
         );
-        updated.sort((a, b) => (b.coins || 0) - (a.coins || 0));
+        updated.sort((a, b) => (b.xp || 0) - (a.xp || 0));
         return updated.map((p, idx) => ({ ...p, rank: idx + 1 }));
       });
     });
@@ -415,7 +415,7 @@ export default function Phase3RealtimeDashboard() {
     if (!currentEmpId || currentEmpId === empId) return; // Cannot boost yourself
 
     const sender = leaderboard.find(p => p.empId === currentEmpId);
-    if (!sender || sender.coins < coinCost) {
+    if (!sender || (sender.coins || 0) < coinCost) {
       alert(`Not enough coins! You need ${coinCost} coins to send ${xpAmount} XP.`);
       return;
     }
@@ -434,8 +434,9 @@ export default function Phase3RealtimeDashboard() {
         })
       ]);
 
+      // Trigger real-time refresh for all connected clients (no page reload needed)
       if (socket && isConnected) {
-        socket.emit('trigger_refresh'); // Refresh all leaderboards globally
+        socket.emit('trigger_refresh');
       } else {
         fetchLeaderboard();
       }
@@ -540,7 +541,7 @@ export default function Phase3RealtimeDashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 items-start">
           <div className="lg:col-span-6 xl:col-span-7 space-y-6">
-            <div className="squid-panel rounded-3xl p-6 sm:p-8 border border-[#ff0055]/40 backdrop-blur-xl shadow-[0_0_35px_rgba(255,0,85,0.25)] relative overflow-hidden space-y-6">
+            <div className="bg-[#030303]/90 rounded-3xl p-6 sm:p-8 border border-[#ff0055]/40 backdrop-blur-xl shadow-[0_0_35px_rgba(255,0,85,0.25)] relative overflow-hidden space-y-6">
               <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                 <button 
                   onClick={() => window.location.href = '/simulation-matrix'}
@@ -554,33 +555,55 @@ export default function Phase3RealtimeDashboard() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {/* TOP XP — replaces TOP COINS */}
               <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
-                <span className="text-[10px] font-mono text-zinc-400 uppercase">TOP COINS</span>
+                <span className="text-[10px] font-mono text-zinc-400 uppercase">TOP XP</span>
                 <span className="text-xl font-extrabold text-[#ff0055] font-mono">
-                  {leaderboard[0]?.coins?.toLocaleString() || 0} COINS
+                  {(leaderboard[0]?.xp || 0).toLocaleString()} XP
                 </span>
               </div>
+
+              {/* LEADER */}
               <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
                 <span className="text-[10px] font-mono text-zinc-400 uppercase">LEADER</span>
-                <span className="text-xl font-extrabold text-white font-mono">
-                  {leaderboard[0]?.name}
+                <span className="text-xl font-extrabold text-white font-mono truncate">
+                  {leaderboard[0]?.name || '—'}
                 </span>
               </div>
-              <div 
+
+              {/* MY STATS — current player's live Coins + XP, updated via socket */}
+              {(() => {
+                const currentEmpId = typeof window !== 'undefined' ? localStorage.getItem('currentUserEmpId') : null;
+                const me = leaderboard.find(p => p.empId === currentEmpId);
+                return (
+                  <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-blue-500/30 backdrop-blur-md flex flex-col justify-between space-y-1">
+                    <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">MY STATS</span>
+                    <span className="text-lg font-extrabold text-blue-400 font-mono tabular-nums">
+                      ✨ {(me?.xp || 0).toLocaleString()} XP
+                    </span>
+                    <span className="text-xs font-mono text-yellow-500 tabular-nums">
+                      🪙 {(me?.coins || 0).toLocaleString()} COINS
+                    </span>
+                  </div>
+                );
+              })()}
+
+              {/* ACTIVE OPERANTS */}
+              <div
                 onClick={() => setShowOperantsList(true)}
                 className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 hover:border-emerald-500/50 hover:bg-[#111] backdrop-blur-md flex flex-col justify-between space-y-2 cursor-pointer transition-all"
               >
                 <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">OPERANTS</span>
                 <span className="text-xl font-extrabold text-emerald-400 font-mono">
-                  {typeof window !== 'undefined' 
-                    ? leaderboard.filter(p => p.empId !== localStorage.getItem('currentUserEmpId') && onlineUsers.includes(p.empId)).length 
+                  {typeof window !== 'undefined'
+                    ? leaderboard.filter(p => p.empId !== localStorage.getItem('currentUserEmpId') && onlineUsers.includes(p.empId)).length
                     : 0} ACTIVE
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="lg:col-span-4 xl:col-span-3 squid-panel rounded-3xl p-6 border border-[#ff0055]/40 backdrop-blur-xl shadow-[0_0_35px_rgba(255,0,85,0.25)] space-y-5">
+          <div className="lg:col-span-4 xl:col-span-3 bg-[#030303]/90 rounded-3xl p-6 border border-[#ff0055]/40 backdrop-blur-xl shadow-[0_0_35px_rgba(255,0,85,0.25)] space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-[#ff0055]/30">
               <div className="flex items-center gap-2">
                 <Trophy className="w-4 h-4 text-[#ff0055]" />
@@ -622,8 +645,8 @@ export default function Phase3RealtimeDashboard() {
               FULL PLAYER LEADERBOARD
             </button>
 
-            <div className="mt-6 border-t border-gray-800 pt-6">
-              <h4 className="text-xs text-gray-500 font-mono mb-4 uppercase tracking-[0.2em]">
+            <div className="mt-6 border-t border-white/10 pt-6">
+              <h4 className="text-xs text-zinc-500 font-mono mb-4 uppercase tracking-[0.2em]">
                 {selectedTarget ? `TARGET LOCKED: ${selectedTarget.name}` : 'SELECT A TARGET TO ENGAGE'}
               </h4>
               
@@ -634,7 +657,7 @@ export default function Phase3RealtimeDashboard() {
                      key={emoji}
                      disabled={!selectedTarget}
                      onClick={() => selectedTarget && handleEmitEmoji(selectedTarget.empId, emoji)}
-                     className="flex-1 bg-gray-950 py-3 rounded border border-gray-800 hover:border-blue-500 disabled:opacity-20 transition-all text-xl cursor-pointer"
+                     className="flex-1 bg-black py-3 rounded border border-white/5 hover:border-blue-500 disabled:opacity-20 transition-all text-xl cursor-pointer"
                    >
                      {emoji}
                    </button>
@@ -653,7 +676,7 @@ export default function Phase3RealtimeDashboard() {
                      key={tier.xp}
                      disabled={!selectedTarget}
                      onClick={() => selectedTarget && handleScoreBoost(selectedTarget.empId, tier.xp, tier.cost)}
-                     className="bg-gray-950 group flex justify-between items-center p-3 font-mono border border-green-900/50 hover:bg-green-900/20 disabled:opacity-20 rounded transition-all cursor-pointer"
+                     className="bg-black group flex justify-between items-center p-3 font-mono border border-green-900/50 hover:bg-green-900/20 disabled:opacity-20 rounded transition-all cursor-pointer"
                   >
                      <span className="text-green-500 text-sm font-bold group-hover:text-green-400">+{tier.xp} XP</span>
                      <span className="text-yellow-600 text-xs tracking-widest">{tier.cost} 🪙</span>
