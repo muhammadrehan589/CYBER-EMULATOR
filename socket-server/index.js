@@ -46,6 +46,12 @@ io.on('connection', (socket) => {
     io.emit('send_emoji', data);
   });
 
+  // Event listener for stat animations (XP boosts)
+  socket.on('send_stat_animation', (data) => {
+    console.log(`[SOCKET_SERVER] Broadcast send_stat_animation:`, data);
+    io.emit('send_stat_animation', data);
+  });
+
   // Event listener to trigger full leaderboard refresh
   socket.on('trigger_refresh', () => {
     console.log(`[SOCKET_SERVER] Broadcast refresh_leaderboard`);

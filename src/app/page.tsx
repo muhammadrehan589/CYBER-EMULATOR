@@ -43,6 +43,13 @@ interface FloatingEmoji {
   senderName?: string;
 }
 
+interface FloatingStat {
+  id: string;
+  empId: string;
+  type: 'xp_up' | 'coins_down';
+  amount: number;
+}
+
 const BADGE_COLORS = ['#ff0055', '#f59e0b', '#10b981', '#a855f7', '#3b82f6', '#14b8a6', '#ef4444'];
 
 const RANK_BADGE_STYLES: Record<number, string> = {
@@ -54,6 +61,7 @@ const RANK_BADGE_STYLES: Record<number, string> = {
 const LeaderboardItem = ({ 
   player, 
   floatingEmojis, 
+  floatingStats = [],
   onEmitEmoji, 
   onScoreBoost,
   mini = true,
@@ -62,6 +70,7 @@ const LeaderboardItem = ({
 }: { 
   player: LeaderboardPlayer; 
   floatingEmojis: FloatingEmoji[]; 
+  floatingStats?: FloatingStat[];
   onEmitEmoji: (id: string, emoji: string) => void;
   onScoreBoost: (id: string) => void;
   mini?: boolean;
@@ -69,13 +78,14 @@ const LeaderboardItem = ({
   setSelectedTarget?: (p: LeaderboardPlayer) => void;
 }) => {
   const rowEmojis = floatingEmojis.filter((e) => e.empId === player.empId);
+  const rowStats = floatingStats.filter((s) => s.empId === player.empId);
   const badgeStyle = RANK_BADGE_STYLES[player.rank] || '';
 
   return (
     <div
       key={player.empId} 
       onClick={() => setSelectedTarget && setSelectedTarget(player)}
-      className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all ${selectedTarget?.empId === player.empId ? 'bg-red-900/40 border border-red-500' : 'bg-[#0a0a0a] border border-white/5 hover:bg-[#111]'}`}
+      className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all ${selectedTarget?.empId === player.empId ? 'bg-red-900/40 border border-red-500' : 'bg-[#0a0a0a] border border-white/5 hover:bg-[#111]'} relative`}
     >
       <AnimatePresence>
         {rowEmojis.map((e) => (
@@ -93,6 +103,20 @@ const LeaderboardItem = ({
                 Boosted by {e.senderName}
               </span>
             )}
+          </motion.div>
+        ))}
+
+        {rowStats.map((s) => (
+          <motion.div
+            key={s.id}
+            initial={{ y: 0, opacity: 1, scale: 1 }}
+            animate={{ y: s.type === 'xp_up' ? -40 : 40, opacity: 0, scale: 1.5 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 2, ease: 'easeOut' }}
+            className={`absolute right-12 top-2 flex items-center gap-1 z-50 pointer-events-none font-black font-mono text-lg drop-shadow-[0_0_10px_currentColor] ${s.type === 'xp_up' ? 'text-[#ff0055]' : 'text-yellow-500'}`}
+          >
+            {s.type === 'xp_up' ? '↑' : '↓'} 
+            {s.type === 'xp_up' ? `+${s.amount} XP` : `-${s.amount} COINS`}
           </motion.div>
         ))}
       </AnimatePresence>
@@ -147,6 +171,7 @@ const FullLeaderboardModal = ({
   onClose,
   leaderboard,
   floatingEmojis,
+  floatingStats,
   onEmitEmoji,
   onScoreBoost,
   selectedTarget,
@@ -156,6 +181,7 @@ const FullLeaderboardModal = ({
   onClose: () => void;
   leaderboard: LeaderboardPlayer[];
   floatingEmojis: FloatingEmoji[];
+  floatingStats?: FloatingStat[];
   onEmitEmoji: (id: string, emoji: string) => void;
   onScoreBoost: (id: string) => void;
   selectedTarget: LeaderboardPlayer | null;
@@ -186,6 +212,7 @@ const FullLeaderboardModal = ({
               key={player.empId}
               player={player}
               floatingEmojis={floatingEmojis}
+              floatingStats={floatingStats}
               onEmitEmoji={onEmitEmoji}
               onScoreBoost={onScoreBoost}
               mini={false}
@@ -223,6 +250,7 @@ export default function Phase3RealtimeDashboard() {
   const [isConnected, setIsConnected] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardPlayer[]>([]);
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
+  const [floatingStats, setFloatingStats] = useState<FloatingStat[]>([]);
   const [reactionCounts, setReactionCounts] = useState<{ [key: string]: number }>({
     '🔥': 0,
     '⚡': 0,
@@ -355,6 +383,14 @@ export default function Phase3RealtimeDashboard() {
       }, 1800);
     });
 
+    newSocket.on('send_stat_animation', (data: FloatingStat) => {
+      const statId = data.id || `stat-${Date.now()}-${Math.random()}`;
+      setFloatingStats((prev) => [...prev, { ...data, id: statId }]);
+      setTimeout(() => {
+        setFloatingStats((prev) => prev.filter((s) => s.id !== statId));
+      }, 2000);
+    });
+
     newSocket.on('receive_1v1_challenge', (data: { challengerId: string, challengerName: string }) => {
       setIncomingChallenge(data);
       setChallengeTimer(15);
@@ -420,10 +456,19 @@ export default function Phase3RealtimeDashboard() {
       ]);
 
       // Trigger real-time refresh for all connected clients (no page reload needed)
+      const statIdXP = `xp-${Date.now()}`;
+      const statIdCoins = `coins-${Date.now()}`;
+      const xpAnim: FloatingStat = { id: statIdXP, empId, type: 'xp_up', amount: xpAmount };
+      const coinsAnim: FloatingStat = { id: statIdCoins, empId: currentEmpId, type: 'coins_down', amount: coinCost };
+
       if (socket && isConnected) {
         socket.emit('trigger_refresh');
+        socket.emit('send_stat_animation', xpAnim);
+        socket.emit('send_stat_animation', coinsAnim);
       } else {
         fetchLeaderboard();
+        setFloatingStats(prev => [...prev, xpAnim, coinsAnim]);
+        setTimeout(() => setFloatingStats(prev => prev.filter(s => s.id !== statIdXP && s.id !== statIdCoins)), 2000);
       }
 
       fetch('/api/activity-logs', {
@@ -432,7 +477,7 @@ export default function Phase3RealtimeDashboard() {
         body: JSON.stringify({
           empId,
           action: 'XP Boost',
-          type: 'xp',
+          type: 'score',
           details: `XP boosted by +${xpAmount} from ${sender.name}.`,
         }),
       }).catch((err) => console.error('[Dashboard] Log persist failed:', err));
@@ -545,11 +590,25 @@ export default function Phase3RealtimeDashboard() {
               return (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {/* MY XP */}
-                  <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
+                  <div className="relative p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
                     <span className="text-[10px] font-mono text-zinc-400 uppercase">MY XP</span>
                     <span className="text-xl font-extrabold text-[#ff0055] font-mono">
                       {(me?.xp || 0).toLocaleString()} XP
                     </span>
+                    <AnimatePresence>
+                      {floatingStats.filter(s => s.empId === me?.empId && s.type === 'xp_up').map(s => (
+                        <motion.div
+                          key={s.id}
+                          initial={{ y: 0, opacity: 1, scale: 1 }}
+                          animate={{ y: -40, opacity: 0, scale: 1.5 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 2, ease: 'easeOut' }}
+                          className="absolute right-4 top-2 text-[#ff0055] font-black font-mono text-lg drop-shadow-[0_0_10px_currentColor] z-50 pointer-events-none"
+                        >
+                          ↑ +{s.amount} XP
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
                   </div>
 
                   {/* PLAYER */}
@@ -561,11 +620,25 @@ export default function Phase3RealtimeDashboard() {
                   </div>
 
                   {/* MY COINS */}
-                  <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-blue-500/30 backdrop-blur-md flex flex-col justify-between space-y-2">
+                  <div className="relative p-4 rounded-2xl bg-[#0a030d]/80 border border-blue-500/30 backdrop-blur-md flex flex-col justify-between space-y-2">
                     <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">MY COINS</span>
                     <span className="text-xl font-extrabold text-yellow-500 font-mono tabular-nums">
                       {(me?.coins || 0).toLocaleString()} COINS
                     </span>
+                    <AnimatePresence>
+                      {floatingStats.filter(s => s.empId === me?.empId && s.type === 'coins_down').map(s => (
+                        <motion.div
+                          key={s.id}
+                          initial={{ y: 0, opacity: 1, scale: 1 }}
+                          animate={{ y: 40, opacity: 0, scale: 1.5 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 2, ease: 'easeOut' }}
+                          className="absolute right-4 top-2 text-yellow-500 font-black font-mono text-lg drop-shadow-[0_0_10px_currentColor] z-50 pointer-events-none"
+                        >
+                          ↓ -{s.amount} COINS
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
                   </div>
 
                   {/* ACTIVE OPERANTS */}
