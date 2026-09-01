@@ -10,46 +10,25 @@ interface ItemShopModalProps {
 }
 
 export default function ItemShopModal({ onClose, players = [], socket }: ItemShopModalProps) {
-  const { coinsEarned: coins, xpEarned, inventory, executeSabotage } = useQuizStore();
+  const { inventory, buyItem } = useQuizStore();
+  const currentEmpId = typeof window !== 'undefined' ? localStorage.getItem('currentUserEmpId') : null;
+  const me = players.find(p => p.empId === currentEmpId);
+  const coins = me?.coins || 0;
+  const xpEarned = me?.xp || 0;
   const [feedback, setFeedback] = useState<{ id: string, message: string, type: 'success' | 'error' } | null>(null);
   const [terminalLog, setTerminalLog] = useState<string | null>(null);
   const [targetingMode, setTargetingMode] = useState<string | null>(null);
 
-  const setCoins = (updater: any) => {
-    useQuizStore.setState(state => ({
-      coinsEarned: typeof updater === 'function' ? updater(state.coinsEarned) : updater
-    }));
-  };
-
-  const setInventory = (updater: any) => {
-    useQuizStore.setState(state => {
-      const prevInv: any[] = [];
-      for (const [key, val] of Object.entries(state.inventory)) {
-        for (let i = 0; i < (val as number); i++) {
-          prevInv.push({ type: key });
-        }
-      }
-      const nextInv = updater(prevInv);
-      const newObj = { ...state.inventory };
-      const addedItem = nextInv[nextInv.length - 1];
-      if (addedItem && addedItem.type && newObj[addedItem.type as keyof typeof newObj] !== undefined) {
-        newObj[addedItem.type as keyof typeof newObj] += 1;
-      }
-      return { inventory: newObj };
-    });
-  };
-
-  const handlePurchase = (item: any) => {
-    // Check if player has enough funds
+  const handlePurchase = async (item: any) => {
     if (coins >= item.price) {
-      // 🟢 TRANSACTION APPROVED
-      setCoins((prevCoins: number) => prevCoins - item.price);
-      setInventory((prevInv: any[]) => [...prevInv, item]);
-      console.log(`Successfully purchased: ${item.name}`);
+      if (currentEmpId) {
+        await fetch('/api/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ empId: currentEmpId, inc: { coins: -item.price } }) });
+        socket?.emit('trigger_refresh');
+      }
+      buyItem(item.type, 0);
       setFeedback({ id: item.id, message: 'ACQUIRED', type: 'success' });
       setTimeout(() => setFeedback(null), 2000);
     } else {
-      // 🔴 INSUFFICIENT FUNDS
       console.log("Transaction denied: Not enough coins.");
       setFeedback({ id: item.id, message: 'INSUFFICIENT FUNDS', type: 'error' });
       setTimeout(() => setFeedback(null), 2000);
@@ -236,3 +215,4 @@ export default function ItemShopModal({ onClose, players = [], socket }: ItemSho
     </div>
   );
 }
+

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useId, useState } from 'react';
+import React, { useId, useEffect, useState } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -19,14 +19,14 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-function SortableItem({ id, content }: { id: string, content: string }) {
+function SortableItem({ id, content, disabled }: { id: string, content: string, disabled: boolean }) {
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
     transition,
-  } = useSortable({ id });
+  } = useSortable({ id, disabled });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -39,7 +39,7 @@ function SortableItem({ id, content }: { id: string, content: string }) {
       style={style}
       {...attributes}
       {...listeners}
-      className="p-4 mb-3 bg-[#111] border-2 border-gray-800 rounded-xl cursor-grab active:cursor-grabbing text-gray-200 font-medium hover:border-gray-600 transition-colors"
+      className={"p-4 mb-3 bg-[#111] border-2 rounded-xl font-medium transition-colors " + (disabled ? "border-gray-800 text-gray-500 cursor-not-allowed opacity-75" : "border-gray-700 cursor-grab active:cursor-grabbing text-gray-200 hover:border-gray-500")}
     >
       {content}
     </div>
@@ -47,42 +47,52 @@ function SortableItem({ id, content }: { id: string, content: string }) {
 }
 
 interface SequenceOrderingProps {
-  question: any;
-  onComplete: (isCorrect: boolean) => void;
+  items: any[];
+  onChange: (orderIds: string) => void;
+  disabled: boolean;
 }
 
-export default function SequenceOrdering({ question, onComplete }: SequenceOrderingProps) {
-  const [items, setItems] = useState(question.items);
+export default function SequenceOrdering({ items: initialItems, onChange, disabled }: SequenceOrderingProps) {
+  const [items, setItems] = useState(initialItems);
   const dndId = useId();
 
+  useEffect(() => {
+    setItems(initialItems);
+  }, [initialItems]);
+
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
 
   function handleDragEnd(event: DragEndEvent) {
+    if (disabled) return;
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      setItems((items: any[]) => {
-        const oldIndex = items.findIndex((i) => i.id === active.id);
-        const newIndex = items.findIndex((i) => i.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
+      setItems((prevItems: any[]) => {
+        const oldIndex = prevItems.findIndex((i) => i.id === active.id);
+        const newIndex = prevItems.findIndex((i) => i.id === over.id);
+        const newItems = arrayMove(prevItems, oldIndex, newIndex);
+        onChange(JSON.stringify(newItems.map((i: any) => i.id)));
+        return newItems;
       });
     }
   }
 
-  const handleSubmit = () => {
-    const currentOrder = items.map((i: any) => i.id);
-    const isCorrect = JSON.stringify(currentOrder) === JSON.stringify(question.correctOrder);
-    onComplete(isCorrect);
-  };
+  // Initialize selected order on mount if not disabled
+  useEffect(() => {
+    if (!disabled && items && items.length > 0) {
+      onChange(JSON.stringify(items.map((i: any) => i.id)));
+    }
+  }, [items, disabled, onChange]);
+
+  if (!items || items.length === 0) return null;
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <h2 className="text-xl font-bold mb-6 text-white">{question.text}</h2>
       <DndContext 
         id={dndId}
         sensors={sensors}
@@ -94,16 +104,10 @@ export default function SequenceOrdering({ question, onComplete }: SequenceOrder
           strategy={verticalListSortingStrategy}
         >
           {items.map((item: any) => (
-            <SortableItem key={item.id} id={item.id} content={item.content} />
+            <SortableItem key={item.id} id={item.id} content={item.content || item.text} disabled={disabled} />
           ))}
         </SortableContext>
       </DndContext>
-      <button 
-        onClick={handleSubmit}
-        className="mt-8 w-full py-4 bg-gradient-to-r from-[#ff0055] to-[#e60039] hover:from-[#e60039] hover:to-[#ff0055] text-white font-bold rounded-xl uppercase tracking-widest transition-all"
-      >
-        Submit Sequence
-      </button>
     </div>
   );
 }

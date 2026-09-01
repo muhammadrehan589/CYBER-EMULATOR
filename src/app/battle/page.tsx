@@ -5,8 +5,9 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AvatarSVG, DEFAULT_AVATAR as DEFAULT_AVATAR_OBJ } from '@/components/Avatar';
+import { useQuizStore } from '@/store/quizStore';
 
-export default function BattlePage() {
+function BattlePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const matchId = searchParams.get('matchId');
@@ -25,19 +26,20 @@ export default function BattlePage() {
   const [opponent, setOpponent] = useState<any>({ name: 'Opponent', username: 'opponent' });
   const [animationState, setAnimationState] = useState('idle');
   const isChallenger = localUser?.empId === challengerId;
+  const { inventory, consumeItem } = useQuizStore();
 
   useEffect(() => {
     let currentSocket: Socket | null = null;
     let isMounted = true;
     const currentEmpId = localStorage.getItem('currentUserEmpId');
-    if (!currentEmpId) { router.push('/login'); return; }
+    if (!currentEmpId) { window.location.href = '/login'; return; }
     const oppId = currentEmpId === challengerId ? targetId : challengerId;
     Promise.all([
       fetch(`/api/users?search=${currentEmpId}`).then(r => r.json()),
       fetch(`/api/users?search=${oppId}`).then(r => r.json()),
     ]).then(([localRes, oppRes]) => {
       if (!isMounted) return;
-      if (!localRes.success || localRes.data.length === 0) { router.push('/login'); return; }
+      if (!localRes.success || localRes.data.length === 0) { window.location.href = '/login'; return; }
       const parsedUser = localRes.data[0];
       setLocalUser(parsedUser);
       if (oppRes.success && oppRes.data.length > 0) setOpponent(oppRes.data[0]);
@@ -217,6 +219,72 @@ export default function BattlePage() {
           </div>
         )}
       </div>
+
+      {/* INJECT GADGET DEPLOYMENT BUTTON */}
+      <div className="absolute bottom-6 left-6 z-40">
+        <button 
+          onClick={() => (document.getElementById('battle-inventory-modal') as HTMLDialogElement)?.showModal()}
+          className="bg-purple-900/60 hover:bg-purple-600 border border-purple-500 text-white px-4 py-2 rounded-full font-mono text-[10px] sm:text-xs tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all cursor-pointer"
+        >
+          DEPLOY GADGET
+        </button>
+        
+        <dialog id="battle-inventory-modal" className="bg-gray-950 border border-purple-500 p-4 sm:p-6 rounded-lg text-white font-mono backdrop:bg-black/80 w-72 sm:w-80 max-w-[90vw]">
+           <h3 className="text-purple-400 mb-4 border-b border-purple-900/50 pb-2">ACTIVE INVENTORY</h3>
+           {Object.entries(inventory).filter(([_, count]) => count > 0).length === 0 ? (
+             <p className="text-gray-500 text-xs">No tactical assets available.</p>
+           ) : (
+             Object.entries(inventory)
+               .filter(([_, count]) => count > 0)
+               .map(([key, count], idx) => (
+               <button 
+                 key={idx} 
+                 onClick={() => {
+                   consumeItem(key as any);
+                   
+                   if (key === 'timeFreezes') {
+                     setTimer(prev => prev + 10);
+                   } else if (key === 'sabotagers') {
+                     socket?.emit('player_sabotage', { targetId: opponent.empId, penaltyXp: 50 });
+                   } else if (key === 'overclocks') {
+                     fetch('/api/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ empId: localUser?.empId, inc: { xp: 250 } }) });
+                   } else if (key === 'ddosEmps') {
+                     socket?.emit('player_ddos', { targetId: opponent.empId });
+                   } else if (key === 'decoys') {
+                     alert('Decoys are automatically triggered when sabotaged!');
+                     useQuizStore.getState().buyItem('decoys', 0); // refund manual click
+                   } else if (key === 'shields' || key === 'hints') {
+                     alert('This tactical asset is reserved for Solo Matrix engagements.');
+                     useQuizStore.getState().buyItem(key as any, 0); // refund
+                   }
+                   
+                   (document.getElementById('battle-inventory-modal') as HTMLDialogElement)?.close();
+                 }}
+                 className="block w-full text-left p-3 mb-2 bg-purple-900/20 hover:bg-purple-600 text-sm border border-purple-900 rounded cursor-pointer"
+               >
+                 {">"} {key.toUpperCase()} (x{count})
+               </button>
+             ))
+           )}
+           <button onClick={() => (document.getElementById('battle-inventory-modal') as HTMLDialogElement)?.close()} className="mt-4 text-gray-500 hover:text-white text-xs w-full text-right cursor-pointer">
+             [ CLOSE ]
+           </button>
+        </dialog>
+      </div>
     </div>
   );
 }
+
+
+
+export default function BattlePage() {
+  return (
+    <React.Suspense fallback={<div className="min-h-screen bg-[#0a0a1a] text-white flex items-center justify-center">Loading Battle Arena...</div>}>
+      <BattlePageContent />
+    </React.Suspense>
+  );
+}
+
+
+
+

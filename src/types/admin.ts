@@ -9,6 +9,8 @@ export interface Player {
   role: PlayerRole;
   status: PlayerStatus;
   score: number;
+  xp?: number;
+  coins?: number;
   joinedAt: string;
 }
 
