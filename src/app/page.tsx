@@ -208,21 +208,6 @@ export default function Phase3RealtimeDashboard() {
   const setCoins = (c: number) => useQuizStore.setState({ coinsEarned: c });
 
   useEffect(() => {
-    // 1. Retrieve the encrypted save file
-    const savedData = localStorage.getItem('simulation_save');
-    
-    if (savedData) {
-      // 2. Decrypt (Parse) the JSON payload
-      const parsed = JSON.parse(savedData);
-      
-      // 3. Inject the saved values into your active state
-      // (Ensure you have setMyScore and setCoins state functions in this file)
-      if (parsed.score !== undefined) setMyScore(parsed.score);
-      if (parsed.coins !== undefined) setCoins(parsed.coins);
-    }
-  }, []);
-
-  useEffect(() => {
     // Check for your specific auth token or user state here
     const isAuthenticated = localStorage.getItem('currentUserEmpId'); 
     
@@ -554,53 +539,50 @@ export default function Phase3RealtimeDashboard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {/* TOP XP — replaces TOP COINS */}
-              <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
-                <span className="text-[10px] font-mono text-zinc-400 uppercase">TOP XP</span>
-                <span className="text-xl font-extrabold text-[#ff0055] font-mono">
-                  {(leaderboard[0]?.xp || 0).toLocaleString()} XP
-                </span>
-              </div>
-
-              {/* LEADER */}
-              <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
-                <span className="text-[10px] font-mono text-zinc-400 uppercase">LEADER</span>
-                <span className="text-xl font-extrabold text-white font-mono truncate">
-                  {leaderboard[0]?.name || '—'}
-                </span>
-              </div>
-
-              {/* MY STATS — current player's live Coins + XP, updated via socket */}
-              {(() => {
-                const currentEmpId = typeof window !== 'undefined' ? localStorage.getItem('currentUserEmpId') : null;
-                const me = leaderboard.find(p => p.empId === currentEmpId);
-                return (
-                  <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-blue-500/30 backdrop-blur-md flex flex-col justify-between space-y-1">
-                    <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">MY STATS</span>
-                    <span className="text-lg font-extrabold text-blue-400 font-mono tabular-nums">
-                      ✨ {(me?.xp || 0).toLocaleString()} XP
-                    </span>
-                    <span className="text-xs font-mono text-yellow-500 tabular-nums">
-                      🪙 {(me?.coins || 0).toLocaleString()} COINS
+            {(() => {
+              const currentEmpId = typeof window !== 'undefined' ? localStorage.getItem('currentUserEmpId') : null;
+              const me = leaderboard.find(p => p.empId === currentEmpId);
+              return (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {/* MY XP */}
+                  <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
+                    <span className="text-[10px] font-mono text-zinc-400 uppercase">MY XP</span>
+                    <span className="text-xl font-extrabold text-[#ff0055] font-mono">
+                      {(me?.xp || 0).toLocaleString()} XP
                     </span>
                   </div>
-                );
-              })()}
 
-              {/* ACTIVE OPERANTS */}
-              <div
-                onClick={() => setShowOperantsList(true)}
-                className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 hover:border-emerald-500/50 hover:bg-[#111] backdrop-blur-md flex flex-col justify-between space-y-2 cursor-pointer transition-all"
-              >
-                <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">OPERANTS</span>
-                <span className="text-xl font-extrabold text-emerald-400 font-mono">
-                  {typeof window !== 'undefined'
-                    ? leaderboard.filter(p => p.empId !== localStorage.getItem('currentUserEmpId') && onlineUsers.includes(p.empId)).length
-                    : 0} ACTIVE
-                </span>
-              </div>
-            </div>
+                  {/* PLAYER */}
+                  <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
+                    <span className="text-[10px] font-mono text-zinc-400 uppercase">PLAYER</span>
+                    <span className="text-xl font-extrabold text-white font-mono truncate">
+                      {me?.name || '—'}
+                    </span>
+                  </div>
+
+                  {/* MY COINS */}
+                  <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-blue-500/30 backdrop-blur-md flex flex-col justify-between space-y-2">
+                    <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">MY COINS</span>
+                    <span className="text-xl font-extrabold text-yellow-500 font-mono tabular-nums">
+                      {(me?.coins || 0).toLocaleString()} COINS
+                    </span>
+                  </div>
+
+                  {/* ACTIVE OPERANTS */}
+                  <div
+                    onClick={() => setShowOperantsList(true)}
+                    className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 hover:border-emerald-500/50 hover:bg-[#111] backdrop-blur-md flex flex-col justify-between space-y-2 cursor-pointer transition-all"
+                  >
+                    <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">OPERANTS</span>
+                    <span className="text-xl font-extrabold text-emerald-400 font-mono">
+                      {typeof window !== 'undefined'
+                        ? leaderboard.filter(p => p.empId !== localStorage.getItem('currentUserEmpId') && onlineUsers.includes(p.empId)).length
+                        : 0} ACTIVE
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           <div className="lg:col-span-4 xl:col-span-3 bg-[#030303]/90 rounded-3xl p-6 border border-[#ff0055]/40 backdrop-blur-xl shadow-[0_0_35px_rgba(255,0,85,0.25)] space-y-5">

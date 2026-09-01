@@ -370,14 +370,6 @@ export default function QuizEngine() {
     const state = useQuizStore.getState();
     const empId = localStorage.getItem('currentUserEmpId') || 'EMP-456'; 
     
-    // Save locally as requested
-    const playerProgress = {
-       score: state.score,
-       coins: state.coinsEarned,
-       timestamp: new Date().toISOString()
-    };
-    localStorage.setItem('simulation_save', JSON.stringify(playerProgress));
-
     try {
       await fetch('/api/quiz-sessions', {
         method: 'POST',
@@ -391,16 +383,21 @@ export default function QuizEngine() {
         }),
       });
 
+      // Increment total player coins and xp by the amounts earned in this session
       await fetch('/api/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           empId,
-          updates: { score: state.score }
+          inc: { 
+            coins: state.coinsEarned,
+            xp: state.xpEarned 
+          }
         }),
       });
       
       console.log("Progress saved. Aborting simulation...");
+
     } catch (error) {
       console.error('[QuizEngine] Failed to save session:', error);
     }
@@ -457,7 +454,6 @@ export default function QuizEngine() {
             )}
             <span className="text-yellow-400">🪙 {coinsEarned}</span>
             <span className="text-blue-400">✨ {xpEarned} XP</span>
-            <span className="text-[#ff0055]">Score {score}</span>
           </div>
         </div>
 
