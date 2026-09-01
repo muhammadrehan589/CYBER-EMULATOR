@@ -113,7 +113,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
           
           try {
             const { io } = await import('socket.io-client');
-            const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+            const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || `http://${window.location.hostname}:3001`;
             const tempSocket = io(socketUrl, { transports: ['websocket'] });
             tempSocket.emit('trigger_refresh');
             setTimeout(() => tempSocket.disconnect(), 1000);

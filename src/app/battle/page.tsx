@@ -41,7 +41,8 @@ export default function BattlePage() {
       const parsedUser = localRes.data[0];
       setLocalUser(parsedUser);
       if (oppRes.success && oppRes.data.length > 0) setOpponent(oppRes.data[0]);
-      currentSocket = io('http://localhost:3001');
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || `http://${window.location.hostname}:3001`;
+      currentSocket = io(socketUrl);
       setSocket(currentSocket);
       currentSocket.on('connect', () => {
         currentSocket!.emit('join_battle', { matchId, empId: parsedUser.empId });

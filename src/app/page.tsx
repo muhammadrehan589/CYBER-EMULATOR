@@ -330,7 +330,7 @@ export default function Phase3RealtimeDashboard() {
   useEffect(() => {
     fetchLeaderboard();
 
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || `http://${window.location.hostname}:3001`;
     const newSocket = io(socketUrl, {
       transports: ['websocket', 'polling'],
       autoConnect: true,

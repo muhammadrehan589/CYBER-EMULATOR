@@ -91,7 +91,7 @@ export default function QuizEngine() {
 
   useEffect(() => {
     import('socket.io-client').then(({ io }) => {
-      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || `http://${window.location.hostname}:3001`;
       const newSocket = io(socketUrl, { transports: ['websocket', 'polling'] });
       setSocket(newSocket);
     });
@@ -335,7 +335,7 @@ export default function QuizEngine() {
         })
       }).then(() => {
         // Broadcast to all connected clients that the leaderboard has updated
-        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || `http://${window.location.hostname}:3001`;
         const tempSocket = require('socket.io-client').io(socketUrl, { transports: ['websocket', 'polling'] });
         tempSocket.emit('trigger_refresh');
         setTimeout(() => tempSocket.disconnect(), 1000);
