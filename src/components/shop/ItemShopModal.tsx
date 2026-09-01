@@ -10,7 +10,7 @@ interface ItemShopModalProps {
 }
 
 export default function ItemShopModal({ onClose, players = [], socket }: ItemShopModalProps) {
-  const { inventory, buyItem } = useQuizStore();
+  const { inventory, buyItem, executeSabotage } = useQuizStore();
   const currentEmpId = typeof window !== 'undefined' ? localStorage.getItem('currentUserEmpId') : null;
   const me = players.find(p => p.empId === currentEmpId);
   const coins = me?.coins || 0;
@@ -43,10 +43,18 @@ export default function ItemShopModal({ onClose, players = [], socket }: ItemSho
       price: 50,
       description: 'Scrambles and eliminates 50% of incorrect choices.',
       icon: '🧠',
-      offensive: false
-    },
-    {
-      id: 'chronos-freeze',
+      offensive: false      },
+      {
+        id: 'auto-sorter',
+        type: 'autoSorters' as const,
+        name: 'Auto-Sorter',
+        price: 80,
+        description: 'Instantly arranges the first 2 options in the correct sequence.',
+        icon: '??',
+        offensive: false
+      },
+      {
+        id: 'chronos-freeze',
       type: 'timeFreezes' as const,
       name: 'Chronos Freeze',
       price: 30,
@@ -215,4 +223,6 @@ export default function ItemShopModal({ onClose, players = [], socket }: ItemSho
     </div>
   );
 }
+
+
 
