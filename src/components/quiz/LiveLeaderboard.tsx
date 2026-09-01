@@ -24,7 +24,7 @@ export default function LiveLeaderboard() {
       const json = await res.json();
       if (json.success && json.data.length > 0) {
         const currentEmpId = localStorage.getItem('currentUserEmpId') || 'EMP-456';
-        const sorted = json.data.sort((a: any, b: any) => (b.score - a.score) || (b.xp - a.xp));
+        const sorted = json.data.sort((a: any, b: any) => (b.xp - a.xp) || (b.coins - a.coins));
         const mapped: LeaderboardPlayer[] = sorted.map((u: any, index: number) => ({
           empId: u.empId,
           name: u.empId === currentEmpId ? 'YOU' : u.name,
