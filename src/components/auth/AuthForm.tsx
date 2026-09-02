@@ -202,7 +202,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         ) : (
           <form onSubmit={handleLoginSubmit} className="space-y-6">
             
-              /* NORMAL NAME & USERNAME INPUTS */
+              {/* NORMAL NAME & USERNAME INPUTS */}
                 {/* NAME FIELD */}
                 {authMode === 'signup' && (
                   <div className="space-y-2">

@@ -7,20 +7,24 @@ import { useState, useEffect } from 'react';
 export interface AuthSession {
   empId: string | null;
   isAuthenticated: boolean;
+  isAuthReady: boolean;
 }
 
 export function useAuth(): AuthSession {
   const [empId, setEmpId] = useState<string | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
     // Only runs on client — safe from SSR issues
     const stored = localStorage.getItem('currentUserEmpId');
     setEmpId(stored);
+    setIsAuthReady(true);
   }, []);
 
   return {
     empId,
     isAuthenticated: !!empId,
+    isAuthReady,
   };
 }
 

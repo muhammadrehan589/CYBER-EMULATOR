@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 function BattlePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { empId } = useAuth();
+  const { empId, isAuthReady } = useAuth();
   const matchId = searchParams.get('matchId');
   const challengerId = searchParams.get('challengerId');
   const targetId = searchParams.get('targetId');
@@ -33,6 +33,8 @@ function BattlePageContent() {
   const { inventory, consumeItem } = useQuizStore();
 
   useEffect(() => {
+    if (!isAuthReady) return;
+
     let currentSocket: Socket | null = null;
     let isMounted = true;
     const currentEmpId = empId;
@@ -139,7 +141,7 @@ function BattlePageContent() {
       });
     });
     return () => { isMounted = false; currentSocket?.disconnect(); };
-  }, [matchId, challengerId, targetId, router]);
+  }, [matchId, challengerId, targetId, router, empId, isAuthReady]);
 
   useEffect(() => {
     if (sessionTimer > 0) {
