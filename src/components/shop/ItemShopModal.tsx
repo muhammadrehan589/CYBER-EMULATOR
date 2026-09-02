@@ -55,13 +55,22 @@ export default function ItemShopModal({ onClose, players = [], socket }: ItemSho
       },
       {
         id: 'chronos-freeze',
-      type: 'timeFreezes' as const,
-      name: 'Chronos Freeze',
-      price: 30,
-      description: 'Freezes question countdown timer for 15 seconds.',
-      icon: '⏱️',
-      offensive: false
-    },
+        type: 'timeFreezes' as const,
+        name: 'Chronos Freeze',
+        price: 30,
+        description: 'Freezes question countdown timer for 15 seconds.',
+        icon: '⏳',
+        offensive: false
+      },
+      {
+        id: 'screen-freeze',
+        type: 'screenFreezes' as const,
+        name: 'Glacier Protocol',
+        price: 150,
+        description: 'Freezes the opponent\'s screen for 10 seconds.',
+        icon: '❄️',
+        offensive: true
+      },
     {
       id: 'firewall-shield',
       type: 'shields' as const,
