@@ -113,7 +113,7 @@ function BattlePageContent() {
         }
         alert(`[!] SABOTAGE DETECTED! Lost ${data.penaltyXp} XP from ${data.attackerName}!`);
         try {
-          const empId = empId;
+
           await fetch('/api/users', {
              method: 'PATCH',
              headers: { 'Content-Type': 'application/json' },

@@ -36,7 +36,7 @@ export default function Phase3RealtimeDashboard() {
   const router = useRouter();
   const { empId, isAuthenticated, isAuthReady } = useAuth();
   const { socket, isConnected } = useSocket(empId);
-  const { leaderboard, setLeaderboard } = useLeaderboard(socket);
+  const { leaderboard, setLeaderboard, fetchLeaderboard } = useLeaderboard(socket);
 
   const { coinsEarned, addCoins } = useQuizStore();
   const setMyScore = (s: number) => useQuizStore.setState({ score: s });

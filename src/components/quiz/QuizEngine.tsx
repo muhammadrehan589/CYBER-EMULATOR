@@ -232,14 +232,14 @@ export default function QuizEngine() {
     if (mounted && !activeQuestion && score > 0) {
       const saveSession = async () => {
         const state = useQuizStore.getState();
-        const empId = empId || 'EMP-456'; 
+        const sessionEmpId = empId || 'EMP-456'; 
         
         try {
           await fetch('/api/quiz-sessions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              empId,
+              empId: sessionEmpId,
               finalScore: state.score,
               highestStreak: state.highestStreak || 0,
               questionsPlayed: state.playedQuestions,
@@ -326,12 +326,12 @@ export default function QuizEngine() {
         xpEarned: state.xpEarned + xpEarned
       }));
 
-      const empId = empId || 'EMP-456';
+      const userEmpId = empId || 'EMP-456';
       fetch('/api/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          empId,
+          empId: userEmpId,
           inc: { coins: coinsEarned, xp: xpEarned }
         })
       }).then(() => {
@@ -429,14 +429,14 @@ export default function QuizEngine() {
 
   const handleSaveAndExit = async () => {
     const state = useQuizStore.getState();
-    const empId = empId || 'EMP-456'; 
+    const exitEmpId = empId || 'EMP-456'; 
     
     try {
       await fetch('/api/quiz-sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          empId,
+          empId: exitEmpId,
           finalScore: state.score,
           highestStreak: state.highestStreak || 0,
           questionsPlayed: state.playedQuestions,
