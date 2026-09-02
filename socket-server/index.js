@@ -76,7 +76,7 @@ io.on('connection', (socket) => {
     console.log(`[SOCKET_SERVER] Broadcast update_score:`, data);
     io.emit('update_score', data);
     try {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3002';
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
       await fetch(`${frontendUrl}/api/users`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },

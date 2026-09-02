@@ -17,14 +17,10 @@ import {
 
 interface AuthFormProps {
   setIsInputFocused: (focused: boolean) => void;
-  isAdminTrapdoor: boolean;
-  setIsAdminTrapdoor: (trapdoor: boolean) => void;
 }
 
 export const AuthForm: React.FC<AuthFormProps> = ({
   setIsInputFocused,
-  isAdminTrapdoor,
-  setIsAdminTrapdoor,
 }) => {
   const router = useRouter();
 
@@ -37,16 +33,10 @@ export const AuthForm: React.FC<AuthFormProps> = ({
   const [buttonOffset, setButtonOffset] = useState({ x: 0, y: 0 });
   const [loginStatus, setLoginStatus] = useState<'idle' | 'loggingIn' | 'success'>('idle');
 
-  // Admin Trapdoor Password States
-  const [adminPassword, setAdminPassword] = useState('');
-  const [showAdminPassword, setShowAdminPassword] = useState(false);
-  const [adminAuthError, setAdminAuthError] = useState('');
 
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
 
-  const isFormValid = isAdminTrapdoor
-    ? adminPassword.trim().length > 0
-    : authMode === 'signup'
+  const isFormValid = authMode === 'signup'
       ? name.trim().length > 0 && username.trim().length > 0 && password.trim().length > 0
       : username.trim().length > 0 && password.trim().length > 0;
 
@@ -74,20 +64,6 @@ export const AuthForm: React.FC<AuthFormProps> = ({
       return;
     }
 
-    // Step 2: Handle Admin Password Verification
-    if (isAdminTrapdoor) {
-      if (adminPassword.trim() === 'admin123') {
-        setAdminAuthError('');
-        setLoginStatus('loggingIn');
-        setTimeout(() => {
-          setLoginStatus('success');
-          router.push('/admin');
-        }, 1000);
-      } else {
-        setAdminAuthError('SECURITY OVERRIDE FAILED: INVALID ADMIN KEY');
-      }
-      return;
-    }
 
     setLoginError('');
     setLoginStatus('loggingIn');
@@ -160,12 +136,12 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         localStorage.setItem('currentUserEmpId', data.data.empId);
       }
 
-      // Check if user is Admin → trigger admin trapdoor
-      const cleanUsername = username.trim().toLowerCase().replace(/^@/, '');
-      if (data.data?.role === 'Admin' || cleanUsername === 'abdurrehman') {
-        setLoginStatus('idle');
-        setIsAdminTrapdoor(true);
-        setAdminAuthError('');
+      // Check if user is Admin → redirect directly to admin panel
+      if (data.data?.role === 'Admin') {
+        setLoginStatus('success');
+        setTimeout(() => {
+          router.push('/admin');
+        }, 800);
         return;
       }
 
@@ -198,14 +174,12 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         {/* Header in Bright Neon Pink */}
         <div className="mb-8">
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#ff0055] drop-shadow-[0_0_12px_rgba(255,0,85,0.6)]">
-            {isAdminTrapdoor ? 'Admin Override' : authMode === 'signup' ? 'Create an account' : 'Welcome back!'}
+            {authMode === 'signup' ? 'Create an account' : 'Welcome back!'}
           </h1>
           <p className="text-sm text-zinc-400 mt-2">
-            {isAdminTrapdoor 
-              ? 'Security clearance required for Administrator Abdurrehman.' 
-              : authMode === 'signup' 
-                ? 'Please enter your details to register.' 
-                : 'Please enter your details to sign in.'}
+            {authMode === 'signup' 
+              ? 'Please enter your details to register.' 
+              : 'Please enter your details to sign in.'}
           </p>
         </div>
 
@@ -221,77 +195,13 @@ export const AuthForm: React.FC<AuthFormProps> = ({
             </div>
             <h2 className="text-2xl font-bold text-white">AUTHENTICATED</h2>
             <p className="text-sm text-zinc-300 max-w-xs">
-              Redirecting <span className="font-bold text-[#ff0055]">{name || 'Abdurrehman'}</span> to {isAdminTrapdoor ? 'Admin Control Room' : 'Player Arena'}...
+              Redirecting <span className="font-bold text-[#ff0055]">{name || 'Abdurrehman'}</span> to Player Arena...
             </p>
           </motion.div>
         ) : (
           <form onSubmit={handleLoginSubmit} className="space-y-6">
             
-            {/* STEP 2: ADMIN PASSWORD TRAPDOOR INPUT */}
-            {isAdminTrapdoor ? (
-              <div className="space-y-4">
-                {/* Admin User Info Pill */}
-                <div className="p-3 rounded-xl bg-[#120315] border border-[#ff0055]/40 flex items-center justify-between font-mono text-xs">
-                  <span className="text-zinc-400">OPERATOR:</span>
-                  <span className="font-bold text-[#ff0055]">Abdurrehman (@abdurrehman)</span>
-                </div>
-
-                {/* Password Input Field */}
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-zinc-300 block flex justify-between">
-                    <span>SECURITY KEY (PASSWORD)</span>
-                    <span className="text-[10px] font-mono text-[#ff0055]">ADMIN_ONLY</span>
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#ff0055]">
-                      <Key className="w-4 h-4" />
-                    </div>
-                    <input
-                      type={showAdminPassword ? 'text' : 'password'}
-                      value={adminPassword}
-                      onFocus={() => setIsInputFocused(true)}
-                      onBlur={() => setIsInputFocused(false)}
-                      onChange={(e) => setAdminPassword(e.target.value)}
-                      placeholder="Enter Admin Password (e.g. admin123)"
-                      autoFocus
-                      required
-                      className="w-full pl-11 pr-10 py-3.5 bg-zinc-900/80 border border-[#ff0055]/50 text-white placeholder-zinc-500 rounded-xl text-sm focus:outline-none focus:border-[#ff0055] focus:ring-2 focus:ring-[#ff0055]/40 transition-all font-mono"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowAdminPassword(!showAdminPassword)}
-                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-zinc-400 hover:text-[#ff0055] transition-colors"
-                    >
-                      {showAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Error Notification */}
-                {adminAuthError && (
-                  <div className="p-3 rounded-xl bg-red-950/80 border border-red-600 text-xs font-mono text-red-400 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
-                    <span>{adminAuthError}</span>
-                  </div>
-                )}
-
-                {/* Back to Normal Login Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsAdminTrapdoor(false);
-                    setAdminPassword('');
-                    setAdminAuthError('');
-                  }}
-                  className="text-xs font-mono text-zinc-400 hover:text-[#ff0055] flex items-center gap-1.5 transition-colors pt-1 cursor-pointer"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Back to Normal Login</span>
-                </button>
-              </div>
-            ) : (
-              /* STEP 1: NORMAL NAME & USERNAME INPUTS */
-              <>
+              /* NORMAL NAME & USERNAME INPUTS */
                 {/* NAME FIELD */}
                 {authMode === 'signup' && (
                   <div className="space-y-2">
@@ -377,8 +287,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                     <span>{loginError}</span>
                   </div>
                 )}
-              </>
-            )}
+
 
             {/* Fleeing Warning Hint */}
             <div className="min-h-[20px]">
@@ -390,11 +299,9 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                 >
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>
-                    {isAdminTrapdoor 
-                      ? 'Please enter Admin Password to proceed.' 
-                      : authMode === 'signup'
-                        ? 'Please fill in Name, Username, and Password to proceed.'
-                        : 'Please fill in Username and Password to proceed.'}
+                    {authMode === 'signup'
+                      ? 'Please fill in Name, Username, and Password to proceed.'
+                      : 'Please fill in Username and Password to proceed.'}
                   </span>
                 </motion.div>
               )}
@@ -430,11 +337,6 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                       <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       Authenticating...
                     </>
-                  ) : isAdminTrapdoor ? (
-                    <>
-                      OVERRIDE &amp; ENTER ADMIN
-                      <ArrowRight className="w-4 h-4" />
-                    </>
                   ) : (
                     <>
                       {authMode === 'signup' ? 'Sign up' : 'Log in'}
@@ -450,7 +352,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
 
       {/* Bottom Minimalist Footer */}
       <div className="flex flex-col items-center gap-2 text-center text-xs text-zinc-500 border-t border-zinc-900 pt-6">
-        {loginStatus !== 'success' && !isAdminTrapdoor && (
+        {loginStatus !== 'success' && (
           <button
             type="button"
             onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}

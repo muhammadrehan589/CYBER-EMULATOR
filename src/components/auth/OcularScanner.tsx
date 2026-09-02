@@ -11,7 +11,6 @@ import {
 
 interface OcularScannerProps {
   isTyping: boolean;
-  isAdminTrapdoor: boolean;
 }
 
 // Cyber-droplet config: pre-seeded so layout is stable on mount
@@ -27,7 +26,6 @@ const DROPLETS = Array.from({ length: 22 }, (_, i) => ({
 
 export const OcularScanner: React.FC<OcularScannerProps> = ({
   isTyping,
-  isAdminTrapdoor,
 }) => {
   const eyeContainerRef = useRef<HTMLDivElement>(null);
 
@@ -176,9 +174,7 @@ export const OcularScanner: React.FC<OcularScannerProps> = ({
         <div className="flex items-center gap-3 font-mono text-xs text-[#ff0055]/80 tracking-[0.3em] uppercase">
           <span className="w-8 h-px bg-[#ff0055]/40" />
           <span>
-            {isAdminTrapdoor
-              ? 'ADMIN BIOMETRIC LOCK'
-              : isTyping
+            {isTyping
               ? 'BIOMETRIC SCAN ACTIVE'
               : 'OCULAR TRACKING SYSTEM'}
           </span>
@@ -292,9 +288,7 @@ export const OcularScanner: React.FC<OcularScannerProps> = ({
 
         {/* Bottom status line */}
         <div className="font-mono text-[10px] text-[#ff0055]/60 tracking-widest uppercase text-center">
-          {isAdminTrapdoor
-            ? 'ADMIN OVERRIDE: SECURITY KEY REQUIRED'
-            : isTyping
+          {isTyping
             ? 'SCANNING CREDENTIALS — APERTURE LOCKED'
             : 'CURSOR PROXIMITY TRACKING ACTIVE'}
         </div>
