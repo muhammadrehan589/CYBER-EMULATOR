@@ -27,6 +27,7 @@ function BattlePageContent() {
   const [opponent, setOpponent] = useState<any>({ name: 'Opponent', username: 'opponent' });
   const [animationState, setAnimationState] = useState('idle');
   const [screenFrozen, setScreenFrozen] = useState(false);
+  const [eliminatedOptions, setEliminatedOptions] = useState<string[]>([]);
   const isChallenger = localUser?.empId === challengerId;
   const { inventory, consumeItem } = useQuizStore();
 
@@ -77,7 +78,7 @@ function BattlePageContent() {
           setTimeout(() => {
             if (!isMounted) return;
             setAnimationState('idle'); setCurrentRound(prev => prev + 1);
-            setTimer(30); setHasAnswered(false); setSelectedOption(null); setIsCorrect(null);
+            setTimer(30); setHasAnswered(false); setSelectedOption(null); setIsCorrect(null); setEliminatedOptions([]);
           }, 2500);
         } else { setTimeout(() => { if (isMounted) setAnimationState('idle'); }, 2500); }
       });
@@ -282,6 +283,7 @@ function BattlePageContent() {
             <h2 className="text-sm md:text-lg font-bold text-center text-white mb-4 leading-snug">{currentQ.question}</h2>
             <div className="grid grid-cols-2 gap-3">
               {currentQ.options.map((option: string, i: number) => {
+                const isEliminated = eliminatedOptions.includes(option);
                 let cls = 'bg-[#0d0d0d] border-[#1c1c1c] text-gray-400 hover:bg-[#141414] hover:border-gray-700 cursor-pointer';
                 const ans = currentQ.correctAnswer;
                 const isCorrectOpt = option === ans || option.startsWith(ans + '.') || option.startsWith(ans + ')');
@@ -292,8 +294,8 @@ function BattlePageContent() {
                   else cls = 'bg-[#080808] border-[#111] text-gray-700 opacity-40 cursor-default';
                 } else if (option === selectedOption) { cls = 'bg-[#161616] border-gray-600 text-white'; }
                 return (
-                  <button key={i} onClick={() => handleOptionClick(option)} disabled={hasAnswered || screenFrozen}
-                    className={`p-3 md:p-4 rounded border-2 font-mono text-xs md:text-sm transition-all active:scale-95 text-left leading-snug ${cls}`}>
+                  <button key={i} onClick={() => handleOptionClick(option)} disabled={hasAnswered || screenFrozen || (typeof isEliminated !== 'undefined' ? isEliminated : false)}
+                    className={`p-3 md:p-4 rounded border-2 font-mono text-xs md:text-sm transition-all active:scale-95 text-left leading-snug ${cls} ${isEliminated ? 'opacity-20 pointer-events-none grayscale line-through' : ''}`}>
                     {option}
                   </button>
                 );
@@ -328,7 +330,13 @@ function BattlePageContent() {
                  onClick={() => {
                    consumeItem(key as any);
                    
-                   if (key === 'timeFreezes') {
+                   if (key === 'hints') {
+                       if (currentQ) {
+                         const wrongOptions = currentQ.options.filter((opt: string) => !opt.startsWith(currentQ.correctAnswer + '.'));
+                         const shuffledWrong = [...wrongOptions].sort(() => 0.5 - Math.random());
+                         setEliminatedOptions(shuffledWrong.slice(0, 2));
+                       }
+                     } else if (key === 'timeFreezes') {
                        setTimer(prev => prev + 10);
                      } else if (key === 'screenFreezes') {
                        socket?.emit('player_screen_freeze', { targetId: opponent.empId });
