@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AvatarSVG, DEFAULT_AVATAR as DEFAULT_AVATAR_OBJ } from '@/components/Avatar';
 import { useQuizStore } from '@/store/quizStore';
 import { useAuth } from '@/hooks/useAuth';
+import SequenceOrdering from '@/components/quiz/SequenceOrdering';
 function BattlePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -183,8 +184,18 @@ function BattlePageContent() {
     const handleOptionClick = (option: string) => {
       if (hasAnswered || screenFrozen) return;
       setHasAnswered(true); setSelectedOption(option);
-      const ans = questions[currentRound]?.correctAnswer;
-      const correct = option === ans || option.startsWith(ans + '.') || option.startsWith(ans + ')');
+      const q = questions[currentRound];
+      let correct = false;
+      if (q?.type === 'sequence' || q?.type === 'drag_and_drop') {
+        try {
+          const defaultOrder = JSON.stringify(q.draggableItems?.map((i: any) => i.id) || []);
+          const orderIds = JSON.parse(option || defaultOrder);
+          correct = JSON.stringify(orderIds) === JSON.stringify(q.correctOrder);
+        } catch(e) { correct = false; }
+      } else {
+        const ans = q?.correctAnswer || '';
+        correct = option === ans || option.startsWith(ans + '.') || option.startsWith(ans + ')');
+      }
       setIsCorrect(correct);
       socket?.emit('submit_battle_answer', { matchId, empId: localUser?.empId, isCorrect: correct, damage: correct ? 0 : getDmg(currentRound), isChallenger });
     };
@@ -292,26 +303,44 @@ function BattlePageContent() {
               <span className="bg-[#0f0f0f] text-gray-500 border border-[#1c1c1c] px-3 py-1 rounded text-[10px] font-black tracking-[0.25em] uppercase">{currentQ.category}</span>
             </div>
             <h2 className="text-sm md:text-lg font-bold text-center text-white mb-4 leading-snug">{currentQ.question}</h2>
-            <div className="grid grid-cols-2 gap-3">
-              {currentQ.options.map((option: string, i: number) => {
-                const isEliminated = eliminatedOptions.includes(option);
-                let cls = 'bg-[#0d0d0d] border-[#1c1c1c] text-gray-400 hover:bg-[#141414] hover:border-gray-700 cursor-pointer';
-                const ans = currentQ.correctAnswer;
-                const isCorrectOpt = option === ans || option.startsWith(ans + '.') || option.startsWith(ans + ')');
-                
-                if (hasAnswered) {
-                  if (isCorrectOpt) cls = 'bg-[#10b981]/10 border-[#10b981] text-[#10b981] shadow-[0_0_15px_rgba(16,185,129,0.2)]';
-                  else if (option === selectedOption) cls = 'bg-[#ff0055]/10 border-[#ff0055] text-[#ff0055] shadow-[0_0_15px_rgba(255,0,85,0.2)]';
-                  else cls = 'bg-[#080808] border-[#111] text-gray-700 opacity-40 cursor-default';
-                } else if (option === selectedOption) { cls = 'bg-[#161616] border-gray-600 text-white'; }
-                return (
-                  <button key={i} onClick={() => handleOptionClick(option)} disabled={hasAnswered || screenFrozen || (typeof isEliminated !== 'undefined' ? isEliminated : false)}
-                    className={`p-3 md:p-4 rounded border-2 font-mono text-xs md:text-sm transition-all active:scale-95 text-left leading-snug ${cls} ${isEliminated ? 'opacity-20 pointer-events-none grayscale line-through' : ''}`}>
-                    {option}
-                  </button>
-                );
-              })}
-            </div>
+            {(currentQ.type === 'sequence' || currentQ.type === 'drag_and_drop') ? (
+              <div className="flex flex-col h-full w-full">
+                <SequenceOrdering 
+                  items={currentQ.items || currentQ.draggableItems || []}
+                  onChange={(val: any) => !hasAnswered && !screenFrozen && setSelectedOption(val)}
+                  disabled={hasAnswered || screenFrozen}
+                  solvedCount={0}
+                />
+                <button
+                  onClick={() => handleOptionClick(selectedOption || '')}
+                  disabled={hasAnswered || screenFrozen || !selectedOption}
+                  className="w-full mt-4 py-3 bg-[#ff0055] text-white font-black uppercase tracking-widest hover:bg-[#cc0044] disabled:opacity-50 disabled:cursor-not-allowed transition-all rounded"
+                >
+                  {hasAnswered ? 'ANSWER SUBMITTED' : 'Submit Sequence'}
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {currentQ.options?.map((option: string, i: number) => {
+                  const isEliminated = eliminatedOptions.includes(option);
+                  let cls = 'bg-[#0d0d0d] border-[#1c1c1c] text-gray-400 hover:bg-[#141414] hover:border-gray-700 cursor-pointer';
+                  const ans = currentQ.correctAnswer;
+                  const isCorrectOpt = option === ans || option.startsWith(ans + '.') || option.startsWith(ans + ')');
+                  
+                  if (hasAnswered) {
+                    if (isCorrectOpt) cls = 'bg-[#10b981]/10 border-[#10b981] text-[#10b981] shadow-[0_0_15px_rgba(16,185,129,0.2)]';
+                    else if (option === selectedOption) cls = 'bg-[#ff0055]/10 border-[#ff0055] text-[#ff0055] shadow-[0_0_15px_rgba(255,0,85,0.2)]';
+                    else cls = 'bg-[#080808] border-[#111] text-gray-700 opacity-40 cursor-default';
+                  } else if (option === selectedOption) { cls = 'bg-[#161616] border-gray-600 text-white'; }
+                  return (
+                    <button key={i} onClick={() => handleOptionClick(option)} disabled={hasAnswered || screenFrozen || (typeof isEliminated !== 'undefined' ? isEliminated : false)}
+                      className={`p-3 md:p-4 rounded border-2 font-mono text-xs md:text-sm transition-all active:scale-95 text-left leading-snug ${cls} ${isEliminated ? 'opacity-20 pointer-events-none grayscale line-through' : ''}`}>
+                      {option}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
