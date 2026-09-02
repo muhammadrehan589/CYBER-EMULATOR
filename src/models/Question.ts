@@ -12,6 +12,7 @@ export interface IQuestion extends Document {
   items?: any[];
   draggableItems?: any[];
   correctOrder?: string[];
+  correctSequence?: string[];
   imageUrl?: string;
 }
 
