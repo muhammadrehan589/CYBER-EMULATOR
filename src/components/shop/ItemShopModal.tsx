@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useQuizStore } from '@/store/quizStore';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ItemShopModalProps {
   onClose: () => void;
@@ -11,7 +12,7 @@ interface ItemShopModalProps {
 
 export default function ItemShopModal({ onClose, players = [], socket }: ItemShopModalProps) {
   const { inventory, buyItem, executeSabotage } = useQuizStore();
-  const currentEmpId = typeof window !== 'undefined' ? localStorage.getItem('currentUserEmpId') : null;
+  const { empId: currentEmpId } = useAuth();
   const me = players.find(p => p.empId === currentEmpId);
   const coins = me?.coins || 0;
   const xpEarned = me?.xp || 0;

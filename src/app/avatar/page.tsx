@@ -78,8 +78,11 @@ const ColorGrid: React.FC<{
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
+import { useAuth } from '@/hooks/useAuth';
+
 export default function AvatarCustomizerPage() {
   const router = useRouter();
+  const { empId } = useAuth();
 
   // Avatar state + history for undo/redo
   const [avatar, setAvatar] = useState<AvatarState>(DEFAULT_AVATAR);
@@ -140,7 +143,7 @@ export default function AvatarCustomizerPage() {
     setSavedWardrobe(newWardrobe);
     localStorage.setItem('cyberWardrobe', JSON.stringify(newWardrobe));
 
-    const empId = localStorage.getItem('currentUserEmpId');
+
     if (empId) {
       try {
         await fetch('/api/users', {

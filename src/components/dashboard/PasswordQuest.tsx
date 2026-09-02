@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useQuizStore } from '@/store/quizStore';
+import { useAuth } from '@/hooks/useAuth';
 
 interface PasswordQuestProps {
   onClose: () => void;
@@ -9,6 +10,7 @@ interface PasswordQuestProps {
 }
 
 export default function PasswordQuest({ onClose, onClaimed }: PasswordQuestProps) {
+  const { empId } = useAuth();
   const [password, setPassword] = useState('');
   const [strength, setStrength] = useState(0);
   const [success, setSuccess] = useState(false);
@@ -26,7 +28,7 @@ export default function PasswordQuest({ onClose, onClaimed }: PasswordQuestProps
 
   const claimReward = async () => {
     if (strength === 100) {
-      const currentEmpId = localStorage.getItem('currentUserEmpId');
+      const currentEmpId = empId;
       if (currentEmpId) {
         await fetch('/api/users', {
           method: 'PATCH',

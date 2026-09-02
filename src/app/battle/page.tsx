@@ -6,10 +6,11 @@ import { io, Socket } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AvatarSVG, DEFAULT_AVATAR as DEFAULT_AVATAR_OBJ } from '@/components/Avatar';
 import { useQuizStore } from '@/store/quizStore';
-
+import { useAuth } from '@/hooks/useAuth';
 function BattlePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { empId } = useAuth();
   const matchId = searchParams.get('matchId');
   const challengerId = searchParams.get('challengerId');
   const targetId = searchParams.get('targetId');
@@ -34,7 +35,7 @@ function BattlePageContent() {
   useEffect(() => {
     let currentSocket: Socket | null = null;
     let isMounted = true;
-    const currentEmpId = localStorage.getItem('currentUserEmpId');
+    const currentEmpId = empId;
     if (!currentEmpId) { window.location.href = '/login'; return; }
     const oppId = currentEmpId === challengerId ? targetId : challengerId;
     Promise.all([
@@ -109,7 +110,7 @@ function BattlePageContent() {
         }
         alert(`[!] SABOTAGE DETECTED! Lost ${data.penaltyXp} XP from ${data.attackerName}!`);
         try {
-          const empId = localStorage.getItem('currentUserEmpId');
+          const empId = empId;
           await fetch('/api/users', {
              method: 'PATCH',
              headers: { 'Content-Type': 'application/json' },

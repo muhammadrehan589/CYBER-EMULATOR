@@ -5,66 +5,25 @@ import { useQuizStore } from '@/store/quizStore';
 import { Check, X, ShieldAlert } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
-interface LeaderboardPlayer {
-  empId: string;
-  name: string;
-  score: number;
-  xp: number;
-  isUser: boolean;
-  rank: number;
-}
+
+
+import { useAuth } from '@/hooks/useAuth';
+import { useSocket } from '@/hooks/useSocket';
+import { useLeaderboard } from '@/hooks/useLeaderboard';
 
 export default function LiveLeaderboard() {
   const { sessionLogs } = useQuizStore();
-  const [leaderboard, setLeaderboard] = useState<LeaderboardPlayer[]>([]);
-
-  const fetchLeaderboard = async () => {
-    try {
-      const res = await fetch('/api/users');
-      const json = await res.json();
-      if (json.success && json.data.length > 0) {
-        const currentEmpId = localStorage.getItem('currentUserEmpId') || 'EMP-456';
-        const sorted = json.data.sort((a: any, b: any) => (b.xp - a.xp) || (b.coins - a.coins));
-        const mapped: LeaderboardPlayer[] = sorted.map((u: any, index: number) => ({
-          empId: u.empId,
-          name: u.empId === currentEmpId ? 'YOU' : u.name,
-          score: u.score,
-          xp: u.xp || 0,
-          isUser: u.empId === currentEmpId,
-          rank: index + 1
-        }));
-        setLeaderboard(mapped);
-      }
-    } catch (error) {
-      console.error('[LiveLeaderboard] Failed to fetch:', error);
-    }
-  };
+  const { empId } = useAuth();
+  const { socket } = useSocket(empId);
+  const { leaderboard, fetchLeaderboard } = useLeaderboard(socket);
 
   useEffect(() => {
-    fetchLeaderboard();
-
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || `http://${window.location.hostname}:3001`;
-    const newSocket = io(socketUrl, {
-      transports: ['websocket', 'polling'],
-      autoConnect: true,
-    });
-
-    newSocket.on('refresh_leaderboard', () => {
+    // Polling fallback
+    const interval = setInterval(() => {
       fetchLeaderboard();
-    });
-
-    newSocket.on('update_score', (data: { empId: string; newScore: number }) => {
-      fetchLeaderboard(); // fetch to get latest xp and score
-    });
-
-    // Also poll every 3 seconds just in case we miss socket events for xp updates
-    const intervalId = setInterval(fetchLeaderboard, 3000);
-
-    return () => {
-      newSocket.disconnect();
-      clearInterval(intervalId);
-    };
-  }, []);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [fetchLeaderboard]);
 
   return (
     <div className="w-full h-full flex flex-col p-6 font-mono conic-border-box rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(255,0,60,0.2)]">
@@ -74,7 +33,7 @@ export default function LiveLeaderboard() {
       
       <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3 mb-6">
         {leaderboard.map((player) => {
-          const isUser = player.isUser;
+          const isUser = player.empId === empId;
           return (
             <div 
               key={player.empId}

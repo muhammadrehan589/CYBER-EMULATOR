@@ -30,22 +30,8 @@ interface ColorOption {
   label: string;
 }
 
-interface AvatarState {
-  gender: 'male' | 'female';
-  skinTone: string;
-  faceShape: string;
-  bodyType: string;
-  eyeStyle: string;
-  eyeColor: string;
-  browStyle: string;
-  noseStyle: string;
-  lipsStyle: string;
-  earStyle: string;
-  beardStyle: string;
-  hairStyle: string;
-  hairColor: string;
-  outfitStyle: string;
-}
+import type { AvatarState } from '@/types/avatar';
+export type { AvatarState };
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -915,4 +901,4 @@ const MiniAvatar: React.FC<{ avatar: AvatarState }> = ({ avatar }) => (
   <AvatarSVG avatar={avatar} size={64} mini={true} />
 );
 export { AvatarSVG, MiniAvatar, DEFAULT_AVATAR, SKIN_TONES, HAIR_COLORS, EYE_COLORS, GENDER_OPTIONS, EYE_STYLES, BROW_STYLES, NOSE_STYLES, FACE_SHAPES, LIPS_STYLES, EAR_STYLES, BEARD_STYLES, HAIR_STYLES, BODY_TYPES, OUTFIT_STYLES, AVATAR_SUB_CATEGORIES, getSkinColor };
-export type { AvatarState, AvatarSubCategory, ColorOption, Option, MainTab };
+export type { AvatarSubCategory, ColorOption, Option, MainTab };

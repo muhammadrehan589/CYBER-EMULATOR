@@ -14,6 +14,7 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
+import { setAuthSession } from '@/hooks/useAuth';
 
 interface AuthFormProps {
   setIsInputFocused: (focused: boolean) => void;
@@ -84,7 +85,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         const regData = await regRes.json();
         if (regRes.ok && regData.success) {
           if (regData.data && regData.data.empId) {
-            localStorage.setItem('currentUserEmpId', regData.data.empId);
+            setAuthSession(regData.data.empId);
           }
           
           try {
@@ -133,7 +134,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
 
       // Save user to local storage so other pages know who is logged in
       if (data.data && data.data.empId) {
-        localStorage.setItem('currentUserEmpId', data.data.empId);
+        setAuthSession(data.data.empId);
       }
 
       // Check if user is Admin → redirect directly to admin panel

@@ -1,4 +1,4 @@
-import { AvatarState } from '@/components/Avatar';
+import type { AvatarState } from '@/types/avatar';
 
 export interface LeaderboardPlayer {
   rank: number;

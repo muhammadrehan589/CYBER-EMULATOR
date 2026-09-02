@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 import LiveLeaderboard from './LiveLeaderboard';
 import SequenceOrdering from './SequenceOrdering';
 import { QRCodeSVG } from 'qrcode.react';
+import { DIFFICULTY_TIME_LIMITS, DIFFICULTY_XP_REWARDS, DIFFICULTY_COIN_REWARDS } from '@/config/quiz';
+import { useAuth } from '@/hooks/useAuth';
 
 const shuffleArray = (array: any[]) => {
   let shuffled = [...array];
@@ -26,6 +28,7 @@ const initialQuestions = quizData.questions;
 // own socket-fetched question list and no dependency on quizStore.
 export default function QuizEngine() {
   const router = useRouter();
+  const { empId } = useAuth();
   const { advanceQuestion, score, multiplier, resetStreak, coinsEarned, xpEarned, inventory } = useQuizStore();
 
   // Local 10-question session array — shuffled & burn-filtered on mount
@@ -183,17 +186,8 @@ export default function QuizEngine() {
       setAutoSolvedCount(0);
       setCurrentSequence(activeQuestion.draggableItems || []);
     
-    const diff = activeQuestion.difficulty?.toLowerCase() || '';
-    let initialTime = 30;
-    
-    if (diff.includes('hard') || diff.includes('expert') || diff.includes('difficult')) {
-      initialTime = 60;
-    } else if (diff.includes('medium')) {
-      initialTime = 45;
-    } else if (diff.includes('easy')) {
-      initialTime = 30;
-    }
-    
+    const diff = (activeQuestion.difficulty?.toLowerCase() || 'easy') as keyof typeof DIFFICULTY_TIME_LIMITS;
+    const initialTime = DIFFICULTY_TIME_LIMITS[diff] ?? 30;    
     setTimeLeft(initialTime);
   }, [soloQuestionIndex, activeQuestion]);
 
@@ -222,10 +216,8 @@ export default function QuizEngine() {
       setIsCorrect(false);
       setIsSubmitted(true);
 
-      const diff = activeQuestion.difficulty?.toLowerCase() || '';
-      let initialTime = 30;
-      if (diff.includes('hard') || diff.includes('expert') || diff.includes('difficult')) initialTime = 60;
-      else if (diff.includes('medium')) initialTime = 45;
+      const diff = (activeQuestion.difficulty?.toLowerCase() || 'easy') as keyof typeof DIFFICULTY_TIME_LIMITS;
+      const initialTime = DIFFICULTY_TIME_LIMITS[diff] ?? 30;
 
       useQuizStore.getState().addLog({
         questionId: String(activeQuestion.id),
@@ -240,7 +232,7 @@ export default function QuizEngine() {
     if (mounted && !activeQuestion && score > 0) {
       const saveSession = async () => {
         const state = useQuizStore.getState();
-        const empId = localStorage.getItem('currentUserEmpId') || 'EMP-456'; 
+        const empId = empId || 'EMP-456'; 
         
         try {
           await fetch('/api/quiz-sessions', {
@@ -316,10 +308,8 @@ export default function QuizEngine() {
     setIsTimeout(false);
     setIsSubmitted(true);
 
-    const diff = activeQuestion.difficulty?.toLowerCase() || '';
-    let initialTime = 30;
-    if (diff.includes('hard') || diff.includes('expert') || diff.includes('difficult')) initialTime = 60;
-    else if (diff.includes('medium')) initialTime = 45;
+    const diff = (activeQuestion.difficulty?.toLowerCase() || 'easy') as keyof typeof DIFFICULTY_TIME_LIMITS;
+    const initialTime = DIFFICULTY_TIME_LIMITS[diff] ?? 30;
 
     useQuizStore.getState().addLog({
       questionId: String(activeQuestion.id),
@@ -328,22 +318,15 @@ export default function QuizEngine() {
     });
 
     if (correct) {
-      let xpEarned = 20;
-      let coinsEarned = 10;
-      if (diff.includes('hard') || diff.includes('expert') || diff.includes('difficult')) {
-        xpEarned = 100;
-        coinsEarned = 50;
-      } else if (diff.includes('medium')) {
-        xpEarned = 50;
-        coinsEarned = 20;
-      }
+      const xpEarned = DIFFICULTY_XP_REWARDS[diff] ?? 20;
+      const coinsEarned = DIFFICULTY_COIN_REWARDS[diff] ?? 10;
 
       useQuizStore.setState((state) => ({
         coinsEarned: state.coinsEarned + coinsEarned,
         xpEarned: state.xpEarned + xpEarned
       }));
 
-      const empId = localStorage.getItem('currentUserEmpId') || 'EMP-456';
+      const empId = empId || 'EMP-456';
       fetch('/api/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -446,7 +429,7 @@ export default function QuizEngine() {
 
   const handleSaveAndExit = async () => {
     const state = useQuizStore.getState();
-    const empId = localStorage.getItem('currentUserEmpId') || 'EMP-456'; 
+    const empId = empId || 'EMP-456'; 
     
     try {
       await fetch('/api/quiz-sessions', {

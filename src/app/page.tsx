@@ -23,7 +23,9 @@ import ItemShopModal from '@/components/shop/ItemShopModal';
 import PasswordQuest from '@/components/dashboard/PasswordQuest';
 import InventoryModal from '@/components/dashboard/InventoryModal';
 import { useQuizStore } from '@/store/quizStore';
-
+import { useAuth } from '@/hooks/useAuth';
+import { useSocket } from '@/hooks/useSocket';
+import { useLeaderboard } from '@/hooks/useLeaderboard';
 import { LeaderboardPlayer, FloatingEmoji, FloatingStat } from '@/types/dashboard';
 import { LeaderboardItem, BADGE_COLORS } from '@/components/dashboard/LeaderboardItem';
 import { FullLeaderboardModal } from '@/components/dashboard/FullLeaderboardModal';
@@ -32,26 +34,21 @@ import { FullLeaderboardModal } from '@/components/dashboard/FullLeaderboardModa
 
 export default function Phase3RealtimeDashboard() {
   const router = useRouter();
-  const [isAuthenticating, setIsAuthenticating] = useState(true);
-  const { coinsEarned, addCoins } = useQuizStore();
+  const { empId, isAuthenticated } = useAuth();
+  const { socket, isConnected } = useSocket(empId);
+  const { leaderboard, setLeaderboard } = useLeaderboard(socket);
 
+  const { coinsEarned, addCoins } = useQuizStore();
   const setMyScore = (s: number) => useQuizStore.setState({ score: s });
   const setCoins = (c: number) => useQuizStore.setState({ coinsEarned: c });
 
   useEffect(() => {
-    // Check for your specific auth token or user state here
-    const isAuthenticated = localStorage.getItem('currentUserEmpId'); 
-        if (!isAuthenticated) {
-        // Eject unauthenticated users to the login route
-        window.location.href = '/login'; 
-      } else {
-        setIsAuthenticating(false); // Green light, lift the blackout cloak
+    if (typeof window !== 'undefined') {
+      if (!localStorage.getItem('currentUserEmpId')) {
+        window.location.href = '/login';
       }
+    }
   }, [router]);
-
-  const [socket, setSocket] = useState<Socket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardPlayer[]>([]);
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
   const [floatingStats, setFloatingStats] = useState<FloatingStat[]>([]);
   const [reactionCounts, setReactionCounts] = useState<{ [key: string]: number }>({
@@ -77,7 +74,7 @@ export default function Phase3RealtimeDashboard() {
   
   const sendDuelChallenge = (targetId: string, targetName: string) => {
     if (!socket) return;
-    const currentUser = leaderboard.find(p => p.empId === localStorage.getItem('currentUserEmpId'));
+    const currentUser = leaderboard.find(p => p.empId === empId);
     setPendingChallengeTarget(targetId);
     socket.emit('initiate_1v1_challenge', { targetId, challengerName: currentUser?.name || 'A Player' });
     alert(`[!] CHALLENGE SENT TO ${targetName.toUpperCase()}`); // Temporary feedback
@@ -105,79 +102,14 @@ export default function Phase3RealtimeDashboard() {
     }, 1000);
   };
 
-  const fetchLeaderboard = async () => {
-    try {
-      const res = await fetch('/api/users');
-      const json = await res.json();
-      if (json.success && json.data.length > 0) {
-        // Rank by XP descending; use coins as tiebreaker
-        const sorted = json.data.sort((a: any, b: any) => (b.xp - a.xp) || (b.coins - a.coins));
-        const mapped: LeaderboardPlayer[] = sorted.map((u: any, idx: number) => ({
-          rank: idx + 1,
-          empId: u.empId,
-          name: u.name,
-          username: u.username,
-          role: u.role,
-          score: u.score || 0,
-          xp: u.xp || 0,
-          coins: u.coins || 0,
-          badgeColor: BADGE_COLORS[idx % BADGE_COLORS.length],
-          avatar: (u.activeAvatar && Object.keys(u.activeAvatar).length > 0)
-            ? { ...DEFAULT_AVATAR, ...u.activeAvatar }
-            : DEFAULT_AVATAR,
-        }));
-        setLeaderboard(mapped);
-      }
-    } catch (error) {
-      console.error('[Dashboard] Failed to fetch leaderboard:', error);
-    }
-  };
-
   useEffect(() => {
-    fetchLeaderboard();
+    if (!socket) return;
 
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || `http://${window.location.hostname}:3001`;
-    const newSocket = io(socketUrl, {
-      transports: ['websocket', 'polling'],
-      autoConnect: true,
-    });
-
-    setSocket(newSocket);
-
-    newSocket.on('connect', () => {
-      console.log('[FRONTEND] Connected to Socket server:', newSocket.id);
-      setIsConnected(true);
-      const currentEmpId = localStorage.getItem('currentUserEmpId');
-      if (currentEmpId) {
-        newSocket.emit('register', currentEmpId);
-      }
-    });
-
-    newSocket.on('disconnect', () => {
-      console.log('[FRONTEND] Disconnected from Socket server');
-      setIsConnected(false);
-    });
-
-    newSocket.on('online_users', (users: string[]) => {
+    socket.on('online_users', (users: string[]) => {
       setOnlineUsers(users);
     });
 
-    newSocket.on('refresh_leaderboard', () => {
-      console.log('[FRONTEND] Refreshing leaderboard from socket event');
-      fetchLeaderboard();
-    });
-
-    newSocket.on('update_score', (data: { empId: string; newScore: number }) => {
-      setLeaderboard((prevLeaderboard) => {
-        const updated = prevLeaderboard.map((p) =>
-          p.empId === data.empId ? { ...p, xp: data.newScore } : p
-        );
-        updated.sort((a, b) => (b.xp || 0) - (a.xp || 0));
-        return updated.map((p, idx) => ({ ...p, rank: idx + 1 }));
-      });
-    });
-
-    newSocket.on('send_emoji', (data: { empId: string; emoji: string; id: string; senderName?: string }) => {
+    socket.on('send_emoji', (data: { empId: string; emoji: string; id: string; senderName?: string }) => {
       const emojiId = data.id || `${Date.now()}-${Math.random()}`;
       setFloatingEmojis((prev) => [...prev, { id: emojiId, empId: data.empId, emoji: data.emoji, senderName: data.senderName }]);
       setReactionCounts((prev) => ({
@@ -189,7 +121,7 @@ export default function Phase3RealtimeDashboard() {
       }, 1800);
     });
 
-    newSocket.on('send_stat_animation', (data: FloatingStat) => {
+    socket.on('send_stat_animation', (data: FloatingStat) => {
       const statId = data.id || `stat-${Date.now()}-${Math.random()}`;
       setFloatingStats((prev) => [...prev, { ...data, id: statId }]);
       setTimeout(() => {
@@ -197,26 +129,28 @@ export default function Phase3RealtimeDashboard() {
       }, 2000);
     });
 
-    newSocket.on('receive_1v1_challenge', (data: { challengerId: string, challengerName: string }) => {
+    socket.on('receive_1v1_challenge', (data: { challengerId: string, challengerName: string }) => {
       setIncomingChallenge(data);
       setChallengeTimer(15);
     });
 
-    newSocket.on('1v1_challenge_accepted', (data: { challengerId: string, targetId: string }) => {
+    socket.on('1v1_challenge_accepted', (data: { challengerId: string, targetId: string }) => {
       triggerDuelCountdown(data);
     });
 
-    newSocket.on('1v1_challenge_denied', (data: { reason: string }) => {
+    socket.on('1v1_challenge_denied', (data: { reason: string }) => {
       alert(`[!] Challenge denied: ${data.reason}`);
     });
 
     return () => {
-      newSocket.off('receive_1v1_challenge');
-      newSocket.off('1v1_challenge_accepted');
-      newSocket.off('1v1_challenge_denied');
-      newSocket.disconnect();
+      socket.off('online_users');
+      socket.off('send_emoji');
+      socket.off('send_stat_animation');
+      socket.off('receive_1v1_challenge');
+      socket.off('1v1_challenge_accepted');
+      socket.off('1v1_challenge_denied');
     };
-  }, []);
+  }, [socket]);
 
   // Timer effect for challenge expiration
   useEffect(() => {
@@ -238,7 +172,7 @@ export default function Phase3RealtimeDashboard() {
   }, [challengeTimer, incomingChallenge, socket]);
 
   const handleScoreBoost = async (empId: string, xpAmount: number = 10, coinCost: number = 50) => {
-    const currentEmpId = localStorage.getItem('currentUserEmpId');
+    const currentEmpId = empId;
     if (!currentEmpId || currentEmpId === empId) return; // Cannot boost yourself
 
     const sender = leaderboard.find(p => p.empId === currentEmpId);
@@ -293,7 +227,7 @@ export default function Phase3RealtimeDashboard() {
   };
 
   const handleEmitEmoji = (empId: string, emoji: string) => {
-    const currentEmpId = localStorage.getItem('currentUserEmpId');
+    const currentEmpId = empId;
     const sender = leaderboard.find(p => p.empId === currentEmpId);
     const senderName = sender ? sender.name : 'Unknown';
 
@@ -309,7 +243,7 @@ export default function Phase3RealtimeDashboard() {
     }
   };
 
-  if (isAuthenticating) {
+  if (!isAuthenticated) {
     return (
       <div className="h-screen w-screen bg-black flex items-center justify-center text-red-500 font-mono tracking-[0.3em]">
         VERIFYING CLEARANCE...
@@ -395,7 +329,7 @@ export default function Phase3RealtimeDashboard() {
             </div>
 
             {(() => {
-              const currentEmpId = typeof window !== 'undefined' ? localStorage.getItem('currentUserEmpId') : null;
+              const currentEmpId = typeof window !== 'undefined' ? empId : null;
               const me = leaderboard.find(p => p.empId === currentEmpId);
               return (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -459,7 +393,7 @@ export default function Phase3RealtimeDashboard() {
                     <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">OPERANTS</span>
                     <span className="text-xl font-extrabold text-emerald-400 font-mono">
                       {typeof window !== 'undefined'
-                        ? leaderboard.filter(p => p.empId !== localStorage.getItem('currentUserEmpId') && onlineUsers.includes(p.empId)).length
+                        ? leaderboard.filter(p => p.empId !== empId && onlineUsers.includes(p.empId)).length
                         : 0} ACTIVE
                     </span>
                   </div>
@@ -575,7 +509,7 @@ export default function Phase3RealtimeDashboard() {
               <button onClick={() => setShowOperantsList(false)} className="text-gray-500 hover:text-white transition-colors">✕</button>
             </div>
             <div className="max-h-[40vh] overflow-y-auto cyber-scrollbar flex flex-col gap-2">
-              {leaderboard.filter(p => p.empId !== localStorage.getItem('currentUserEmpId')).map((player, idx) => {
+              {leaderboard.filter(p => p.empId !== empId).map((player, idx) => {
                 const isOnline = onlineUsers.includes(player.empId);
                 return (
                 <div key={player.empId || idx} className="flex items-center gap-3 bg-[#111] p-2 border border-gray-800/50 rounded hover:border-gray-700 transition-colors">
@@ -598,7 +532,7 @@ export default function Phase3RealtimeDashboard() {
                   </button>
                 </div>
               )})}
-              {leaderboard.filter(p => p.empId !== localStorage.getItem('currentUserEmpId')).length === 0 && (
+              {leaderboard.filter(p => p.empId !== empId).length === 0 && (
                 <div className="text-gray-600 text-center py-6 font-mono text-sm">NO OTHER OPERANTS REGISTERED IN SYSTEM</div>
               )}
             </div>
@@ -622,7 +556,7 @@ export default function Phase3RealtimeDashboard() {
               <button 
                 onClick={() => {
                   socket?.emit('accept_1v1_challenge', { challengerId: incomingChallenge.challengerId });
-                  triggerDuelCountdown({ challengerId: incomingChallenge.challengerId, targetId: localStorage.getItem('currentUserEmpId') || '' });
+                  triggerDuelCountdown({ challengerId: incomingChallenge.challengerId, targetId: empId || '' });
                   setIncomingChallenge(null);
                 }}
                 className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded font-black tracking-widest w-1/2 transition-colors"

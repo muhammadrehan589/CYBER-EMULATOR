@@ -1,0 +1,35 @@
+'use client';
+// Single place that reads/writes auth session from localStorage.
+// All components use this instead of raw localStorage calls.
+
+import { useState, useEffect } from 'react';
+
+export interface AuthSession {
+  empId: string | null;
+  isAuthenticated: boolean;
+}
+
+export function useAuth(): AuthSession {
+  const [empId, setEmpId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Only runs on client — safe from SSR issues
+    const stored = localStorage.getItem('currentUserEmpId');
+    setEmpId(stored);
+  }, []);
+
+  return {
+    empId,
+    isAuthenticated: !!empId,
+  };
+}
+
+// Utility to set auth session (used after login/signup)
+export function setAuthSession(empId: string) {
+  localStorage.setItem('currentUserEmpId', empId);
+}
+
+// Utility to clear auth session (used on logout)
+export function clearAuthSession() {
+  localStorage.removeItem('currentUserEmpId');
+}
