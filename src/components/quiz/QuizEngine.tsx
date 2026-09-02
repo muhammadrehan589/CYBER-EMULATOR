@@ -52,6 +52,11 @@ export default function QuizEngine() {
   }, []);
 
   const [qrEvent, setQrEvent] = useState({ active: false, payload: "" });
+
+  const [wagerOffered, setWagerOffered] = useState(false);
+  const [isWagerActive, setIsWagerActive] = useState(false);
+  const [wagerAmount, setWagerAmount] = useState({ coins: 0, xp: 0 });
+
   const publicAssets = [
     "/secret-gadget-blueprint.png",
     "/classified-intel-01.jpg",
@@ -65,7 +70,7 @@ export default function QuizEngine() {
       // Pick a random asset from the array
       const randomAsset = publicAssets[Math.floor(Math.random() * publicAssets.length)];
       // Generate the full URL so a mobile scanner can actually open the file
-      const fullUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://cyber-emulator.vercel.app'}${randomAsset}`;
+      const fullUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://cyber-emulator.vercel.app'}/black-market?secret=qr_discovery`;
       
       setQrEvent({ active: true, payload: fullUrl });
     }, popTime);
@@ -91,7 +96,7 @@ export default function QuizEngine() {
   const [socket, setSocket] = useState<any>(null);
 
   const [quizMode, setQuizMode] = useState<'standard' | 'wager'>('standard');
-  const [wagerAmount, setWagerAmount] = useState(0);
+  // Removed duplicate wagerAmount
 
   useEffect(() => {
     import('socket.io-client').then(({ io }) => {
@@ -361,6 +366,20 @@ export default function QuizEngine() {
       if (!selectedOption) return;
       submitAnswer(selectedOption);
     } else {
+      // --- WAGER RESOLUTION ---
+      if (isWagerActive) {
+        if (isCorrect) {
+          useQuizStore.getState().addCoins(wagerAmount.coins);
+          useQuizStore.getState().addXP(wagerAmount.xp);
+          alert(`WAGER WON! You doubled your streak earnings: +${wagerAmount.coins} Coins, +${wagerAmount.xp} XP!`);
+        } else {
+          useQuizStore.getState().deductXP(wagerAmount.xp);
+          useQuizStore.getState().addCoins(-wagerAmount.coins);
+          alert(`WAGER LOST! The Matrix reclaimed your recent earnings: -${wagerAmount.coins} Coins, -${wagerAmount.xp} XP.`);
+        }
+        setIsWagerActive(false);
+      }
+
       // Log question ID to the permanent burn list
       const burnedQuestions = JSON.parse(localStorage.getItem('burned_questions') || '[]');
       if (activeQuestion && !burnedQuestions.includes(activeQuestion.id)) {
@@ -378,11 +397,50 @@ export default function QuizEngine() {
          useQuizStore.getState().consumeItem('shields');
          advanceQuestion(true, 0); // Shield prevents streak loss
       } else {
-         advanceQuestion(isCorrect, 10);
+         advanceQuestion(isCorrect || false, 10);
       }
-      // Advance the local index — this is the ONLY index that drives which
-      // question is displayed. It stays within the local 10-question array.
-      setSoloQuestionIndex(prev => prev + 1);
+
+      // --- WAGER TRIGGER ---
+      const newStreak = useQuizStore.getState().streak;
+      if (newStreak > 0 && newStreak % 5 === 0 && !wagerOffered && !isWagerActive) {
+         setWagerAmount({ coins: 50, xp: 100 });
+         setWagerOffered(true);
+         return; // Pause advancement for the popup
+      }
+
+      // Advance or reload seamlessly
+      if (soloQuestionIndex === questions.length - 1) {
+         const burned = JSON.parse(localStorage.getItem('burned_questions') || '[]');
+         let fresh = initialQuestions.filter((q: any) => !burned.includes(q.id));
+         if (fresh.length === 0) {
+            localStorage.removeItem('burned_questions');
+            fresh = initialQuestions;
+         }
+         setQuestions(shuffleArray(fresh).slice(0, 10));
+         setSoloQuestionIndex(0);
+      } else {
+         setSoloQuestionIndex(prev => prev + 1);
+      }
+    }
+  };
+
+  const handleWagerDecision = (accept: boolean) => {
+    setWagerOffered(false);
+    if (accept) {
+      setIsWagerActive(true);
+    }
+    // Proceed to next question
+    if (soloQuestionIndex === questions.length - 1) {
+       const burned = JSON.parse(localStorage.getItem('burned_questions') || '[]');
+       let fresh = initialQuestions.filter((q: any) => !burned.includes(q.id));
+       if (fresh.length === 0) {
+          localStorage.removeItem('burned_questions');
+          fresh = initialQuestions;
+       }
+       setQuestions(shuffleArray(fresh).slice(0, 10));
+       setSoloQuestionIndex(0);
+    } else {
+       setSoloQuestionIndex(prev => prev + 1);
     }
   };
 
@@ -460,7 +518,7 @@ export default function QuizEngine() {
         onClick={handleSaveAndExit}
         className="absolute top-6 left-6 bg-red-600 hover:bg-red-700 text-white font-mono text-xs px-4 py-2 rounded flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(220,38,38,0.4)] z-50"
       >
-        <span className="text-lg font-bold">←</span> SAVE AND EXIT
+        <span className="text-lg font-bold">←</span> SAVE AND ABORT
       </button>
       
       {/* LEFT SIDE: QUIZ UI */}
@@ -671,6 +729,26 @@ export default function QuizEngine() {
         </div>
       )}
 
+      {wagerOffered && (
+        <div className="fixed inset-0 z-[99999] bg-red-950/90 backdrop-blur-sm flex flex-col items-center justify-center p-4">
+          <div className="bg-black border-4 border-red-600 p-8 rounded-xl max-w-lg text-center shadow-[0_0_50px_rgba(220,38,38,0.5)]">
+            <h2 className="text-4xl font-black text-white mb-2 uppercase tracking-widest drop-shadow-[0_0_10px_red]">Double or Nothing!</h2>
+            <h3 className="text-xl text-red-500 font-bold mb-6">WAGER ROUND INITIATED</h3>
+            <p className="text-gray-300 mb-8 text-lg font-mono leading-relaxed">
+              You are on a 5-round win streak! You can wager your recent earnings (<strong>{wagerAmount.coins} Coins & {wagerAmount.xp} XP</strong>).<br/><br/>
+              Answer the next question correctly to <span className="text-green-400 font-bold">DOUBLE</span> them. Answer wrong, and you <span className="text-red-500 font-bold">LOSE</span> them completely!
+            </p>
+            <div className="flex gap-4 justify-center">
+              <button onClick={() => handleWagerDecision(true)} className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded font-black tracking-widest shadow-[0_0_15px_red] transition-all hover:scale-105">
+                ACCEPT WAGER
+              </button>
+              <button onClick={() => handleWagerDecision(false)} className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-6 py-3 rounded font-bold tracking-widest transition-all">
+                PLAY IT SAFE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {qrEvent.active && (
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-950 border-2 border-yellow-500 p-8 rounded-lg shadow-[0_0_50px_rgba(234,179,8,0.4)] z-50 text-center animate-pulse w-[90%] max-w-md">
           

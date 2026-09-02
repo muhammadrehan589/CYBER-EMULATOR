@@ -52,7 +52,7 @@ function BattlePageContent() {
       currentSocket.on('connect', () => {
         currentSocket!.emit('join_battle', { matchId, empId: parsedUser.empId });
         if (parsedUser.empId === challengerId) {
-          fetch('/api/questions?random=true&limit=50').then(r => r.json()).then(data => {
+          fetch(`/api/questions?random=true&limit=50&exclude=${useQuizStore.getState().playedQuestions.join(',')}`).then(r => r.json()).then(data => {
             if (data.success && isMounted) {
               currentSocket!.emit('init_battle_data', { matchId, questions: data.data });
               setQuestions(data.data);
@@ -62,6 +62,14 @@ function BattlePageContent() {
       });
       currentSocket.on('battle_data_sync', (data) => { if (isMounted) setQuestions(data.questions); });
       currentSocket.on('battle_update', (data) => {
+          // Track question played!
+          if (questions.length > 0 && currentRound < questions.length) {
+             const qId = questions[currentRound].id;
+             const state = useQuizStore.getState();
+             if (!state.playedQuestions.includes(qId)) {
+                useQuizStore.setState({ playedQuestions: [...state.playedQuestions, qId] });
+             }
+          }
         const myAnswer  = parsedUser.empId === challengerId ? data.p1Answer : data.p2Answer;
         const oppAnswer = parsedUser.empId === challengerId ? data.p2Answer : data.p1Answer;
         if (!myAnswer || !oppAnswer) return;

@@ -18,8 +18,9 @@ export async function GET(request: NextRequest) {
     const difficulty = searchParams.get('difficulty');
     const limit = searchParams.get('limit');
     const random = searchParams.get('random');
+    const exclude = searchParams.get('exclude');
 
-    const questions = await questionService.getQuestions(category, difficulty, limit, random);
+    const questions = await questionService.getQuestions(category, difficulty, limit, random, exclude);
 
     return NextResponse.json({ success: true, data: questions });
   } catch (error: any) {
