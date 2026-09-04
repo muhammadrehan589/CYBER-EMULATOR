@@ -8,6 +8,8 @@ import { AvatarSVG, DEFAULT_AVATAR as DEFAULT_AVATAR_OBJ } from '@/components/Av
 import { useQuizStore } from '@/store/quizStore';
 import { useAuth } from '@/hooks/useAuth';
 import SequenceOrdering from '@/components/quiz/SequenceOrdering';
+import { gadgetRegistry } from '@/services/gadgets/GadgetRegistry';
+
 function BattlePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -372,21 +374,15 @@ function BattlePageContent() {
                ) : (
                  Object.entries(inventory).filter(([_, count]) => count > 0).map(([key, count], idx) => (
                    <button key={idx} onClick={() => {
-                     if (key === 'hints') {
-                         if (currentQ && currentQ.options) {
-                           const ans = currentQ.correctAnswer || '';
-                           const wrongOptions = currentQ.options.filter((opt: any) => !(opt === ans || opt.startsWith(ans + '.') || opt.startsWith(ans + ')')));
-                           const shuffledWrong = [...wrongOptions].sort(() => 0.5 - Math.random());
-                           setEliminatedOptions(shuffledWrong.slice(0, 2));
-                           consumeItem(key as any);
-                         } else { alert('Hints cannot be used on this question type.'); }
-                     } else if (key === 'timeFreezes') { setTimer(prev => prev + 10); consumeItem(key as any);
-                     } else if (key === 'screenFreezes') { socket?.emit('player_screen_freeze', { targetId: opponent.empId }); consumeItem(key as any);
-                     } else if (key === 'sabotagers') { socket?.emit('player_sabotage', { targetId: opponent.empId, penaltyXp: 50 }); consumeItem(key as any);
-                     } else if (key === 'overclocks') { fetch('/api/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ empId: localUser?.empId, inc: { xp: 250 } }) }); consumeItem(key as any);
-                     } else if (key === 'ddosEmps') { socket?.emit('player_ddos', { targetId: opponent.empId }); consumeItem(key as any);
-                     } else if (key === 'decoys') { alert('Decoys are automatically triggered when sabotaged!');
-                     } else if (key === 'shields' || key === 'autoSorters') { alert('This tactical asset is reserved for Solo Matrix engagements.'); }
+                     gadgetRegistry.execute(key, {
+                       currentQ,
+                       setEliminatedOptions,
+                       setTimer,
+                       socket,
+                       opponent,
+                       localUser,
+                       consumeItem
+                     });
                      setIsInventoryOpen(false);
                    }} className="block w-full text-left p-3 mb-2 bg-purple-900/20 hover:bg-purple-600 text-sm border border-purple-900 rounded cursor-pointer transition-colors">
                      [{count}x] {key.toUpperCase()}
