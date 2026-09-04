@@ -46,6 +46,13 @@ io.on('connection', (socket) => {
     if (targetSocketId) io.to(targetSocketId).emit('ddos_received', { attackerName: socket.empId || 'Anonymous' });
   });
 
+  socket.on('player_screen_freeze', (data) => {
+    const targetSocketId = userSockets.get(data.targetId);
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('screen_freeze_received', { attackerName: socket.empId || 'Anonymous' });
+    }
+  });
+
   socket.on('player_sabotage', (data) => {
     // Forward sabotage to target player
     const targetSocketId = userSockets.get(data.targetId);

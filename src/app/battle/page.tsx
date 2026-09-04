@@ -26,6 +26,7 @@ function BattlePageContent() {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [localUser, setLocalUser] = useState<any>(null);
+  const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [opponent, setOpponent] = useState<any>({ name: 'Opponent', username: 'opponent' });
   const [animationState, setAnimationState] = useState('idle');
   const [screenFrozen, setScreenFrozen] = useState(false);
@@ -82,17 +83,21 @@ function BattlePageContent() {
           else if (!myAnswer.isCorrect && oppAnswer.isCorrect) { setAnimationState('opponent_shoot'); setTimeout(() => { if (isMounted) setAnimationState('player_damage'); }, 500); }
           else { setAnimationState('system_zap'); } // BOTH WRONG -> LASER
         setTimeout(() => {
-          if (!isMounted) return;
-          if (parsedUser.empId === challengerId) { setPlayerHp(data.p1Hp); setOpponentHp(data.p2Hp); }
-          else { setPlayerHp(data.p2Hp); setOpponentHp(data.p1Hp); }
-        }, 500);
-        if (data.nextRound) {
-          setTimeout(() => {
             if (!isMounted) return;
-            setAnimationState('idle'); setCurrentRound(prev => prev + 1);
-            setTimer(30); setHasAnswered(false); setSelectedOption(null); setIsCorrect(null); setEliminatedOptions([]);
-          }, 2500);
-        } else { setTimeout(() => { if (isMounted) setAnimationState('idle'); }, 2500); }
+            setAnimationState('idle');
+            if (isChallenger) { setPlayerHp(data.p1Hp); setOpponentHp(data.p2Hp); }
+            else { setPlayerHp(data.p2Hp); setOpponentHp(data.p1Hp); }
+          }, 1200);
+        if (data.gameOver) {
+            setTimeout(() => { if (isMounted) router.push(`/battle/results?matchId=${matchId}`); }, 3000);
+          } else {
+            setTimeout(() => { 
+              if (isMounted) {
+                 setCurrentRound(prev => prev + 1);
+                 setTimer(30); setHasAnswered(false); setSelectedOption(null); setIsCorrect(null); setEliminatedOptions([]);
+              }
+            }, 3000);
+          }
       });
       
       currentSocket.on('screen_freeze_received', (data) => {
@@ -210,6 +215,11 @@ function BattlePageContent() {
   const oppAvatar = opponent?.activeAvatar  && Object.keys(opponent.activeAvatar).length  > 0 ? { ...DEFAULT_AVATAR_OBJ, ...opponent.activeAvatar  } : DEFAULT_AVATAR_OBJ;
   const playerDmg   = animationState === 'player_damage'   || animationState === 'both_damage';
   const opponentDmg = animationState === 'opponent_damage' || animationState === 'both_damage';
+  const getOpponentAnimation = () => {
+    if (opponentDmg) return { x: [-10, 10, -10, 10, 0], filter: ['brightness(1)', 'brightness(2) drop-shadow(0 0 20px red)', 'brightness(1)'], transition: { duration: 0.4 } };
+    if (animationState === 'opponent_shoot' || animationState === 'both_shoot') return { y: [-15, -25, -15], rotate: [-2, 2, -2], transition: { duration: 0.6, repeat: Infinity, ease: 'easeInOut' } };
+    return { y: [-5, 5, -5], transition: { duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 0.5 } };
+  };
   const bump        = animationState === 'both_correct';
 
   return (
@@ -223,9 +233,9 @@ function BattlePageContent() {
         <AnimatePresence>
           {animationState === 'system_zap' && (
             <motion.div key="laser-overlay" className="absolute inset-0 pointer-events-none z-50">
-               <motion.div className="absolute top-0 bottom-[40%] left-[25%] w-[10px] bg-red-500 shadow-[0_0_30px_10px_red]"
+               <motion.div className="absolute top-0 bottom-[60%] left-[25%] w-[16px] bg-red-500 shadow-[0_0_40px_10px_red] rounded-b-full"
                   initial={{ scaleY: 0, originY: 0 }} animate={{ scaleY: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} />
-               <motion.div className="absolute top-0 bottom-[40%] right-[25%] w-[10px] bg-red-500 shadow-[0_0_30px_10px_red]"
+               <motion.div className="absolute top-0 bottom-[60%] right-[25%] w-[16px] bg-red-500 shadow-[0_0_40px_10px_red] rounded-b-full"
                   initial={{ scaleY: 0, originY: 0 }} animate={{ scaleY: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} />
             </motion.div>
           )}
@@ -269,12 +279,12 @@ function BattlePageContent() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_110%,rgba(255,0,85,0.05),transparent)] pointer-events-none" />
         <AnimatePresence>
           {(animationState === 'player_shoot' || animationState === 'both_shoot') && (
-            <motion.div key="pb" className="absolute top-[42%] left-[16%] h-[5px] rounded-full bg-[#10b981] shadow-[0_0_16px_6px_rgba(16,185,129,0.5)] z-50"
-              initial={{ width: 10, x: 0, opacity: 1 }} animate={{ width: 80, x: '250%' }} exit={{ opacity: 0 }} transition={{ duration: 0.28, ease: 'easeIn' }} />
+            <motion.div key="pb" className="absolute top-[35%] left-[16%] h-[40px] rounded-r-full bg-gradient-to-r from-transparent via-[#10b981] to-white shadow-[0_0_30px_10px_rgba(16,185,129,0.8)] z-50 border-t border-b border-[#10b981]/50 backdrop-blur-sm"
+              initial={{ width: 10, x: 0, opacity: 1 }} animate={{ width: 180, x: '180%' }} exit={{ opacity: 0 }} transition={{ duration: 0.28, ease: 'easeIn' }} />
           )}
           {(animationState === 'opponent_shoot' || animationState === 'both_shoot') && (
-            <motion.div key="ob" className="absolute top-[42%] right-[16%] h-[5px] rounded-full bg-[#ff0055] shadow-[0_0_16px_6px_rgba(255,0,85,0.5)] z-50"
-              initial={{ width: 10, x: 0, opacity: 1 }} animate={{ width: 80, x: '-250%' }} exit={{ opacity: 0 }} transition={{ duration: 0.28, ease: 'easeIn' }} />
+            <motion.div key="ob" className="absolute top-[35%] right-[16%] h-[40px] rounded-l-full bg-gradient-to-l from-transparent via-[#ff0055] to-white shadow-[0_0_30px_10px_rgba(255,0,85,0.8)] z-50 border-t border-b border-[#ff0055]/50 backdrop-blur-sm"
+              initial={{ width: 10, x: 0, opacity: 1 }} animate={{ width: 180, x: '-180%' }} exit={{ opacity: 0 }} transition={{ duration: 0.28, ease: 'easeIn' }} />
           )}
         </AnimatePresence>
         <motion.div className="flex flex-col items-center z-10"
@@ -296,9 +306,9 @@ function BattlePageContent() {
         </motion.div>
       </div>
       {/* Question Panel */}
-      <div className="flex-1 bg-[#070707] border-t border-[#111] flex flex-col justify-center px-4 md:px-8 py-4 overflow-y-auto">
+      <div className="flex-1 bg-[#070707] border-t border-[#111] flex flex-col justify-start px-4 md:px-8 py-4 overflow-y-auto">
         {currentQ && (
-          <div className="max-w-4xl mx-auto w-full">
+          <div className="max-w-4xl mx-auto w-full my-auto">
             <div className="flex items-center justify-center mb-3">
               <span className="bg-[#0f0f0f] text-gray-500 border border-[#1c1c1c] px-3 py-1 rounded text-[10px] font-black tracking-[0.25em] uppercase">{currentQ.category}</span>
             </div>
@@ -350,62 +360,43 @@ function BattlePageContent() {
         <button onClick={handleForfeit} className="bg-red-900/60 hover:bg-red-600 border border-red-500 text-white px-4 py-2 rounded-full font-mono text-[10px] sm:text-xs tracking-widest transition-all cursor-pointer shadow-[0_0_15px_rgba(255,0,85,0.4)]">FORFEIT MATCH</button>
       </div>
       <div className="absolute bottom-6 left-6 z-40">
-        <button 
-          onClick={() => (document.getElementById('battle-inventory-modal') as HTMLDialogElement)?.showModal()}
-          className="bg-purple-900/60 hover:bg-purple-600 border border-purple-500 text-white px-4 py-2 rounded-full font-mono text-[10px] sm:text-xs tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all cursor-pointer"
-        >
+        <button onClick={() => setIsInventoryOpen(true)} className="bg-purple-900/60 hover:bg-purple-600 border border-purple-500 text-white px-4 py-2 rounded-full font-mono text-[10px] sm:text-xs tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all cursor-pointer">
           DEPLOY GADGET
         </button>
-        
-        <dialog id="battle-inventory-modal" className="bg-gray-950 border border-purple-500 p-4 sm:p-6 rounded-lg text-white font-mono backdrop:bg-black/80 w-72 sm:w-80 max-w-[90vw]">
-           <h3 className="text-purple-400 mb-4 border-b border-purple-900/50 pb-2">ACTIVE INVENTORY</h3>
-           {Object.entries(inventory).filter(([_, count]) => count > 0).length === 0 ? (
-             <p className="text-gray-500 text-xs">No tactical assets available.</p>
-           ) : (
-             Object.entries(inventory)
-               .filter(([_, count]) => count > 0)
-               .map(([key, count], idx) => (
-               <button 
-                 key={idx} 
-                 onClick={() => {
-                   consumeItem(key as any);
-                   
-                   if (key === 'hints') {
-                       if (currentQ) {
-                         const wrongOptions = currentQ.options.filter((opt: string) => !opt.startsWith(currentQ.correctAnswer + '.'));
-                         const shuffledWrong = [...wrongOptions].sort(() => 0.5 - Math.random());
-                         setEliminatedOptions(shuffledWrong.slice(0, 2));
-                       }
-                     } else if (key === 'timeFreezes') {
-                       setTimer(prev => prev + 10);
-                     } else if (key === 'screenFreezes') {
-                       socket?.emit('player_screen_freeze', { targetId: opponent.empId });
-                     } else if (key === 'sabotagers') {
-                     socket?.emit('player_sabotage', { targetId: opponent.empId, penaltyXp: 50 });
-                   } else if (key === 'overclocks') {
-                     fetch('/api/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ empId: localUser?.empId, inc: { xp: 250 } }) });
-                   } else if (key === 'ddosEmps') {
-                     socket?.emit('player_ddos', { targetId: opponent.empId });
-                   } else if (key === 'decoys') {
-                     alert('Decoys are automatically triggered when sabotaged!');
-                     useQuizStore.getState().buyItem('decoys', 0); // refund manual click
-                   } else if (key === 'shields' || key === 'hints') {
-                     alert('This tactical asset is reserved for Solo Matrix engagements.');
-                     useQuizStore.getState().buyItem(key as any, 0); // refund
-                   }
-                   
-                   (document.getElementById('battle-inventory-modal') as HTMLDialogElement)?.close();
-                 }}
-                 className="block w-full text-left p-3 mb-2 bg-purple-900/20 hover:bg-purple-600 text-sm border border-purple-900 rounded cursor-pointer"
-               >
-                 {">"} {key.toUpperCase()} (x{count})
-               </button>
-             ))
-           )}
-           <button onClick={() => (document.getElementById('battle-inventory-modal') as HTMLDialogElement)?.close()} className="mt-4 text-gray-500 hover:text-white text-xs w-full text-right cursor-pointer">
-             [ CLOSE ]
-           </button>
-        </dialog>
+        {isInventoryOpen && (
+          <div className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center p-4">
+            <div className="bg-gray-950 border border-purple-500 p-4 sm:p-6 rounded-lg text-white font-mono w-72 sm:w-80 max-w-[90vw] shadow-[0_0_30px_rgba(168,85,247,0.3)]">
+               <h3 className="text-purple-400 mb-4 border-b border-purple-900/50 pb-2">ACTIVE INVENTORY</h3>
+               {Object.entries(inventory).filter(([_, count]) => count > 0).length === 0 ? (
+                 <p className="text-gray-500 text-xs">No tactical assets available.</p>
+               ) : (
+                 Object.entries(inventory).filter(([_, count]) => count > 0).map(([key, count], idx) => (
+                   <button key={idx} onClick={() => {
+                     if (key === 'hints') {
+                         if (currentQ && currentQ.options) {
+                           const ans = currentQ.correctAnswer || '';
+                           const wrongOptions = currentQ.options.filter((opt: any) => !(opt === ans || opt.startsWith(ans + '.') || opt.startsWith(ans + ')')));
+                           const shuffledWrong = [...wrongOptions].sort(() => 0.5 - Math.random());
+                           setEliminatedOptions(shuffledWrong.slice(0, 2));
+                           consumeItem(key as any);
+                         } else { alert('Hints cannot be used on this question type.'); }
+                     } else if (key === 'timeFreezes') { setTimer(prev => prev + 10); consumeItem(key as any);
+                     } else if (key === 'screenFreezes') { socket?.emit('player_screen_freeze', { targetId: opponent.empId }); consumeItem(key as any);
+                     } else if (key === 'sabotagers') { socket?.emit('player_sabotage', { targetId: opponent.empId, penaltyXp: 50 }); consumeItem(key as any);
+                     } else if (key === 'overclocks') { fetch('/api/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ empId: localUser?.empId, inc: { xp: 250 } }) }); consumeItem(key as any);
+                     } else if (key === 'ddosEmps') { socket?.emit('player_ddos', { targetId: opponent.empId }); consumeItem(key as any);
+                     } else if (key === 'decoys') { alert('Decoys are automatically triggered when sabotaged!');
+                     } else if (key === 'shields' || key === 'autoSorters') { alert('This tactical asset is reserved for Solo Matrix engagements.'); }
+                     setIsInventoryOpen(false);
+                   }} className="block w-full text-left p-3 mb-2 bg-purple-900/20 hover:bg-purple-600 text-sm border border-purple-900 rounded cursor-pointer transition-colors">
+                     [{count}x] {key.toUpperCase()}
+                   </button>
+                 ))
+               )}
+               <button onClick={() => setIsInventoryOpen(false)} className="mt-4 text-gray-500 hover:text-white text-xs w-full text-right cursor-pointer transition-colors">[ CLOSE ]</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -420,6 +411,7 @@ export default function BattlePage() {
     </React.Suspense>
   );
 }
+
 
 
 
