@@ -16,7 +16,8 @@ import {
   Square, 
   Wifi, 
   WifiOff,
-  List
+  List,
+  Bell
 } from 'lucide-react';
 import { MiniAvatar, AvatarSVG, DEFAULT_AVATAR, type AvatarState } from '@/components/Avatar';
 import ItemShopModal from '@/components/shop/ItemShopModal';
@@ -49,6 +50,7 @@ export default function Phase3RealtimeDashboard() {
   }, [isAuthReady, isAuthenticated, router]);
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
   const [floatingStats, setFloatingStats] = useState<FloatingStat[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [reactionCounts, setReactionCounts] = useState<{ [key: string]: number }>({
     '🔥': 0,
     '⚡': 0,
@@ -307,6 +309,15 @@ export default function Phase3RealtimeDashboard() {
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl font-bold border border-green-400 font-mono tracking-widest text-xs shadow-[0_0_15px_rgba(34,197,94,0.5)] transition-all active:scale-95 cursor-pointer"
             >
               📦 INVENTORY
+            </button>
+            <button className="relative bg-yellow-400 hover:bg-yellow-500 text-black p-2.5 rounded-xl font-bold border border-yellow-300 shadow-[0_0_15px_rgba(250,204,21,0.5)] transition-all active:scale-95 cursor-pointer">
+              <Bell className="w-5 h-5" />
+              {/* Render conditionally when notifications > 0 */}
+              {notifications.length > 0 && (
+                <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-black text-white border-2 border-[#0a0a0a] shadow-[0_0_10px_rgba(220,38,38,0.8)]">
+                  {notifications.length}
+                </span>
+              )}
             </button>
           </div>
         </header>
