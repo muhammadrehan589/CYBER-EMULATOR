@@ -248,9 +248,10 @@ interface AvatarSVGProps {
   avatar: AvatarState;
   size?: number;
   mini?: boolean;
+  pose?: 'idle' | 'firingRight' | 'firingLeft';
 }
 
-const AvatarSVG: React.FC<AvatarSVGProps> = ({ avatar, size = 260, mini = false }) => {
+const AvatarSVG: React.FC<AvatarSVGProps> = ({ avatar, size = 260, mini = false, pose = 'idle' }) => {
   // 🛡️ SAFETY SHIELD: If no avatar data exists, render a placeholder
   if (!avatar) {
     return (
@@ -660,8 +661,22 @@ const AvatarSVG: React.FC<AvatarSVGProps> = ({ avatar, size = 260, mini = false 
       
       const standardSleeves = (
         <g>
-          <path d={`M ${shoulderL + 4} 175 Q ${shoulderL - 8} 205 ${shoulderL - 10} 215`} stroke={main} strokeWidth={armW + 2} strokeLinecap="round" fill="none" />
-          <path d={`M ${shoulderR - 4} 175 Q ${shoulderR + 8} 205 ${shoulderR + 10} 215`} stroke={main} strokeWidth={armW + 2} strokeLinecap="round" fill="none" />
+          {pose === 'firingRight' ? (
+            <>
+              <path d={`M ${shoulderL + 4} 175 Q ${shoulderR} 178 ${shoulderR + 10} 182`} stroke={main} strokeWidth={armW + 2} strokeLinecap="round" fill="none" />
+              <path d={`M ${shoulderR - 4} 175 Q ${shoulderR + 10} 175 ${shoulderR + 25} 178`} stroke={main} strokeWidth={armW + 2} strokeLinecap="round" fill="none" />
+            </>
+          ) : pose === 'firingLeft' ? (
+            <>
+              <path d={`M ${shoulderL + 4} 175 Q ${shoulderL - 10} 175 ${shoulderL - 25} 178`} stroke={main} strokeWidth={armW + 2} strokeLinecap="round" fill="none" />
+              <path d={`M ${shoulderR - 4} 175 Q ${shoulderL} 178 ${shoulderL - 10} 182`} stroke={main} strokeWidth={armW + 2} strokeLinecap="round" fill="none" />
+            </>
+          ) : (
+            <>
+              <path d={`M ${shoulderL + 4} 175 Q ${shoulderL - 8} 205 ${shoulderL - 10} 215`} stroke={main} strokeWidth={armW + 2} strokeLinecap="round" fill="none" />
+              <path d={`M ${shoulderR - 4} 175 Q ${shoulderR + 8} 205 ${shoulderR + 10} 215`} stroke={main} strokeWidth={armW + 2} strokeLinecap="round" fill="none" />
+            </>
+          )}
         </g>
       );
 
@@ -787,13 +802,29 @@ const AvatarSVG: React.FC<AvatarSVGProps> = ({ avatar, size = 260, mini = false 
 
     return (
       <g transform={`translate(${tx}, 0) scale(${bodyScale}, 1)`}>
-        {/* Arms (Skin) */}
-        <path d={`M ${shoulderL + 4} 175 Q ${shoulderL - 16} 220 ${shoulderL - 8} 265`} stroke={skin} strokeWidth={armW} strokeLinecap="round" fill="none" />
-        <path d={`M ${shoulderR - 4} 175 Q ${shoulderR + 16} 220 ${shoulderR + 8} 265`} stroke={skin} strokeWidth={armW} strokeLinecap="round" fill="none" />
-        
-        {/* Hands */}
-        <ellipse cx={shoulderL - 8} cy="275" rx={armW/2 + 1} ry={armW/2 + 4} fill={skin} />
-        <ellipse cx={shoulderR + 8} cy="275" rx={armW/2 + 1} ry={armW/2 + 4} fill={skin} />
+        {/* Arms and Hands (Skin) */}
+        {pose === 'firingRight' ? (
+           <>
+             <path d={`M ${shoulderL + 4} 175 Q ${shoulderR + 15} 180 ${shoulderR + 45} 185`} stroke={skin} strokeWidth={armW} strokeLinecap="round" fill="none" />
+             <path d={`M ${shoulderR - 4} 175 Q ${shoulderR + 25} 175 ${shoulderR + 65} 178`} stroke={skin} strokeWidth={armW} strokeLinecap="round" fill="none" />
+             <ellipse cx={shoulderR + 52} cy="185" rx={armW/2 + 4} ry={armW/2 + 1} fill={skin} />
+             <ellipse cx={shoulderR + 72} cy="178" rx={armW/2 + 4} ry={armW/2 + 1} fill={skin} />
+           </>
+        ) : pose === 'firingLeft' ? (
+           <>
+             <path d={`M ${shoulderL + 4} 175 Q ${shoulderL - 25} 175 ${shoulderL - 65} 178`} stroke={skin} strokeWidth={armW} strokeLinecap="round" fill="none" />
+             <path d={`M ${shoulderR - 4} 175 Q ${shoulderL - 15} 180 ${shoulderL - 45} 185`} stroke={skin} strokeWidth={armW} strokeLinecap="round" fill="none" />
+             <ellipse cx={shoulderL - 72} cy="178" rx={armW/2 + 4} ry={armW/2 + 1} fill={skin} />
+             <ellipse cx={shoulderL - 52} cy="185" rx={armW/2 + 4} ry={armW/2 + 1} fill={skin} />
+           </>
+        ) : (
+           <>
+             <path d={`M ${shoulderL + 4} 175 Q ${shoulderL - 16} 220 ${shoulderL - 8} 265`} stroke={skin} strokeWidth={armW} strokeLinecap="round" fill="none" />
+             <path d={`M ${shoulderR - 4} 175 Q ${shoulderR + 16} 220 ${shoulderR + 8} 265`} stroke={skin} strokeWidth={armW} strokeLinecap="round" fill="none" />
+             <ellipse cx={shoulderL - 8} cy="275" rx={armW/2 + 1} ry={armW/2 + 4} fill={skin} />
+             <ellipse cx={shoulderR + 8} cy="275" rx={armW/2 + 4} ry={armW/2 + 4} fill={skin} />
+           </>
+        )}
 
         {/* Legs (Pants) */}
         <path d={`M ${hipL + 12} 310 Q ${hipL + 4} 360 ${hipL + 4} 405`} stroke={darken(main, 0.12)} strokeWidth={legW} strokeLinecap="round" fill="none" />

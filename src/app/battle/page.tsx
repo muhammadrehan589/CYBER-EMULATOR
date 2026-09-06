@@ -303,9 +303,15 @@ function BattlePageContent() {
               animate={{ width: '60%', x: '35%', opacity: 1, scale: [0.8, 1.5, 1.2] }} 
               exit={{ opacity: 0, scale: 0, filter: 'brightness(3)' }} 
               transition={{ duration: 0.4, ease: 'easeIn' }}>
-                <div className="w-full h-[50px] bg-gradient-to-r from-transparent via-[#10b981]/90 to-white rounded-full shadow-[0_0_60px_25px_rgba(16,185,129,0.9)] animate-pulse border-y-4 border-[#10b981]/60" />
-                <div className="absolute right-0 w-[120px] h-[120px] bg-white rounded-full shadow-[0_0_100px_40px_rgba(16,185,129,1)] translate-x-1/2 flex items-center justify-center">
-                    <div className="w-[60px] h-[60px] bg-cyan-200 rounded-full animate-ping" />
+                <div className="w-full drop-shadow-[0_0_15px_rgba(16,185,129,0.9)]">
+                    <div className="w-full h-[50px] bg-gradient-to-r from-transparent via-[#10b981] to-white animate-pulse" style={{ clipPath: 'polygon(0% 50%, 10% 20%, 30% 40%, 50% 10%, 70% 45%, 90% 15%, 100% 50%, 90% 85%, 70% 55%, 50% 90%, 30% 60%, 10% 80%)' }} />
+                </div>
+                <div className="absolute right-0 translate-x-1/2 drop-shadow-[0_0_30px_rgba(16,185,129,1)]">
+                    <div className="w-[140px] h-[140px] bg-white flex items-center justify-center animate-[spin_3s_linear_infinite]" style={{ clipPath: 'polygon(50% 0%, 65% 25%, 100% 15%, 75% 45%, 95% 85%, 60% 70%, 50% 100%, 40% 70%, 5% 85%, 25% 45%, 0% 15%, 35% 25%)' }}>
+                        <div className="w-[80px] h-[80px] bg-[#10b981] rounded-full animate-ping flex items-center justify-center">
+                           <div className="w-[40px] h-[40px] bg-white rounded-full shadow-[0_0_30px_10px_white]" />
+                        </div>
+                    </div>
                 </div>
             </motion.div>
           )}
@@ -315,9 +321,15 @@ function BattlePageContent() {
               animate={{ width: '60%', x: '-35%', opacity: 1, scale: [0.8, 1.5, 1.2] }} 
               exit={{ opacity: 0, scale: 0, filter: 'brightness(3)' }} 
               transition={{ duration: 0.4, ease: 'easeIn' }}>
-                <div className="w-full h-[50px] bg-gradient-to-l from-transparent via-[#ff0055]/90 to-white rounded-full shadow-[0_0_60px_25px_rgba(255,0,85,0.9)] animate-pulse border-y-4 border-[#ff0055]/60" />
-                <div className="absolute left-0 w-[120px] h-[120px] bg-white rounded-full shadow-[0_0_100px_40px_rgba(255,0,85,1)] -translate-x-1/2 flex items-center justify-center">
-                    <div className="w-[60px] h-[60px] bg-orange-200 rounded-full animate-ping" />
+                <div className="w-full drop-shadow-[0_0_15px_rgba(255,0,85,0.9)]">
+                    <div className="w-full h-[50px] bg-gradient-to-l from-transparent via-[#ff0055] to-white animate-pulse" style={{ clipPath: 'polygon(100% 50%, 90% 20%, 70% 40%, 50% 10%, 30% 45%, 10% 15%, 0% 50%, 10% 85%, 30% 55%, 50% 90%, 70% 60%, 90% 80%)' }} />
+                </div>
+                <div className="absolute left-0 -translate-x-1/2 drop-shadow-[0_0_30px_rgba(255,0,85,1)]">
+                    <div className="w-[140px] h-[140px] bg-white flex items-center justify-center animate-[spin_3s_linear_infinite]" style={{ clipPath: 'polygon(50% 0%, 65% 25%, 100% 15%, 75% 45%, 95% 85%, 60% 70%, 50% 100%, 40% 70%, 5% 85%, 25% 45%, 0% 15%, 35% 25%)' }}>
+                        <div className="w-[80px] h-[80px] bg-[#ff0055] rounded-full animate-ping flex items-center justify-center">
+                           <div className="w-[40px] h-[40px] bg-white rounded-full shadow-[0_0_30px_10px_white]" />
+                        </div>
+                    </div>
                 </div>
             </motion.div>
           )}
@@ -326,7 +338,7 @@ function BattlePageContent() {
           animate={bump ? { x: [0, 55, 0] } : playerDmg ? { x: [-10, 10, -10, 10, 0], filter: 'brightness(0.3) sepia(1) hue-rotate(-40deg) saturate(10)' } : { x: 0, filter: 'none' }}
           transition={{ duration: 0.4 }}>
           <div className={`drop-shadow-[0_0_20px_rgba(16,185,129,0.3)] ${playerHp <= 20 ? 'animate-[pulse_0.5s_infinite] drop-shadow-[0_0_20px_rgba(255,0,0,0.8)]' : ''}`}>
-            <AvatarSVG avatar={myAvatar} size={130} mini={false} />
+            <AvatarSVG avatar={myAvatar} size={130} mini={false} pose={(animationState === 'player_shoot' || animationState === 'both_shoot') ? 'firingRight' : 'idle'} />
           </div>
           <div className="w-24 h-4 mt-1 rounded-[100%] bg-[#10b981]/5 shadow-[0_0_25px_10px_rgba(16,185,129,0.1)]" />
         </motion.div>
@@ -335,7 +347,7 @@ function BattlePageContent() {
           animate={bump ? { x: [0, -55, 0] } : opponentDmg ? { x: [-10, 10, -10, 10, 0], filter: 'brightness(0.3) sepia(1) hue-rotate(-40deg) saturate(10)' } : { x: 0, filter: 'none' }}
           transition={{ duration: 0.4 }}>
           <div className={`drop-shadow-[0_0_20px_rgba(255,0,85,0.3)] ${opponentHp <= 20 ? 'animate-[pulse_0.5s_infinite] drop-shadow-[0_0_20px_rgba(255,0,0,0.8)]' : ''}`} style={{ transform: 'scaleX(-1)' }}>
-            <AvatarSVG avatar={oppAvatar} size={130} mini={false} />
+            <AvatarSVG avatar={oppAvatar} size={130} mini={false} pose={(animationState === 'opponent_shoot' || animationState === 'both_shoot') ? 'firingRight' : 'idle'} />
           </div>
           <div className="w-24 h-4 mt-1 rounded-[100%] bg-[#ff0055]/5 shadow-[0_0_25px_10px_rgba(255,0,85,0.1)]" />
         </motion.div>
