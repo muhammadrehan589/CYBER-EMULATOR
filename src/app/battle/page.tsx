@@ -9,6 +9,7 @@ import { useQuizStore } from '@/store/quizStore';
 import { useAuth } from '@/hooks/useAuth';
 import SequenceOrdering from '@/components/quiz/SequenceOrdering';
 import { gadgetRegistry } from '@/services/gadgets/GadgetRegistry';
+import { useToast } from '@/components/ui/Toast';
 
 function BattlePageContent() {
   const searchParams = useSearchParams();
@@ -17,6 +18,7 @@ function BattlePageContent() {
   const matchId = searchParams.get('matchId');
   const challengerId = searchParams.get('challengerId');
   const targetId = searchParams.get('targetId');
+  const isAsync = searchParams.get('async') === 'true';
   const [socket, setSocket] = useState<Socket | null>(null);
   const [questions, setQuestions] = useState<any[]>([]);
   const [currentRound, setCurrentRound] = useState(0);
@@ -35,6 +37,7 @@ function BattlePageContent() {
   const [eliminatedOptions, setEliminatedOptions] = useState<string[]>([]);
   const isChallenger = localUser?.empId === challengerId;
   const { inventory, consumeItem } = useQuizStore();
+  const { showToast, ToastContainer } = useToast();
 
   useEffect(() => {
     if (!isAuthReady) return;
@@ -57,7 +60,7 @@ function BattlePageContent() {
       currentSocket = io(socketUrl);
       setSocket(currentSocket);
       currentSocket.on('connect', () => {
-        currentSocket!.emit('join_battle', { matchId, empId: parsedUser.empId });
+        currentSocket!.emit('join_battle', { matchId, empId: parsedUser.empId, isAsync });
         if (parsedUser.empId === challengerId) {
           fetch(`/api/questions?random=true&limit=50&exclude=${useQuizStore.getState().playedQuestions.join(',')}`).then(r => r.json()).then(data => {
             if (data.success && isMounted) {
@@ -87,13 +90,21 @@ function BattlePageContent() {
         setTimeout(() => {
             if (!isMounted) return;
             setAnimationState('idle');
-            if (isChallenger) { setPlayerHp(data.p1Hp); setOpponentHp(data.p2Hp); }
+            const currentIsChallenger = parsedUser.empId === challengerId;
+            if (currentIsChallenger) { setPlayerHp(data.p1Hp); setOpponentHp(data.p2Hp); }
             else { setPlayerHp(data.p2Hp); setOpponentHp(data.p1Hp); }
           }, 1200);
         if (data.gameOver) {
-            setTimeout(() => { if (isMounted) router.push(`/battle/results?matchId=${matchId}`); }, 3000);
-          } else {
             setTimeout(() => { 
+                if (isMounted) {
+                    if (isAsync) {
+                        showToast('Async battle submitted! You will be notified when your opponent responds.', 'info');
+                    }
+                    router.push('/'); 
+                } 
+            }, 3000);
+          } else {
+            setTimeout(() => {
               if (isMounted) {
                  setCurrentRound(prev => prev + 1);
                  setTimer(30); setHasAnswered(false); setSelectedOption(null); setIsCorrect(null); setEliminatedOptions([]);
@@ -104,10 +115,11 @@ function BattlePageContent() {
       
       currentSocket.on('screen_freeze_received', (data) => {
           setScreenFrozen(true);
+          showToast('SYSTEM FROZEN — Controls disabled for 10 seconds', 'warning');
           setTimeout(() => setScreenFrozen(false), 10000);
         });
         currentSocket.on('ddos_received', (data) => {
-        alert(`[!] INCOMING DDOS FROM ${data.attackerName}! SYSTEM GLITCHING!`);
+        showToast(`INCOMING DDOS FROM ${data.attackerName}! SYSTEM GLITCHING! -5s`, 'error');
         setTimer(prev => Math.max(1, prev - 5));
       });
       currentSocket.on('sabotage_received', async (data) => {
@@ -115,10 +127,10 @@ function BattlePageContent() {
         const st = useQuizStore.getState();
         if (st.inventory.decoys && st.inventory.decoys > 0) {
            st.consumeItem('decoys');
-           alert(`[DEFLECTED] Sabotage from ${data.attackerName} was blocked by your DECOY!`);
+           showToast(`DEFLECTED — Sabotage from ${data.attackerName} was blocked by your DECOY!`, 'success');
            return;
         }
-        alert(`[!] SABOTAGE DETECTED! Lost ${data.penaltyXp} XP from ${data.attackerName}!`);
+        showToast(`SABOTAGE DETECTED! Lost ${data.penaltyXp} XP from ${data.attackerName}!`, 'error');
         try {
 
           await fetch('/api/users', {
@@ -134,18 +146,22 @@ function BattlePageContent() {
         
         if (data.reason === 'forfeit') {
           if (data.forfeitedBy !== parsedUser.empId) {
-             alert('Opponent forfeited! You win 300 Coins and 200 XP!');
+             showToast('Opponent forfeited! You win 300 Coins and 200 XP!', 'success');
              try { await fetch('/api/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ empId: parsedUser.empId, inc: { coins: 300, xp: 200 } }) }); } catch {}
-             router.push('/');
+             setTimeout(() => router.push('/'), 2000);
           }
           return;
         }
 
         if (iWon) {
-          alert('VICTORY! You earned 300 Coins and 200 XP!');
+          showToast('VICTORY! You earned 300 Coins and 200 XP!', 'success');
           try { await fetch('/api/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ empId: parsedUser.empId, updates: { coins: (parsedUser.coins || 0) + 300, xp: (parsedUser.xp || 0) + 200 } }) }); } catch {}
-        } else if (data.winner === 'draw') { alert('DRAW!'); } else { alert('DEFEAT!'); }
-        router.push('/');
+        } else if (data.winner === 'draw') {
+          showToast('DRAW — Equally matched operatives.', 'info');
+        } else {
+          showToast('DEFEAT — The Matrix reclaimed you.', 'error');
+        }
+        setTimeout(() => router.push('/'), 2500);
       });
     });
     return () => { isMounted = false; currentSocket?.disconnect(); };
@@ -156,8 +172,8 @@ function BattlePageContent() {
       const id = setInterval(() => setSessionTimer(p => p - 1), 1000);
       return () => clearInterval(id);
     } else if (sessionTimer === 0) {
-      alert("Session Time Limit Reached! The Matrix has collapsed.");
-      window.location.href = '/';
+      showToast('Session Time Limit Reached! The Matrix has collapsed.', 'error');
+      setTimeout(() => { window.location.href = '/'; }, 2500);
     }
   }, [sessionTimer]);
 
@@ -182,9 +198,9 @@ function BattlePageContent() {
       const confirm = window.confirm("DISCLAIMER: By forfeiting the match, you will lose 200 XP and 100 Coins. Do you wish to proceed?");
       if (confirm) {
          try { await fetch('/api/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ empId: localUser?.empId, inc: { coins: -100, xp: -200 } }) }); } catch {}
-         alert("You have forfeited. 200 XP and 100 Coins have been deducted.");
+         showToast('You have forfeited. 200 XP and 100 Coins have been deducted.', 'warning');
          socket?.emit('player_forfeit', { matchId, empId: localUser?.empId, isChallenger });
-         window.location.href = '/';
+         setTimeout(() => { window.location.href = '/'; }, 2000);
       }
     };
 
@@ -226,6 +242,7 @@ function BattlePageContent() {
 
   return (
     <div className="h-screen w-screen bg-[#030005] text-white flex flex-col font-mono overflow-hidden select-none relative">
+        {ToastContainer}
         {screenFrozen && (
           <div className="absolute inset-0 z-[100] bg-blue-900/40 backdrop-blur-sm border-[10px] border-blue-500 flex flex-col items-center justify-center pointer-events-auto">
             <p className="text-4xl md:text-6xl font-black text-blue-300 drop-shadow-[0_0_20px_blue] animate-pulse uppercase tracking-[0.3em] text-center">SYSTEM FROZEN</p>

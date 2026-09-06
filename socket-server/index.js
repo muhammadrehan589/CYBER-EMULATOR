@@ -19,7 +19,8 @@ const io = new Server(server, {
 const userSockets = new Map();
 
 // === SHARED BATTLE STATE (module-level so all sockets share it) ===
-const battleRooms = new Map(); // matchId -> { p1Hp, p2Hp, answersThisRound, p1Answer, p2Answer, round }
+const battleRooms = new Map(); // matchId -> { p1Hp, p2Hp, answersThisRound, p1Answer, p2Answer, round, isAsync }
+const offlineNotifications = new Map(); // empId -> Array of notifications
 
 // Healthcheck Endpoint
 app.get('/', (req, res) => {
@@ -38,6 +39,15 @@ io.on('connection', (socket) => {
     
     // Broadcast updated online users list
     io.emit('online_users', Array.from(userSockets.keys()));
+
+    // Send pending offline notifications
+    if (offlineNotifications.has(empId)) {
+      const pending = offlineNotifications.get(empId);
+      if (pending && pending.length > 0) {
+        socket.emit('pending_notifications', pending);
+        offlineNotifications.delete(empId);
+      }
+    }
   });
 
   // Event listener for sending real-time emoji reactions
@@ -98,7 +108,7 @@ io.on('connection', (socket) => {
   });
 
   // 1v1 Challenge
-  socket.on('initiate_1v1_challenge', ({ targetId, challengerName }) => {
+  socket.on('initiate_1v1_challenge', ({ targetId, challengerName, matchId }) => {
     const targetSocketId = userSockets.get(targetId);
     if (targetSocketId) {
       console.log(`[SOCKET_SERVER] Sending challenge from ${currentEmpId} to ${targetId}`);
@@ -107,8 +117,19 @@ io.on('connection', (socket) => {
         challengerName: challengerName || 'A Player'
       });
     } else {
-      console.log(`[SOCKET_SERVER] Challenge failed: target ${targetId} not online.`);
-      socket.emit('1v1_challenge_denied', { reason: 'Player is not currently online' });
+      console.log(`[SOCKET_SERVER] Target ${targetId} not online. Saving offline challenge.`);
+      const mId = matchId || `battle_${currentEmpId}_${targetId}_${Date.now()}`;
+      if (!offlineNotifications.has(targetId)) offlineNotifications.set(targetId, []);
+      offlineNotifications.get(targetId).push({
+        type: 'OFFLINE_CHALLENGE',
+        challengerId: currentEmpId,
+        challengerName: challengerName || 'A Player',
+        matchId: mId,
+        timestamp: Date.now(),
+        message: `Offline challenge arrived from ${challengerName || currentEmpId}`
+      });
+      // Tell challenger they can play async
+      socket.emit('1v1_challenge_offline_accepted', { targetId, matchId: mId });
     }
   });
 
@@ -130,12 +151,52 @@ io.on('connection', (socket) => {
   });
 
   // === 1V1 BATTLE LOGIC ===
-  socket.on('join_battle', ({ matchId, empId }) => {
+  socket.on('join_battle', ({ matchId, empId, isAsync }) => {
     socket.join(matchId);
-    console.log(`[SOCKET_SERVER] ${empId} joined battle room ${matchId}`);
+    console.log(`[SOCKET_SERVER] ${empId} joined battle room ${matchId} (async: ${isAsync})`);
+    
+    if (isAsync) {
+      if (!asyncBattleStats.has(matchId)) asyncBattleStats.set(matchId, {});
+      const stats = asyncBattleStats.get(matchId);
+      if (!stats.challengerId) stats.challengerId = empId;
+      else stats.targetId = empId;
+    }
+
     if (!battleRooms.has(matchId)) {
-      battleRooms.set(matchId, { p1Hp: 100, p2Hp: 100, answersThisRound: 0, p1Answer: null, p2Answer: null, round: 0 });
+      battleRooms.set(matchId, { p1Hp: 100, p2Hp: 100, answersThisRound: 0, p1Answer: null, p2Answer: null, round: 0, isAsync: isAsync || false });
       console.log(`[SOCKET_SERVER] Created new battle room: ${matchId}`);
+      
+      if (isAsync && asyncBattleStats.has(matchId) && asyncBattleStats.get(matchId).questions) {
+        const savedQuestions = asyncBattleStats.get(matchId).questions;
+        battleRooms.get(matchId).questions = savedQuestions;
+        setTimeout(() => {
+          socket.emit('battle_data_sync', { questions: savedQuestions });
+        }, 500);
+      }
+    } else if (isAsync) {
+      // Target is joining an EXISTING async room (challenger already played).
+      // Reset HP + round state so the target starts fresh.
+      const room = battleRooms.get(matchId);
+      room.isAsync = true;
+      room.p1Hp = 100;
+      room.p2Hp = 100;
+      room.round = 0;
+      room.answersThisRound = 0;
+      room.p1Answer = null;
+      room.p2Answer = null;
+      console.log(`[SOCKET_SERVER] Target joined async room ${matchId}. Room reset for target session.`);
+
+      // Send the saved questions to this target player
+      if (asyncBattleStats.has(matchId) && asyncBattleStats.get(matchId).questions) {
+        const savedQuestions = asyncBattleStats.get(matchId).questions;
+        room.questions = savedQuestions;
+        setTimeout(() => {
+          socket.emit('battle_data_sync', { questions: savedQuestions });
+          console.log(`[SOCKET_SERVER] Sent ${savedQuestions.length} questions to async target.`);
+        }, 500);
+      } else {
+        console.log(`[SOCKET_SERVER] WARNING: No saved questions found for async match ${matchId}`);
+      }
     }
   });
 
@@ -144,6 +205,11 @@ io.on('connection', (socket) => {
     if (battle) {
       battle.questions = questions;
       io.to(matchId).emit('battle_data_sync', { questions });
+      
+      if (battle.isAsync) {
+        if (!asyncBattleStats.has(matchId)) asyncBattleStats.set(matchId, {});
+        asyncBattleStats.get(matchId).questions = questions;
+      }
     }
   });
 
@@ -162,7 +228,19 @@ io.on('connection', (socket) => {
       battle.p2Answer = { isCorrect, damage };
     }
 
-    
+    if (battle.isAsync) {
+      // Dynamic ghost opponent: They perform opposite to the player!
+      // If player is correct, ghost is wrong (takes 10 damage).
+      // If player is wrong, ghost is correct (takes 0 damage).
+      const oppAnswer = { isCorrect: !isCorrect, damage: isCorrect ? 10 : 0 };
+      
+      if (isChallenger) battle.p2Answer = oppAnswer;
+      else battle.p1Answer = oppAnswer;
+      battle.answersThisRound = 2;
+      processRound(battle, matchId, io, isChallenger);
+      return;
+    }
+
     battle.answersThisRound++;
     console.log(`[SOCKET_SERVER] AnswersThisRound AFTER: ${battle.answersThisRound}`);
 
@@ -220,7 +298,9 @@ io.on('connection', (socket) => {
 });
 
 
-  const processRound = (battle, matchId, io) => {
+const asyncBattleStats = new Map(); // matchId -> { challengerFinalHp, targetFinalHp }
+
+  const processRound = (battle, matchId, io, isChallengerAsync = null) => {
     console.log(`[SOCKET_SERVER] Both players answered! Processing round ${battle.round}...`);
 
     // If both are correct, 0 damage to both (bump animation)
@@ -239,28 +319,81 @@ io.on('connection', (socket) => {
 
     const p1Dead = battle.p1Hp <= 0;
     const p2Dead = battle.p2Hp <= 0;
+    const outOfQuestions = battle.questions && battle.round >= battle.questions.length - 1;
 
-    console.log(`[SOCKET_SERVER] After round: P1 HP=${battle.p1Hp}, P2 HP=${battle.p2Hp}. nextRound=${!(p1Dead || p2Dead)}`);
+    console.log(`[SOCKET_SERVER] After round: P1 HP=${battle.p1Hp}, P2 HP=${battle.p2Hp}. nextRound=${!(p1Dead || p2Dead || outOfQuestions)}`);
 
     // Emit update to both players
     io.to(matchId).emit('battle_update', {
       p1Hp: battle.p1Hp,
       p2Hp: battle.p2Hp,
-      nextRound: !(p1Dead || p2Dead),
+      nextRound: !(p1Dead || p2Dead || outOfQuestions),
       p1Answer: battle.p1Answer,
-      p2Answer: battle.p2Answer
+      p2Answer: battle.p2Answer,
+      gameOver: p1Dead || p2Dead || outOfQuestions
     });
 
-    if (p1Dead || p2Dead) {
-      let winner = 'draw';
-      if (battle.p1Hp > battle.p2Hp) winner = 'challenger';
-      else if (battle.p2Hp > battle.p1Hp) winner = 'target';
+    if (p1Dead || p2Dead || outOfQuestions) {
+      if (battle.isAsync) {
+        if (!asyncBattleStats.has(matchId)) asyncBattleStats.set(matchId, {});
+        const stats = asyncBattleStats.get(matchId);
+        
+        if (isChallengerAsync !== null) {
+          if (isChallengerAsync) {
+            stats.challengerFinalHp = battle.p1Hp;
+            console.log(`[SOCKET_SERVER] Async Challenger finished with HP ${battle.p1Hp}`);
+          } else {
+            stats.targetFinalHp = battle.p2Hp;
+            console.log(`[SOCKET_SERVER] Async Target finished with HP ${battle.p2Hp}`);
+          }
+        }
 
-      console.log(`[SOCKET_SERVER] Battle over! Winner: ${winner}`);
-      setTimeout(() => {
-        io.to(matchId).emit('battle_over', { winner });
-        battleRooms.delete(matchId);
-      }, 3000);
+        // Only evaluate winner once BOTH players have finished
+        if (stats.challengerFinalHp !== undefined && stats.targetFinalHp !== undefined) {
+          let winner = 'draw';
+          if (stats.challengerFinalHp > stats.targetFinalHp) winner = 'challenger';
+          else if (stats.targetFinalHp > stats.challengerFinalHp) winner = 'target';
+          
+          console.log(`[SOCKET_SERVER] Async battle final result: ${winner} wins (challengerHp=${stats.challengerFinalHp}, targetHp=${stats.targetFinalHp})`);
+
+          // Notify each player on their personal socket
+          const challengerSocket = userSockets.get(stats.challengerId);
+          const targetSocket = userSockets.get(stats.targetId);
+          
+          const challengerWon = winner === 'challenger';
+          const targetWon = winner === 'target';
+
+          if (challengerSocket) {
+            io.to(challengerSocket).emit('new_notification', {
+              type: 'ASYNC_RESULT',
+              matchId,
+              message: challengerWon ? 'ASYNC BATTLE RESULT: You WON! 🏆' : (winner === 'draw' ? 'ASYNC BATTLE RESULT: It was a DRAW!' : 'ASYNC BATTLE RESULT: You LOST the ghost battle.'),
+              timestamp: Date.now()
+            });
+          }
+          if (targetSocket) {
+            io.to(targetSocket).emit('new_notification', {
+              type: 'ASYNC_RESULT',
+              matchId,
+              message: targetWon ? 'ASYNC BATTLE RESULT: You WON! 🏆' : (winner === 'draw' ? 'ASYNC BATTLE RESULT: It was a DRAW!' : 'ASYNC BATTLE RESULT: You LOST the ghost battle.'),
+              timestamp: Date.now()
+            });
+          }
+
+          // Clean up
+          asyncBattleStats.delete(matchId);
+        }
+      } else {
+        let winner = 'draw';
+        if (battle.p1Hp > battle.p2Hp) winner = 'challenger';
+        else if (battle.p2Hp > battle.p1Hp) winner = 'target';
+
+        console.log(`[SOCKET_SERVER] Battle over! Winner: ${winner}`);
+        setTimeout(() => {
+          io.to(matchId).emit('battle_over', { winner });
+          battleRooms.delete(matchId);
+        }, 3000);
+      }
     } else {
       // Reset for next round
       battle.answersThisRound = 0;

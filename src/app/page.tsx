@@ -30,6 +30,7 @@ import { useLeaderboard } from '@/hooks/useLeaderboard';
 import { LeaderboardPlayer, FloatingEmoji, FloatingStat } from '@/types/dashboard';
 import { LeaderboardItem, BADGE_COLORS } from '@/components/dashboard/LeaderboardItem';
 import { FullLeaderboardModal } from '@/components/dashboard/FullLeaderboardModal';
+import { useToast } from '@/components/ui/Toast';
 
 
 
@@ -42,6 +43,7 @@ export default function Phase3RealtimeDashboard() {
   const { coinsEarned, addCoins } = useQuizStore();
   const setMyScore = (s: number) => useQuizStore.setState({ score: s });
   const setCoins = (c: number) => useQuizStore.setState({ coinsEarned: c });
+  const { showToast, ToastContainer } = useToast();
 
   useEffect(() => {
     if (isAuthReady && !isAuthenticated) {
@@ -51,6 +53,7 @@ export default function Phase3RealtimeDashboard() {
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
   const [floatingStats, setFloatingStats] = useState<FloatingStat[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [reactionCounts, setReactionCounts] = useState<{ [key: string]: number }>({
     '🔥': 0,
     '⚡': 0,
@@ -77,7 +80,7 @@ export default function Phase3RealtimeDashboard() {
     const currentUser = leaderboard.find(p => p.empId === empId);
     setPendingChallengeTarget(targetId);
     socket.emit('initiate_1v1_challenge', { targetId, challengerName: currentUser?.name || 'A Player' });
-    alert(`[!] CHALLENGE SENT TO ${targetName.toUpperCase()}`); // Temporary feedback
+    showToast(`Challenge sent to ${targetName.toUpperCase()}`, 'info');
   };
 
   const triggerDuelCountdown = (matchData?: { challengerId: string, targetId: string }) => {
@@ -139,7 +142,21 @@ export default function Phase3RealtimeDashboard() {
     });
 
     socket.on('1v1_challenge_denied', (data: { reason: string }) => {
-      alert(`[!] Challenge denied: ${data.reason}`);
+      showToast(`Challenge denied: ${data.reason}`, 'error');
+    });
+
+    socket.on('1v1_challenge_offline_accepted', (data: { targetId: string, matchId: string }) => {
+      showToast('Target is offline — entering asynchronous ghost battle mode...', 'warning');
+      window.location.href = `/battle?matchId=${data.matchId}&challengerId=${empId}&targetId=${data.targetId}&async=true`;
+    });
+
+    socket.on('pending_notifications', (notifs: any[]) => {
+      setNotifications(notifs);
+    });
+
+    socket.on('new_notification', (notif: any) => {
+      setNotifications(prev => [...prev, notif]);
+      showToast(notif.message, 'info');
     });
 
     return () => {
@@ -149,6 +166,9 @@ export default function Phase3RealtimeDashboard() {
       socket.off('receive_1v1_challenge');
       socket.off('1v1_challenge_accepted');
       socket.off('1v1_challenge_denied');
+      socket.off('1v1_challenge_offline_accepted');
+      socket.off('pending_notifications');
+      socket.off('new_notification');
     };
   }, [socket]);
 
@@ -177,7 +197,7 @@ export default function Phase3RealtimeDashboard() {
 
     const sender = leaderboard.find(p => p.empId === currentEmpId);
     if (!sender || (sender.coins || 0) < coinCost) {
-      alert(`Not enough coins! You need ${coinCost} coins to send ${xpAmount} XP.`);
+      showToast(`Not enough coins! You need ${coinCost} coins to send ${xpAmount} XP.`, 'error');
       return;
     }
 
@@ -253,6 +273,7 @@ export default function Phase3RealtimeDashboard() {
 
   return (
     <div className="min-h-screen h-screen bg-black text-white p-4 sm:p-6 lg:p-8 font-sans relative overflow-x-hidden flex flex-col justify-between select-none">
+      {ToastContainer}
       <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#ff0055]/15 rounded-full blur-3xl pointer-events-none z-0" />
       <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-[#e60039]/15 rounded-full blur-3xl pointer-events-none z-0" />
 
@@ -310,15 +331,49 @@ export default function Phase3RealtimeDashboard() {
             >
               📦 INVENTORY
             </button>
-            <button className="relative bg-yellow-400 hover:bg-yellow-500 text-black p-2.5 rounded-xl font-bold border border-yellow-300 shadow-[0_0_15px_rgba(250,204,21,0.5)] transition-all active:scale-95 cursor-pointer">
-              <Bell className="w-5 h-5" />
-              {/* Render conditionally when notifications > 0 */}
-              {notifications.length > 0 && (
-                <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-black text-white border-2 border-[#0a0a0a] shadow-[0_0_10px_rgba(220,38,38,0.8)]">
-                  {notifications.length}
-                </span>
+            <div className="relative">
+              <button 
+                onClick={() => setIsNotifOpen(!isNotifOpen)}
+                className="relative bg-yellow-400 hover:bg-yellow-500 text-black p-2.5 rounded-xl font-bold border border-yellow-300 shadow-[0_0_15px_rgba(250,204,21,0.5)] transition-all active:scale-95 cursor-pointer">
+                <Bell className="w-5 h-5" />
+                {notifications.length > 0 && (
+                  <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-black text-white border-2 border-[#0a0a0a] shadow-[0_0_10px_rgba(220,38,38,0.8)]">
+                    {notifications.length}
+                  </span>
+                )}
+              </button>
+
+              {isNotifOpen && (
+                <div className="absolute right-0 mt-3 w-80 bg-gray-950 border border-gray-800 rounded-xl shadow-2xl z-50 font-mono overflow-hidden">
+                  <div className="p-3 border-b border-gray-800 bg-gray-900 flex justify-between items-center">
+                    <span className="text-gray-300 font-bold text-xs uppercase tracking-wider">System Alerts</span>
+                    <button onClick={() => setNotifications([])} className="text-xs text-red-500 hover:text-red-400">Clear All</button>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-4 text-center text-gray-500 text-xs">No pending alerts.</div>
+                    ) : (
+                      notifications.map((n, i) => (
+                        <div key={i} className="p-3 border-b border-gray-800/50 hover:bg-gray-900 transition-colors">
+                          <p className="text-xs text-gray-300 mb-2">{n.message}</p>
+                          {n.type === 'OFFLINE_CHALLENGE' && (
+                            <button 
+                              onClick={() => {
+                                setIsNotifOpen(false);
+                                window.location.href = `/battle?matchId=${n.matchId}&challengerId=${n.challengerId}&targetId=${empId}&async=true`;
+                              }}
+                              className="w-full py-1.5 bg-[#ff0055] text-white text-[10px] font-bold uppercase rounded"
+                            >
+                              ACCEPT ASYNC BATTLE
+                            </button>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               )}
-            </button>
+            </div>
           </div>
         </header>
 
