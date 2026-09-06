@@ -298,12 +298,28 @@ function BattlePageContent() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_110%,rgba(255,0,85,0.05),transparent)] pointer-events-none" />
         <AnimatePresence>
           {(animationState === 'player_shoot' || animationState === 'both_shoot') && (
-            <motion.div key="pb" className="absolute top-[35%] left-[16%] h-[40px] rounded-r-full bg-gradient-to-r from-transparent via-[#10b981] to-white shadow-[0_0_30px_10px_rgba(16,185,129,0.8)] z-50 border-t border-b border-[#10b981]/50 backdrop-blur-sm"
-              initial={{ width: 10, x: 0, opacity: 1 }} animate={{ width: 180, x: '180%' }} exit={{ opacity: 0 }} transition={{ duration: 0.28, ease: 'easeIn' }} />
+            <motion.div key="pb" className="absolute top-[32%] left-[16%] flex items-center z-50 pointer-events-none"
+              initial={{ width: 0, x: -20, opacity: 0, scale: 0.5 }} 
+              animate={{ width: '60%', x: '35%', opacity: 1, scale: [0.8, 1.5, 1.2] }} 
+              exit={{ opacity: 0, scale: 0, filter: 'brightness(3)' }} 
+              transition={{ duration: 0.4, ease: 'easeIn' }}>
+                <div className="w-full h-[50px] bg-gradient-to-r from-transparent via-[#10b981]/90 to-white rounded-full shadow-[0_0_60px_25px_rgba(16,185,129,0.9)] animate-pulse border-y-4 border-[#10b981]/60" />
+                <div className="absolute right-0 w-[120px] h-[120px] bg-white rounded-full shadow-[0_0_100px_40px_rgba(16,185,129,1)] translate-x-1/2 flex items-center justify-center">
+                    <div className="w-[60px] h-[60px] bg-cyan-200 rounded-full animate-ping" />
+                </div>
+            </motion.div>
           )}
           {(animationState === 'opponent_shoot' || animationState === 'both_shoot') && (
-            <motion.div key="ob" className="absolute top-[35%] right-[16%] h-[40px] rounded-l-full bg-gradient-to-l from-transparent via-[#ff0055] to-white shadow-[0_0_30px_10px_rgba(255,0,85,0.8)] z-50 border-t border-b border-[#ff0055]/50 backdrop-blur-sm"
-              initial={{ width: 10, x: 0, opacity: 1 }} animate={{ width: 180, x: '-180%' }} exit={{ opacity: 0 }} transition={{ duration: 0.28, ease: 'easeIn' }} />
+            <motion.div key="ob" className="absolute top-[32%] right-[16%] flex items-center flex-row-reverse z-50 pointer-events-none"
+              initial={{ width: 0, x: 20, opacity: 0, scale: 0.5 }} 
+              animate={{ width: '60%', x: '-35%', opacity: 1, scale: [0.8, 1.5, 1.2] }} 
+              exit={{ opacity: 0, scale: 0, filter: 'brightness(3)' }} 
+              transition={{ duration: 0.4, ease: 'easeIn' }}>
+                <div className="w-full h-[50px] bg-gradient-to-l from-transparent via-[#ff0055]/90 to-white rounded-full shadow-[0_0_60px_25px_rgba(255,0,85,0.9)] animate-pulse border-y-4 border-[#ff0055]/60" />
+                <div className="absolute left-0 w-[120px] h-[120px] bg-white rounded-full shadow-[0_0_100px_40px_rgba(255,0,85,1)] -translate-x-1/2 flex items-center justify-center">
+                    <div className="w-[60px] h-[60px] bg-orange-200 rounded-full animate-ping" />
+                </div>
+            </motion.div>
           )}
         </AnimatePresence>
         <motion.div className="flex flex-col items-center z-10"
