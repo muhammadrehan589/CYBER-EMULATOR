@@ -365,11 +365,31 @@ const asyncBattleStats = new Map(); // matchId -> { challengerFinalHp, targetFin
           const challengerWon = winner === 'challenger';
           const targetWon = winner === 'target';
 
+          const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+          const updateRewards = async (empId, coins, xp) => {
+            if (coins === 0 && xp === 0) return;
+            try {
+              await fetch(`${frontendUrl}/api/users`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ empId, inc: { coins, xp } })
+              });
+            } catch(e) { console.error('[SOCKET_SERVER] Reward err:', e.message); }
+          };
+
+          if (winner === 'challenger') {
+            updateRewards(stats.challengerId, 300, 200);
+            updateRewards(stats.targetId, 0, -50);
+          } else if (winner === 'target') {
+            updateRewards(stats.targetId, 300, 200);
+            updateRewards(stats.challengerId, 0, -50);
+          }
+
           if (challengerSocket) {
             io.to(challengerSocket).emit('new_notification', {
               type: 'ASYNC_RESULT',
               matchId,
-              message: challengerWon ? 'ASYNC BATTLE RESULT: You WON! 🏆' : (winner === 'draw' ? 'ASYNC BATTLE RESULT: It was a DRAW!' : 'ASYNC BATTLE RESULT: You LOST the offline battle.'),
+              message: challengerWon ? 'ASYNC BATTLE RESULT: You WON! 🏆 300 Coins and 200 XP have been added to your account.' : (winner === 'draw' ? 'ASYNC BATTLE RESULT: It was a DRAW!' : 'ASYNC BATTLE RESULT: You LOST the offline battle (-50 XP).'),
               timestamp: Date.now()
             });
           }
@@ -377,7 +397,7 @@ const asyncBattleStats = new Map(); // matchId -> { challengerFinalHp, targetFin
             io.to(targetSocket).emit('new_notification', {
               type: 'ASYNC_RESULT',
               matchId,
-              message: targetWon ? 'ASYNC BATTLE RESULT: You WON! 🏆' : (winner === 'draw' ? 'ASYNC BATTLE RESULT: It was a DRAW!' : 'ASYNC BATTLE RESULT: You LOST the offline battle.'),
+              message: targetWon ? 'ASYNC BATTLE RESULT: You WON! 🏆 300 Coins and 200 XP have been added to your account.' : (winner === 'draw' ? 'ASYNC BATTLE RESULT: It was a DRAW!' : 'ASYNC BATTLE RESULT: You LOST the offline battle (-50 XP).'),
               timestamp: Date.now()
             });
           }

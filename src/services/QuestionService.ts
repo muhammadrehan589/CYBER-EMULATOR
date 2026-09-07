@@ -3,11 +3,15 @@ import { IQuestionRepository } from '@/repositories/IQuestionRepository';
 export class QuestionService {
   constructor(private readonly questionRepository: IQuestionRepository) {}
 
-  async getQuestions(category?: string | null, difficulty?: string | null, limit?: string | null, random?: string | null, exclude?: string | null) {
+  async getQuestions(category?: string | null, difficulty?: string | null, limit?: string | null, random?: string | null, exclude?: string | null, pool?: string | null) {
     const filter: Record<string, any> = {};
 
     if (category) {
       filter.category = category;
+    }
+
+    if (pool) {
+      filter.pool = pool;
     }
 
     if (difficulty) {

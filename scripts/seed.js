@@ -62,6 +62,7 @@ const QuestionSchema = new mongoose.Schema({
   items: [mongoose.Schema.Types.Mixed],
   correctOrder: [String],
   imageUrl: String,
+  pool: { type: String, enum: ['Technical', 'Non-Technical'] },
 }, { timestamps: true });
 
 const ActivityLogSchema = new mongoose.Schema({
@@ -137,6 +138,7 @@ async function seed() {
       items: q.items || [],
       correctOrder: q.correctOrder || [],
       imageUrl: q.imageUrl || '',
+      pool: q.pool || 'Technical',
     }));
     await Question.insertMany(questions);
     console.log(`\x1b[32m✓ Seeded ${questions.length} questions\x1b[0m`);
