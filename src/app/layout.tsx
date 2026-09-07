@@ -16,7 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased bg-[#0a001a] text-white selection:bg-[#ff007f] selection:text-white min-h-screen">
+      <body className="antialiased bg-[#0a001a] text-white selection:bg-[#ff007f] selection:text-white min-h-screen cyber-scrollbar">
         {children}
       </body>
     </html>

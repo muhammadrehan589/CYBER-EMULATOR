@@ -65,6 +65,14 @@ export default function AdminPage() {
 
       await fetchPlayers();
       await fetchLogs();
+
+      try {
+        const { io } = await import('socket.io-client');
+        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || `http://${window.location.hostname}:3001`;
+        const tempSocket = io(socketUrl, { transports: ['websocket'] });
+        tempSocket.emit('trigger_refresh');
+        setTimeout(() => tempSocket.disconnect(), 1000);
+      } catch (e) {}
     } catch (error) {
       console.error('[Admin] Moderation failed:', error);
     } finally {
@@ -175,6 +183,14 @@ export default function AdminPage() {
 
       await fetchPlayers();
       await fetchLogs();
+
+      try {
+        const { io } = await import('socket.io-client');
+        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || `http://${window.location.hostname}:3001`;
+        const tempSocket = io(socketUrl, { transports: ['websocket'] });
+        tempSocket.emit('trigger_refresh');
+        setTimeout(() => tempSocket.disconnect(), 1000);
+      } catch (e) {}
 
       if (selectedPlayer?.empId === empId) {
         setSelectedPlayer((prev) => prev ? { ...prev, status: newStatus as Player['status'] } : null);

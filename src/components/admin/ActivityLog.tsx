@@ -97,7 +97,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ selectedPlayer, logs }
       </div>
 
       {/* Log Feed List */}
-      <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+      <div className="space-y-3 max-h-[380px] overflow-y-auto cyber-scrollbar pr-1">
         {playerLogs.length === 0 ? (
           <div className="p-6 text-center text-xs text-zinc-500 font-mono">
             No logged activity records found for this player.

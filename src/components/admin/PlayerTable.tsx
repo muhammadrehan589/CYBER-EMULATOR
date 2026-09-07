@@ -87,10 +87,10 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
       </div>
 
       {/* Table Container */}
-      <div className="overflow-x-auto rounded-xl border border-zinc-800 bg-[#050008]">
+      <div className="overflow-x-auto overflow-y-auto max-h-[60vh] cyber-scrollbar rounded-xl border border-zinc-800 bg-[#050008]">
         <table className="w-full text-left text-xs text-zinc-300 border-collapse">
           {/* Table Header */}
-          <thead className="bg-[#120414] border-b border-[#ff0055]/30 text-[11px] uppercase tracking-wider font-mono text-[#ff0055]">
+          <thead className="bg-[#120414] border-b border-[#ff0055]/30 text-[11px] uppercase tracking-wider font-mono text-[#ff0055] sticky top-0 z-10 shadow-md">
             <tr>
               <th className="p-3.5 pl-4">EMP ID</th>
               <th className="p-3.5">NAME & USERNAME</th>
