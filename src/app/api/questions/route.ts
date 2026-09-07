@@ -19,8 +19,9 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit');
     const random = searchParams.get('random');
     const exclude = searchParams.get('exclude');
+    const pool = searchParams.get('pool');
 
-    const questions = await questionService.getQuestions(category, difficulty, limit, random, exclude);
+    const questions = await questionService.getQuestions(category, difficulty, limit, random, exclude, pool);
 
     return NextResponse.json({ success: true, data: questions });
   } catch (error: any) {

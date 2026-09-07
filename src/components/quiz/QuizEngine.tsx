@@ -37,20 +37,32 @@ export default function QuizEngine() {
   const [soloQuestionIndex, setSoloQuestionIndex] = useState(0);
   
   useEffect(() => {
-    // Fetch the burn list
+    // Fetch the burn list and selected pool
     const burnedQuestions = JSON.parse(localStorage.getItem('burned_questions') || '[]');
+    const selectedPool = localStorage.getItem('selectedPool');
     
-    // Filter out any question whose ID is in the burn list
-    const freshQuestions = initialQuestions.filter((q: any) => !burnedQuestions.includes(q.id));
+    // Filter out any question whose ID is in the burn list and match pool
+    const freshQuestions = initialQuestions.filter((q: any) => {
+       const isNotBurned = !burnedQuestions.includes(q.id);
+       const matchesPool = !selectedPool || q.pool === selectedPool;
+       return isNotBurned && matchesPool;
+    });
     
     // Failsafe: If they answer every question in the DB, clear the burn list to restart
     if (freshQuestions.length === 0) {
-       console.log("Database exhausted. Resetting matrix...");
-       localStorage.removeItem('burned_questions');
-       setQuestions(shuffleArray(initialQuestions).slice(0, 10)); 
+       console.log("Database exhausted for this pool. Resetting matrix...");
+       // Only remove burned questions of this pool
+       const remainingBurned = burnedQuestions.filter((id: string) => {
+          const q = initialQuestions.find((iq: any) => iq.id === id);
+          return q && q.pool !== selectedPool;
+       });
+       localStorage.setItem('burned_questions', JSON.stringify(remainingBurned));
+       
+       const reFreshQuestions = initialQuestions.filter((q: any) => (!selectedPool || q.pool === selectedPool));
+       setQuestions(shuffleArray(reFreshQuestions)); 
     } else {
        // Proceed with the fresh, unplayed questions
-       setQuestions(shuffleArray(freshQuestions).slice(0, 10));
+       setQuestions(shuffleArray(freshQuestions));
     }
   }, []);
 
@@ -300,8 +312,7 @@ export default function QuizEngine() {
       correct = 
         selected === answer || 
         selected.startsWith(answer + '.') || 
-        selected.startsWith(answer + ')') ||
-        selected.includes(answer);
+        selected.startsWith(answer + ')');
     }
       
     setIsCorrect(correct);
@@ -374,6 +385,7 @@ export default function QuizEngine() {
       setIsSubmitted(false);
       setIsTimeout(false);
       setEliminatedOptions([]);
+      setTimeLeft(999); // Prevent old zero-timer from instantly timing out the next question before Timer Initialization runs
       
       // Call store for score/streak/multiplier side-effects only
       if (!isCorrect && useQuizStore.getState().inventory.shields > 0) {
@@ -394,12 +406,17 @@ export default function QuizEngine() {
       // Advance or reload seamlessly
       if (soloQuestionIndex === questions.length - 1) {
          const burned = JSON.parse(localStorage.getItem('burned_questions') || '[]');
-         let fresh = initialQuestions.filter((q: any) => !burned.includes(q.id));
+         const selectedPool = localStorage.getItem('selectedPool');
+         let fresh = initialQuestions.filter((q: any) => !burned.includes(q.id) && (!selectedPool || q.pool === selectedPool));
          if (fresh.length === 0) {
-            localStorage.removeItem('burned_questions');
-            fresh = initialQuestions;
+            const remainingBurned = burned.filter((id: string) => {
+               const q = initialQuestions.find((iq: any) => iq.id === id);
+               return q && q.pool !== selectedPool;
+            });
+            localStorage.setItem('burned_questions', JSON.stringify(remainingBurned));
+            fresh = initialQuestions.filter((q: any) => (!selectedPool || q.pool === selectedPool));
          }
-         setQuestions(shuffleArray(fresh).slice(0, 10));
+         setQuestions(shuffleArray(fresh));
          setSoloQuestionIndex(0);
       } else {
          setSoloQuestionIndex(prev => prev + 1);
@@ -415,12 +432,17 @@ export default function QuizEngine() {
     // Proceed to next question
     if (soloQuestionIndex === questions.length - 1) {
        const burned = JSON.parse(localStorage.getItem('burned_questions') || '[]');
-       let fresh = initialQuestions.filter((q: any) => !burned.includes(q.id));
+       const selectedPool = localStorage.getItem('selectedPool');
+       let fresh = initialQuestions.filter((q: any) => !burned.includes(q.id) && (!selectedPool || q.pool === selectedPool));
        if (fresh.length === 0) {
-          localStorage.removeItem('burned_questions');
-          fresh = initialQuestions;
+          const remainingBurned = burned.filter((id: string) => {
+             const q = initialQuestions.find((iq: any) => iq.id === id);
+             return q && q.pool !== selectedPool;
+          });
+          localStorage.setItem('burned_questions', JSON.stringify(remainingBurned));
+          fresh = initialQuestions.filter((q: any) => (!selectedPool || q.pool === selectedPool));
        }
-       setQuestions(shuffleArray(fresh).slice(0, 10));
+       setQuestions(shuffleArray(fresh));
        setSoloQuestionIndex(0);
     } else {
        setSoloQuestionIndex(prev => prev + 1);
@@ -496,7 +518,7 @@ export default function QuizEngine() {
   }
 
   return (
-    <div className={`grid grid-cols-1 lg:grid-cols-3 gap-8 w-full max-w-7xl mx-auto min-h-screen overflow-y-auto p-6 pb-8 relative transition-all ${isSabotaged ? 'animate-cyber-shake border-4 border-red-600' : ''}`}>
+    <div className={`flex flex-col items-center justify-center w-full max-w-4xl mx-auto min-h-[85vh] p-6 relative transition-all ${isSabotaged ? 'animate-cyber-shake border-4 border-red-600' : ''}`}>
       <button 
         onClick={handleSaveAndExit}
         className="absolute top-6 left-6 bg-red-600 hover:bg-red-700 text-white font-mono text-xs px-4 py-2 rounded flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(220,38,38,0.4)] z-50"
@@ -504,8 +526,8 @@ export default function QuizEngine() {
         <span className="text-lg font-bold">←</span> SAVE AND ABORT
       </button>
       
-      {/* LEFT SIDE: QUIZ UI */}
-      <div className="lg:col-span-2 flex flex-col w-full h-auto">
+      {/* QUIZ UI */}
+      <div className="flex flex-col w-full h-auto mt-12">
 
         <div className="w-full flex justify-between mb-4 text-gray-500 font-mono text-sm uppercase tracking-wider">
           <span>Unit {soloQuestionIndex + 1} / {questions.length}</span>
@@ -518,7 +540,7 @@ export default function QuizEngine() {
           </div>
         </div>
 
-        <div className="w-full h-auto bg-gray-900 border border-gray-800 p-6 pb-24 rounded-lg shadow-xl text-white flex flex-col relative min-h-[500px]">
+        <div className="conic-border-box w-full h-auto p-6 pb-24 rounded-2xl shadow-[0_0_30px_rgba(255,0,60,0.2)] text-white flex flex-col relative min-h-[500px]">
           <div className="mb-4 text-xs font-mono text-[#ff0055] uppercase tracking-widest flex items-center justify-between border-b border-gray-800 pb-2">
             <div className="flex gap-4">
               <span>{activeQuestion.category}</span>
@@ -635,7 +657,7 @@ export default function QuizEngine() {
                          store.addXP(250);
                        } else if (key === 'hints') {
                            const answer = activeQuestion.correctAnswer || '';
-                           const wrongOptions = activeQuestion.options?.filter((o: string) => !(o === answer || o.startsWith(answer + '.') || o.startsWith(answer + ')') || o.includes(answer))) || [];
+                           const wrongOptions = activeQuestion.options?.filter((o: string) => !(o === answer || o.startsWith(answer + '.') || o.startsWith(answer + ')'))) || [];
                            if (wrongOptions.length > 0) {
                              setEliminatedOptions([wrongOptions[0], wrongOptions[1]].filter(Boolean));
                            }
@@ -673,10 +695,7 @@ export default function QuizEngine() {
         </div>
       </div>
 
-      {/* RIGHT SIDE: LEADERBOARD */}
-      <div className="lg:col-span-1 w-full h-full bg-gray-900 border border-gray-800 rounded-lg shadow-xl overflow-hidden flex flex-col">
-        <LiveLeaderboard />
-      </div>
+
 
       {activeMedia && (
         <div className="fixed inset-0 z-[10000] bg-black flex justify-center items-center pointer-events-none">

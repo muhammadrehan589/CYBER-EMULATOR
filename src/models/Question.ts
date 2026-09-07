@@ -14,8 +14,8 @@ export interface IQuestion extends Document {
   correctOrder?: string[];
   correctSequence?: string[];
   imageUrl?: string;
+  pool?: 'Technical' | 'Non-Technical';
 }
-
 const QuestionSchema = new Schema<IQuestion>(
   {
     questionId: { type: Number, required: true, unique: true },
@@ -39,6 +39,7 @@ const QuestionSchema = new Schema<IQuestion>(
     draggableItems: { type: [Schema.Types.Mixed] },
     correctOrder: { type: [String] },
     imageUrl: { type: String },
+    pool: { type: String, enum: ['Technical', 'Non-Technical'] },
   },
   { timestamps: true }
 );

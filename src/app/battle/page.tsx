@@ -62,7 +62,8 @@ function BattlePageContent() {
       currentSocket.on('connect', () => {
         currentSocket!.emit('join_battle', { matchId, empId: parsedUser.empId, isAsync });
         if (parsedUser.empId === challengerId) {
-          fetch(`/api/questions?random=true&limit=50&exclude=${useQuizStore.getState().playedQuestions.join(',')}`).then(r => r.json()).then(data => {
+          const pool = localStorage.getItem('selectedPool') || '';
+          fetch(`/api/questions?random=true&limit=50&exclude=${useQuizStore.getState().playedQuestions.join(',')}&pool=${encodeURIComponent(pool)}`).then(r => r.json()).then(data => {
             if (data.success && isMounted) {
               currentSocket!.emit('init_battle_data', { matchId, questions: data.data });
               setQuestions(data.data);
@@ -151,6 +152,33 @@ function BattlePageContent() {
       currentSocket.on('battle_over', async (data) => {
         const iWon = (data.winner === 'challenger' && parsedUser.empId === challengerId) || (data.winner === 'target' && parsedUser.empId !== challengerId);
         
+        // Save to match history
+        try {
+          const opponentId = parsedUser.empId === challengerId ? targetId : challengerId;
+          const historyEntry = {
+            id: matchId,
+            opponent: 'Player ' + (opponentId ? opponentId.substring(0, 4) : 'Unkn'),
+            type: searchParams.get('async') === 'true' ? 'OFFLINE DUEL' : 'ONLINE DUEL',
+            result: iWon ? 'WIN' : (data.winner === 'draw' ? 'DRAW' : 'LOSS'),
+            timestamp: Date.now(),
+            xpChange: iWon ? '+200 XP' : '-50 XP',
+            coinsChange: iWon ? '+300 Coins' : '0 Coins'
+          };
+          if (data.reason === 'forfeit') {
+            if (data.forfeitedBy !== parsedUser.empId) {
+               historyEntry.result = 'WIN (FORFEIT)';
+            } else {
+               historyEntry.result = 'LOSS (FORFEIT)';
+               historyEntry.xpChange = '-200 XP';
+               historyEntry.coinsChange = '-100 Coins';
+            }
+          }
+          const rawHistory = localStorage.getItem('battleHistory') || '[]';
+          const history = JSON.parse(rawHistory);
+          history.unshift(historyEntry);
+          localStorage.setItem('battleHistory', JSON.stringify(history.slice(0, 3)));
+        } catch (e) { console.error('Failed to save match history', e); }
+
         if (data.reason === 'forfeit') {
           if (data.forfeitedBy !== parsedUser.empId) {
              showToast('Opponent forfeited! You win 300 Coins and 200 XP!', 'success');

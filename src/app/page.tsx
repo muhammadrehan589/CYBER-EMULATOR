@@ -18,7 +18,8 @@ import {
   WifiOff,
   List,
   Bell,
-  Play
+  Play,
+  X
 } from 'lucide-react';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
@@ -26,6 +27,7 @@ import { MiniAvatar, AvatarSVG, DEFAULT_AVATAR, type AvatarState } from '@/compo
 import ItemShopModal from '@/components/shop/ItemShopModal';
 import PasswordQuest from '@/components/dashboard/PasswordQuest';
 import InventoryModal from '@/components/dashboard/InventoryModal';
+import { PreGameBriefing } from '@/components/PreGameBriefing';
 import { useQuizStore } from '@/store/quizStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useSocket } from '@/hooks/useSocket';
@@ -57,6 +59,29 @@ export default function Phase3RealtimeDashboard() {
   const [floatingStats, setFloatingStats] = useState<FloatingStat[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [recentBattles, setRecentBattles] = useState<any[]>([]);
+  const [expandedBattle, setExpandedBattle] = useState<string | null>(null);
+  const [isBattlesExpanded, setIsBattlesExpanded] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [showRecentBattlesModal, setShowRecentBattlesModal] = useState(false);
+  const [selectedPool, setSelectedPool] = useState<'Technical' | 'Non-Technical' | null>(null);
+
+  const [showPreBriefing, setShowPreBriefing] = useState(false);
+  const [isFirstTimeBriefing, setIsFirstTimeBriefing] = useState(false);
+
+  useEffect(() => {
+    try {
+      const hist = localStorage.getItem('battleHistory');
+      if (hist) setRecentBattles(JSON.parse(hist));
+      
+      const hasSeenTour = localStorage.getItem('hasSeenTour');
+      if (!hasSeenTour) {
+        setShowPreBriefing(true);
+        setIsFirstTimeBriefing(true);
+      }
+    } catch (e) {}
+  }, []);
+
   const [reactionCounts, setReactionCounts] = useState<{ [key: string]: number }>({
     '🔥': 0,
     '⚡': 0,
@@ -279,9 +304,11 @@ export default function Phase3RealtimeDashboard() {
         { element: '#tour-market', popover: { title: 'Black Market', description: 'Exchange your coins for items and upgrades.', side: "bottom", align: 'start' }},
         { element: '#tour-inventory', popover: { title: 'Inventory', description: 'View and equip your acquired items.', side: "bottom", align: 'start' }},
         { element: '#tour-profile', popover: { title: 'Operant Profile', description: 'Your basic identification and visual status.', side: "right", align: 'start' }},
+        { element: '#tour-briefing', popover: { title: 'Mission Briefing', description: 'Review the rules and objectives of the simulation.', side: "right", align: 'start' }},
         { element: '#tour-guide', popover: { title: 'Survival Guide', description: 'Replay this tour anytime you need a refresher.', side: "right", align: 'start' }},
         { element: '#tour-stats', popover: { title: 'Stats Panel', description: 'Track your XP level and total coins.', side: "right", align: 'start' }},
         { element: '#tour-battles', popover: { title: 'Recent Battles', description: 'Your combat history and outcomes.', side: "right", align: 'start' }},
+        { element: '#tour-pool-selector', popover: { title: 'Question Pool', description: 'Select the technical or non-technical category before entering the matrix.', side: "top", align: 'center' }},
         { element: '#tour-matrix', popover: { title: 'Simulation Matrix', description: 'Enter the main solo training environment.', side: "bottom", align: 'center' }},
         { element: '#tour-online', popover: { title: 'Online Duel', description: 'Challenge other Operants who are currently online.', side: "bottom", align: 'start' }},
         { element: '#tour-offline', popover: { title: 'Offline Duel', description: 'Challenge disconnected Operants asynchronously.', side: "bottom", align: 'start' }},
@@ -301,21 +328,71 @@ export default function Phase3RealtimeDashboard() {
     );
   }
 
+  const handleBriefingAcknowledge = () => {
+    setShowPreBriefing(false);
+    if (isFirstTimeBriefing) {
+      setShowWelcome(true);
+    }
+  };
+
+  const handleWelcomeAcknowledge = () => {
+    setShowWelcome(false);
+    localStorage.setItem('hasSeenTour', 'true');
+    setTimeout(() => {
+      startTour();
+    }, 500);
+  };
+
   return (
     <div className="min-h-screen h-screen bg-black text-white p-4 sm:p-6 lg:p-8 font-sans relative overflow-x-hidden flex flex-col justify-between select-none">
       {ToastContainer}
       
-      {/* Huge Fixed Floating Guide on Far Left Edge */}
-      <button 
-        id="tour-guide"
-        onClick={startTour}
-        className="fixed left-0 top-1/2 -translate-y-1/2 bg-[#ff0055]/10 hover:bg-[#ff0055] text-[#ff0055] hover:text-white border-y border-r border-[#ff0055] py-12 px-4 rounded-r-3xl transition-all z-50 group backdrop-blur-md shadow-[0_0_25px_rgba(255,0,85,0.5)] cursor-pointer overflow-hidden"
-      >
-        <span className="absolute inset-0 border-y border-r border-white/20 rounded-r-3xl animate-pulse group-hover:border-transparent pointer-events-none"></span>
-        <div className="flex flex-col gap-3 font-mono font-black text-2xl uppercase relative z-10">
-          <span>G</span><span>U</span><span>I</span><span>D</span><span>E</span>
+      {showPreBriefing && <PreGameBriefing isFirstTime={isFirstTimeBriefing} onAcknowledge={handleBriefingAcknowledge} />}
+      
+      {showWelcome && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+          <div className="bg-[#030303] border-2 border-[#ff0055] rounded-3xl p-8 max-w-lg w-full shadow-[0_0_50px_rgba(255,0,85,0.4)] text-center space-y-6">
+            <h2 className="text-[#ff0055] font-black font-mono text-3xl uppercase tracking-widest drop-shadow-[0_0_10px_currentColor]">Welcome</h2>
+            <p className="text-gray-300 font-mono text-sm leading-relaxed">
+              You are now connected to ZERO DAY. Before jumping into the matrix, let's take a quick system orientation tour to help you get started.
+            </p>
+            <button 
+              onClick={handleWelcomeAcknowledge}
+              className="w-full py-4 bg-[#ff0055] text-white font-black font-mono tracking-widest uppercase hover:bg-white hover:text-[#ff0055] transition-all shadow-[0_0_20px_rgba(255,0,85,0.5)] active:scale-95 rounded-xl border-2 border-transparent hover:border-[#ff0055]"
+            >
+              START TOUR
+            </button>
+          </div>
         </div>
-      </button>
+      )}
+      
+      {/* Fixed Floating Action Buttons on Far Left Edge */}
+      <div className="fixed left-0 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-3">
+        <button 
+          id="tour-briefing"
+          onClick={() => {
+            setIsFirstTimeBriefing(false);
+            setShowPreBriefing(true);
+          }}
+          className="bg-[#ff0055]/10 hover:bg-[#ff0055] text-[#ff0055] hover:text-white border-y border-r border-[#ff0055] py-10 px-4 rounded-r-3xl transition-all group backdrop-blur-md shadow-[0_0_25px_rgba(255,0,85,0.5)] cursor-pointer overflow-hidden relative"
+        >
+          <span className="absolute inset-0 border-y border-r border-white/20 rounded-r-3xl animate-pulse group-hover:border-transparent pointer-events-none"></span>
+          <div className="flex flex-col gap-2 font-mono font-black text-xl uppercase relative z-10 items-center justify-center">
+            <span>B</span><span>R</span><span>I</span><span>E</span><span>F</span><span>I</span><span>N</span><span>G</span>
+          </div>
+        </button>
+
+        <button 
+          id="tour-guide"
+          onClick={startTour}
+          className="bg-[#ff0055]/10 hover:bg-[#ff0055] text-[#ff0055] hover:text-white border-y border-r border-[#ff0055] py-10 px-4 rounded-r-3xl transition-all group backdrop-blur-md shadow-[0_0_25px_rgba(255,0,85,0.5)] cursor-pointer overflow-hidden relative"
+        >
+          <span className="absolute inset-0 border-y border-r border-white/20 rounded-r-3xl animate-pulse group-hover:border-transparent pointer-events-none"></span>
+          <div className="flex flex-col gap-2 font-mono font-black text-xl uppercase relative z-10 items-center justify-center">
+            <span>G</span><span>U</span><span>I</span><span>D</span><span>E</span>
+          </div>
+        </button>
+      </div>
       <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#ff0055]/15 rounded-full blur-3xl pointer-events-none z-0" />
       <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-[#e60039]/15 rounded-full blur-3xl pointer-events-none z-0" />
 
@@ -336,7 +413,7 @@ export default function Phase3RealtimeDashboard() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-xl tracking-wider text-white">
-                  CYBER<span className="text-[#ff0055]">//</span>SIMULATOR
+                  ZERO DAY
                 </span>
                 <div className="flex items-center gap-1 text-[#ff0055] px-2 py-0.5 rounded-full bg-[#1c061e] border border-[#ff0055]/30">
                   <Circle className="w-2.5 h-2.5 fill-current" />
@@ -502,29 +579,17 @@ export default function Phase3RealtimeDashboard() {
               );
             })()}
 
-            {/* Recent Battles List (3 Mock Matches) */}
-            <div id="tour-battles" className="bg-[#030303]/90 rounded-2xl p-4 border border-[#ff0055]/40 backdrop-blur-xl shadow-[0_0_20px_rgba(255,0,85,0.15)] flex flex-col space-y-3">
-              <h3 className="text-xs font-mono font-bold uppercase text-[#ff0055] tracking-widest border-b border-[#ff0055]/30 pb-2">
+            {/* Recent Battles List Button */}
+            <button 
+              id="tour-battles" 
+              onClick={() => setShowRecentBattlesModal(true)}
+              className="bg-[#030303]/90 rounded-2xl p-4 border border-[#ff0055]/40 backdrop-blur-xl shadow-[0_0_20px_rgba(255,0,85,0.15)] flex justify-between items-center group transition-all hover:bg-[#ff0055]/10 w-full"
+            >
+              <h3 className="text-xs font-mono font-bold uppercase text-[#ff0055] tracking-widest">
                 RECENT BATTLES
               </h3>
-              <div className="flex flex-col gap-2">
-                {[
-                  { id: 1, opponent: 'Player 067', result: 'WIN', type: 'ONLINE DUEL', color: 'text-green-500' },
-                  { id: 2, opponent: 'Player 456', result: 'LOSS', type: 'OFFLINE DUEL', color: 'text-red-500' },
-                  { id: 3, opponent: 'Player 218', result: 'WIN', type: 'ONLINE DUEL', color: 'text-green-500' }
-                ].map(match => (
-                  <div key={match.id} className="flex items-center justify-between bg-[#0a0a0a] p-3 rounded border border-white/5">
-                    <div className="flex flex-col">
-                      <span className="text-white text-xs font-bold font-mono">VS {match.opponent}</span>
-                      <span className="text-gray-500 text-[9px] font-mono tracking-widest mt-0.5">{match.type}</span>
-                    </div>
-                    <span className={`${match.color} font-black font-mono text-xs uppercase tracking-wider`}>
-                      {match.result}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+              <span className="text-[#ff0055] text-xs font-mono group-hover:translate-x-1 transition-transform">→</span>
+            </button>
           </div>
 
           {/* Center Column: Simulation Hub */}
@@ -539,43 +604,82 @@ export default function Phase3RealtimeDashboard() {
 
               <div className="text-center z-10">
                 <h1 className="text-4xl sm:text-5xl md:text-6xl font-black font-mono tracking-[0.2em] text-white mb-3 drop-shadow-[0_0_15px_rgba(255,0,85,0.5)]">
-                  SIMULATION<span className="text-[#ff0055]">_</span>HUB
+                  SIMULATION HUB
                 </h1>
-                <p className="text-[#ff0055] text-sm tracking-widest font-mono uppercase">
-                  Awaiting Operant Directives
-                </p>
               </div>
 
               <div className="flex flex-col items-center gap-10 w-full max-w-md z-10 pb-8">
+                <div id="tour-pool-selector" className="flex bg-black border border-[#ff0055] rounded-xl overflow-hidden shadow-[0_0_15px_rgba(255,0,85,0.3)]">
+                  <button
+                    onClick={() => setSelectedPool('Technical')}
+                    className={`px-6 py-3 font-mono font-bold tracking-widest text-sm uppercase transition-all ${
+                      selectedPool === 'Technical'
+                        ? 'bg-[#ff0055] text-white'
+                        : 'text-[#ff0055] hover:bg-[#ff0055]/20'
+                    }`}
+                  >
+                    Technical
+                  </button>
+                  <button
+                    onClick={() => setSelectedPool('Non-Technical')}
+                    className={`px-6 py-3 font-mono font-bold tracking-widest text-sm uppercase transition-all ${
+                      selectedPool === 'Non-Technical'
+                        ? 'bg-[#ff0055] text-white'
+                        : 'text-[#ff0055] hover:bg-[#ff0055]/20'
+                    }`}
+                  >
+                    Non-Technical
+                  </button>
+                </div>
+
                 <div className="flex flex-col items-center text-center group">
                   <button 
                     id="tour-matrix"
-                    onClick={() => window.location.href = '/simulation-matrix'}
-                    className="w-32 h-32 rounded-full bg-[#ff0055] hover:bg-white text-white hover:text-[#ff0055] flex flex-col items-center justify-center shadow-[0_0_50px_rgba(255,0,85,0.6)] hover:shadow-[0_0_80px_rgba(255,255,255,0.8)] transition-all active:scale-95 relative z-10 mb-6"
+                    disabled={!selectedPool}
+                    onClick={() => {
+                      if (selectedPool) {
+                        localStorage.setItem('selectedPool', selectedPool);
+                        window.location.href = '/simulation-matrix';
+                      }
+                    }}
+                    className={`w-32 h-32 rounded-full flex flex-col items-center justify-center transition-all relative z-10 mb-6 ${
+                      selectedPool 
+                        ? 'bg-[#ff0055] hover:bg-white text-white hover:text-[#ff0055] shadow-[0_0_50px_rgba(255,0,85,0.6)] hover:shadow-[0_0_80px_rgba(255,255,255,0.8)] active:scale-95 cursor-pointer' 
+                        : 'bg-gray-800 text-gray-500 opacity-50 cursor-not-allowed'
+                    }`}
                   >
                     <Play className="w-12 h-12 ml-2 fill-current" />
                   </button>
                   <h2 className="text-[#ff0055] font-black font-mono text-xl tracking-[0.2em] uppercase drop-shadow-[0_0_10px_rgba(255,0,85,0.5)]">
                     ENTER SIMULATION MATRIX
                   </h2>
-                  <p className="text-zinc-400 text-[10px] uppercase font-mono tracking-widest mt-2 group-hover:text-white transition-colors">
-                    System loaded. Ready for ingestion.
-                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 w-full">
                   <button 
                     id="tour-online"
-                    onClick={() => setShowOnline1v1(true)}
-                    className="py-4 rounded-xl bg-black border border-[#ff0055]/50 hover:border-[#ff0055] text-gray-300 hover:text-white hover:bg-[#ff0055]/10 font-mono font-bold text-sm uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(255,0,85,0.1)] active:scale-95 flex items-center justify-center"
+                    disabled={!selectedPool}
+                    onClick={() => {
+                      if (selectedPool) {
+                        localStorage.setItem('selectedPool', selectedPool);
+                        setShowOnline1v1(true);
+                      }
+                    }}
+                    className={`py-4 rounded-xl border font-mono font-bold text-sm uppercase tracking-widest transition-all flex items-center justify-center ${selectedPool ? 'bg-black border-[#ff0055]/50 hover:border-[#ff0055] text-gray-300 hover:text-white hover:bg-[#ff0055]/10 shadow-[0_0_15px_rgba(255,0,85,0.1)] active:scale-95 cursor-pointer' : 'bg-gray-800 border-gray-600 text-gray-500 opacity-50 cursor-not-allowed'}`}
                   >
                     <span className="text-[#ff0055] mr-2">●</span>
                     ONLINE DUEL
                   </button>
                   <button 
                     id="tour-offline"
-                    onClick={() => setShowOffline1v1(true)}
-                    className="py-4 rounded-xl bg-black border border-[#ff0055]/50 hover:border-[#ff0055] text-gray-300 hover:text-white hover:bg-[#ff0055]/10 font-mono font-bold text-sm uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(255,0,85,0.1)] active:scale-95 flex items-center justify-center"
+                    disabled={!selectedPool}
+                    onClick={() => {
+                      if (selectedPool) {
+                        localStorage.setItem('selectedPool', selectedPool);
+                        setShowOffline1v1(true);
+                      }
+                    }}
+                    className={`py-4 rounded-xl border font-mono font-bold text-sm uppercase tracking-widest transition-all flex items-center justify-center ${selectedPool ? 'bg-black border-[#ff0055]/50 hover:border-[#ff0055] text-gray-300 hover:text-white hover:bg-[#ff0055]/10 shadow-[0_0_15px_rgba(255,0,85,0.1)] active:scale-95 cursor-pointer' : 'bg-gray-800 border-gray-600 text-gray-500 opacity-50 cursor-not-allowed'}`}
                   >
                     <span className="text-gray-500 mr-2">●</span>
                     OFFLINE DUEL
@@ -583,23 +687,6 @@ export default function Phase3RealtimeDashboard() {
                 </div>
               </div>
 
-              {/* Global Event Ticker */}
-              <style dangerouslySetInnerHTML={{__html: `
-                @keyframes marquee {
-                  0% { transform: translateX(100%); }
-                  100% { transform: translateX(-100%); }
-                }
-              `}} />
-              <div className="absolute bottom-0 left-0 w-full bg-[#ff0055]/10 border-t border-[#ff0055]/30 p-2 overflow-hidden flex items-center z-20">
-                <span className="text-[#ff0055] text-[10px] font-mono tracking-widest uppercase mr-4 shrink-0 font-bold bg-[#030303] px-2 relative z-30 shadow-[0_0_10px_#ff0055]">
-                  GLOBAL LINK //
-                </span>
-                <div className="flex-1 overflow-hidden relative flex">
-                  <div className="whitespace-nowrap text-[10px] font-mono text-zinc-400 inline-block w-full" style={{ animation: 'marquee 25s linear infinite' }}>
-                    OPERANT #402 CLEARED LEVEL 9 • NEW CONTRABAND IN BLACK MARKET • DOUBLE XP WEEKEND ACTIVE • OPERANT #099 DEFEATED IN OFFLINE DUEL • SYSTEM MATRIX STABLE...
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -701,39 +788,98 @@ export default function Phase3RealtimeDashboard() {
       {isQuestOpen && <PasswordQuest onClose={() => setIsQuestOpen(false)} onClaimed={() => socket?.emit('trigger_refresh')} />}
         {isInventoryOpen && <InventoryModal onClose={() => setIsInventoryOpen(false)} />}
       
+      {showRecentBattlesModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setShowRecentBattlesModal(false)}>
+          <div className="bg-[#0a0a0a] border border-[#ff0055]/30 p-8 rounded-xl w-[600px] max-w-[90vw] shadow-[0_0_50px_rgba(255,0,85,0.15)] flex flex-col max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6 border-b border-[#ff0055]/30 pb-4">
+              <h3 className="text-[#ff0055] font-black tracking-widest text-xl flex items-center gap-2 uppercase">
+                Recent Battles
+              </h3>
+              <button onClick={() => setShowRecentBattlesModal(false)} className="text-[#ff0055]/50 hover:text-[#ff0055] transition-colors"><X className="w-8 h-8" strokeWidth={2.5} /></button>
+            </div>
+            
+            <div className="flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar">
+              {recentBattles.length === 0 ? (
+                <div className="text-center text-sm text-zinc-600 font-mono py-8">No recent battles recorded.</div>
+              ) : (
+                recentBattles.map((match, idx) => {
+                  const isWin = match.result.includes('WIN');
+                  const color = isWin ? 'text-green-500' : (match.result === 'DRAW' ? 'text-yellow-500' : 'text-red-500');
+                  const isExpanded = expandedBattle === match.id + idx;
+                  
+                  return (
+                    <div key={match.id + idx} className="flex flex-col bg-[#111] rounded-lg border border-white/5 overflow-hidden transition-all group">
+                      <div 
+                        onClick={() => setExpandedBattle(isExpanded ? null : match.id + idx)}
+                        className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/5"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-white text-sm font-bold font-mono">VS {match.opponent}</span>
+                          <span className="text-gray-500 text-[10px] font-mono tracking-widest mt-1">{match.type}</span>
+                        </div>
+                        <span className={`${color} font-black font-mono text-sm uppercase tracking-wider flex items-center gap-3`}>
+                          {match.result}
+                          <span className="text-[10px] text-zinc-600 group-hover:text-white transition-colors">{isExpanded ? '▲' : '▼'}</span>
+                        </span>
+                      </div>
+                      {isExpanded && (
+                        <div className="p-4 bg-black border-t border-white/5 text-xs font-mono text-gray-400 space-y-2">
+                          <p><strong className="text-zinc-500">TIME:</strong> {new Date(match.timestamp).toLocaleString()}</p>
+                          <p><strong className="text-zinc-500">XP CHANGE:</strong> <span className={isWin ? 'text-green-400' : 'text-red-400'}>{match.xpChange || 'N/A'}</span></p>
+                          <p><strong className="text-zinc-500">COINS:</strong> <span className={isWin ? 'text-yellow-400' : 'text-zinc-500'}>{match.coinsChange || 'N/A'}</span></p>
+                          <p><strong className="text-zinc-500">MATCH ID:</strong> <span className="text-zinc-600">{match.id}</span></p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {showOnline1v1 && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setShowOnline1v1(false)}>
-          <div className="bg-[#0a0a0a] border border-emerald-500/30 p-6 rounded-lg min-w-[320px] shadow-[0_0_30px_rgba(16,185,129,0.1)]" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4 border-b border-gray-800 pb-2">
-              <h3 className="text-emerald-400 font-black tracking-widest text-lg flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <div className="bg-[#0a0a0a] border border-emerald-500/30 p-8 rounded-xl w-[600px] max-w-[90vw] shadow-[0_0_50px_rgba(16,185,129,0.15)] flex flex-col max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
+              <h3 className="text-emerald-400 font-black tracking-widest text-xl flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
                 1v1 ONLINE
               </h3>
-              <button onClick={() => setShowOnline1v1(false)} className="text-gray-500 hover:text-white transition-colors">✕</button>
+              <button onClick={() => setShowOnline1v1(false)} className="text-emerald-500/50 hover:text-emerald-400 transition-colors"><X className="w-8 h-8" strokeWidth={2.5} /></button>
             </div>
-            <div className="max-h-[40vh] overflow-y-auto cyber-scrollbar flex flex-col gap-2">
+            <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
               {leaderboard.filter(p => p.empId !== empId && onlineUsers.includes(p.empId)).map((player, idx) => (
-                <div key={player.empId || idx} className="flex items-center gap-3 bg-[#111] p-2 border border-gray-800/50 rounded hover:border-emerald-700/50 transition-colors">
-                  <div className="w-8 h-8 rounded bg-gray-800 flex items-center justify-center text-xs overflow-hidden">
+                <div key={player.empId} className="flex items-center gap-4 bg-[#111] p-4 rounded-lg border border-white/5 hover:border-emerald-500/30 transition-colors">
+                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-500/50 flex-shrink-0 bg-[#050505]">
                     <MiniAvatar avatar={player.avatar as AvatarState} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-gray-200 text-sm font-bold">{player.name || `Operant-${idx}`}</span>
-                    <span className="text-[10px] uppercase tracking-wider flex items-center gap-1 text-emerald-500"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> ONLINE</span>
+                    <span className="text-gray-200 text-base font-bold">{player.name || `Operant-${idx}`}</span>
+                    <span className="text-xs uppercase tracking-wider flex items-center gap-1 text-emerald-500 mt-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> ONLINE</span>
                   </div>
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
                       sendDuelChallenge(player.empId, player.name || player.username || `Operant-${idx}`);
                     }}
-                    className="ml-auto bg-red-950/40 hover:bg-red-900 border border-red-700/50 text-red-500 hover:text-red-400 px-3 py-1 rounded text-[10px] font-black tracking-widest transition-all"
+                    className="ml-auto bg-red-950/40 hover:bg-red-900 border border-red-700/50 text-red-500 hover:text-white px-4 py-2 rounded text-xs font-black tracking-widest transition-all shadow-[0_0_15px_rgba(255,0,0,0.2)]"
                   >
                     ⚔️ CHALLENGE
                   </button>
                 </div>
               ))}
               {leaderboard.filter(p => p.empId !== empId && onlineUsers.includes(p.empId)).length === 0 && (
-                <div className="text-gray-600 text-center py-6 font-mono text-sm">NO ONLINE OPERANTS FOUND</div>
+                <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
+                  <WifiOff className="w-16 h-16 text-emerald-900/40" strokeWidth={1.5} />
+                  <p className="text-emerald-500/70 font-black font-mono text-xl tracking-[0.2em] uppercase drop-shadow-[0_0_10px_rgba(16,185,129,0.3)]">
+                    No Targets Online
+                  </p>
+                  <p className="text-zinc-500 font-mono text-sm max-w-sm tracking-wide">
+                    The simulation grid is currently empty. Engage in offline asynchronous duels while waiting for connections.
+                  </p>
+                </div>
               )}
             </div>
           </div>
@@ -742,38 +888,42 @@ export default function Phase3RealtimeDashboard() {
 
       {showOffline1v1 && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setShowOffline1v1(false)}>
-          <div className="bg-[#0a0a0a] border border-purple-500/30 p-6 rounded-lg min-w-[320px] shadow-[0_0_30px_rgba(168,85,247,0.1)]" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4 border-b border-gray-800 pb-2">
-              <h3 className="text-purple-400 font-black tracking-widest text-lg flex items-center gap-2">
+          <div className="bg-[#0a0a0a] border border-purple-500/30 p-8 rounded-xl w-[600px] max-w-[90vw] shadow-[0_0_50px_rgba(168,85,247,0.15)] flex flex-col max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
+              <h3 className="text-purple-400 font-black tracking-widest text-xl flex items-center gap-2">
                 1v1 OFFLINE
               </h3>
-              <button onClick={() => setShowOffline1v1(false)} className="text-gray-500 hover:text-white transition-colors">✕</button>
+              <button onClick={() => setShowOffline1v1(false)} className="text-purple-500/50 hover:text-purple-400 transition-colors"><X className="w-8 h-8" strokeWidth={2.5} /></button>
             </div>
+            
             <input 
-              type="text" 
-              placeholder="SEARCH PLAYER..." 
+              type="text"
+              placeholder="SEARCH OPERANT ID / NAME..."
               value={offlineSearchQuery}
-              onChange={(e) => setOfflineSearchQuery(e.target.value)}
-              className="w-full bg-[#111] text-white border border-gray-700 p-2 mb-4 rounded font-mono text-xs focus:outline-none focus:border-purple-500"
+              onChange={e => setOfflineSearchQuery(e.target.value)}
+              className="w-full bg-black border border-purple-500/30 text-white font-mono text-sm p-4 rounded-lg mb-4 focus:outline-none focus:border-purple-500 focus:shadow-[0_0_15px_rgba(168,85,247,0.3)] transition-all"
             />
-            <div className="max-h-[40vh] overflow-y-auto cyber-scrollbar flex flex-col gap-2">
-              {leaderboard.filter(p => p.empId !== empId && !onlineUsers.includes(p.empId) && (p.name?.toLowerCase().includes(offlineSearchQuery.toLowerCase()) || p.username?.toLowerCase().includes(offlineSearchQuery.toLowerCase()))).map((player, idx) => (
-                <div key={player.empId || idx} className="flex items-center gap-3 bg-[#111] p-2 border border-gray-800/50 rounded hover:border-purple-700/50 transition-colors">
-                  <div className="w-8 h-8 rounded bg-gray-800 flex items-center justify-center text-xs overflow-hidden">
+
+            <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+              {leaderboard.filter(p => p.empId !== empId && (p.name?.toLowerCase().includes(offlineSearchQuery.toLowerCase()) || p.empId.toLowerCase().includes(offlineSearchQuery.toLowerCase()))).map((player, idx) => (
+                <div key={player.empId} className="flex items-center gap-4 bg-[#111] p-4 rounded-lg border border-white/5 hover:border-purple-500/30 transition-colors">
+                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-purple-500/50 flex-shrink-0 bg-[#050505] grayscale">
                     <MiniAvatar avatar={player.avatar as AvatarState} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-gray-200 text-sm font-bold">{player.name || `Operant-${idx}`}</span>
-                    <span className="text-[10px] uppercase tracking-wider flex items-center gap-1 text-gray-500"><span className="w-1.5 h-1.5 rounded-full bg-gray-500"></span> OFFLINE</span>
+                    <span className="text-gray-200 text-base font-bold">{player.name || `Operant-${idx}`}</span>
+                    <span className="text-xs uppercase tracking-wider text-gray-500 mt-1 flex items-center gap-1">
+                      <WifiOff className="w-3 h-3" /> OFFLINE ASYNC
+                    </span>
                   </div>
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
-                      sendDuelChallenge(player.empId, player.name || player.username || `Operant-${idx}`);
+                      window.location.href = `/battle?matchId=offline_${empId}_${player.empId}_${Date.now()}&challengerId=${empId}&targetId=${player.empId}&async=true`;
                     }}
-                    className="ml-auto bg-purple-950/40 hover:bg-purple-900 border border-purple-700/50 text-purple-400 hover:text-purple-300 px-3 py-1 rounded text-[10px] font-black tracking-widest transition-all"
+                    className="ml-auto bg-purple-950/40 hover:bg-purple-900 border border-purple-700/50 text-purple-400 hover:text-white px-4 py-2 rounded text-xs font-black tracking-widest transition-all shadow-[0_0_15px_rgba(168,85,247,0.2)]"
                   >
-                    ⚔️ ASYNC DUEL
+                    ⚡ ENGAGE
                   </button>
                 </div>
               ))}
