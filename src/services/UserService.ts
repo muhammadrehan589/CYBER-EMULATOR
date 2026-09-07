@@ -42,6 +42,10 @@ export class UserService {
       throw new Error('Account suspended. Contact your administrator.');
     }
 
+    if (user.banUntil && new Date() < new Date(user.banUntil)) {
+      throw new Error(`Your account is temporarily banned until ${new Date(user.banUntil).toLocaleString()}. Please check your warnings.`);
+    }
+
     const storedHash = user.passwordHash;
 
     if (!storedHash) {

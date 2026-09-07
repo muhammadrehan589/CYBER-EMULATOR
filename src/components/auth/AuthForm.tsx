@@ -137,6 +137,14 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         setAuthSession(data.data.empId);
       }
 
+      if (data.data?.forceUsernameChange) {
+        setLoginStatus('success');
+        setTimeout(() => {
+          router.push('/force-rename');
+        }, 800);
+        return;
+      }
+
       // Check if user is Admin → redirect directly to admin panel
       if (data.data?.role === 'Admin') {
         setLoginStatus('success');

@@ -16,6 +16,9 @@ export interface IUser extends Document {
   unlockedOutfits: string[];
   coins: number;
   xp: number;
+  warningMessage?: string;
+  banUntil?: Date;
+  forceUsernameChange?: boolean;
 }
 
 const UserSchema = new Schema<IUser>(
@@ -43,6 +46,9 @@ const UserSchema = new Schema<IUser>(
     unlockedOutfits: { type: [String], default: [] },
     coins: { type: Number, default: 0 },
     xp: { type: Number, default: 0 },
+    warningMessage: { type: String, default: null },
+    banUntil: { type: Date, default: null },
+    forceUsernameChange: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

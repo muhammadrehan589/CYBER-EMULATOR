@@ -5,6 +5,7 @@ import { Player, ActivityLogEntry } from '@/types/admin';
 import { PlayerTable } from '@/components/admin/PlayerTable';
 import { ActivityLog } from '@/components/admin/ActivityLog';
 import { PlayerManagementModal } from '@/components/admin/PlayerManagementModal';
+import { UserModerationModal } from '@/components/admin/UserModerationModal';
 import { 
   ShieldCheck, 
   Users, 
@@ -39,6 +40,39 @@ export default function AdminPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [modTarget, setModTarget] = useState<Player | null>(null);
+  const [modAction, setModAction] = useState<'warning' | 'ban' | 'force_rename' | null>(null);
+
+  const handleModerateAction = async (payload: any) => {
+    if (!modTarget) return;
+    try {
+      await fetch('/api/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ empId: modTarget.empId, updates: payload }),
+      });
+
+      await fetch('/api/activity-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          empId: modTarget.empId,
+          action: `Moderation: ${modAction}`,
+          type: 'status_change',
+          details: `Admin applied ${modAction} to ${modTarget.username}`,
+        }),
+      });
+
+      await fetchPlayers();
+      await fetchLogs();
+    } catch (error) {
+      console.error('[Admin] Moderation failed:', error);
+    } finally {
+      setModTarget(null);
+      setModAction(null);
+    }
+  };
+
   // Reusable fetch helpers
   const fetchPlayers = async () => {
     try {
@@ -54,6 +88,9 @@ export default function AdminPage() {
           status: u.status,
           score: u.score,
           joinedAt: u.joinedAt ? new Date(u.joinedAt).toISOString().slice(0, 10) : '',
+          warningMessage: u.warningMessage,
+          banUntil: u.banUntil,
+          forceUsernameChange: u.forceUsernameChange,
         }));
         setPlayers(mapped);
         return mapped;
@@ -294,6 +331,10 @@ export default function AdminPage() {
               selectedPlayer={selectedPlayer}
               onSelectPlayer={setSelectedPlayer}
               onToggleStatus={handleToggleStatus}
+              onModerateAction={(player, action) => {
+                setModTarget(player);
+                setModAction(action);
+              }}
               onOpenAddModal={() => setIsAddModalOpen(true)}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
@@ -318,6 +359,18 @@ export default function AdminPage() {
           onAddPlayer={handleAddPlayer}
           departments={DEPARTMENTS}
         />
+
+        {modTarget && modAction && (
+          <UserModerationModal
+            user={modTarget}
+            action={modAction}
+            onClose={() => {
+              setModTarget(null);
+              setModAction(null);
+            }}
+            onConfirm={handleModerateAction}
+          />
+        )}
       </div>
     </div>
   );

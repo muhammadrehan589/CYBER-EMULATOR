@@ -19,6 +19,7 @@ interface PlayerTableProps {
   selectedPlayer: Player | null;
   onSelectPlayer: (player: Player) => void;
   onToggleStatus: (empId: string) => void;
+  onModerateAction: (player: Player, action: 'warning' | 'ban' | 'force_rename') => void;
   onOpenAddModal: () => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
@@ -32,6 +33,7 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
   selectedPlayer,
   onSelectPlayer,
   onToggleStatus,
+  onModerateAction,
   onOpenAddModal,
   searchQuery,
   onSearchChange,
@@ -96,6 +98,7 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
               <th className="p-3.5">ROLE</th>
               <th className="p-3.5">SCORE</th>
               <th className="p-3.5">STATUS</th>
+              <th className="p-3.5">MODERATION</th>
               <th className="p-3.5 pr-4 text-right">ACTIONS</th>
             </tr>
           </thead>
@@ -180,6 +183,30 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
                       </span>
                     </td>
 
+                    {/* Moderation State */}
+                    <td className="p-3.5">
+                      <div className="flex flex-col gap-1 text-[10px] font-mono">
+                        {player.banUntil && new Date(player.banUntil) > new Date() && (
+                          <span className="text-red-500 font-bold bg-red-950/50 px-2 py-0.5 rounded border border-red-800 w-fit">
+                            BANNED (until {new Date(player.banUntil).toLocaleDateString()})
+                          </span>
+                        )}
+                        {player.forceUsernameChange && (
+                          <span className="text-purple-400 font-bold bg-purple-950/50 px-2 py-0.5 rounded border border-purple-800 w-fit">
+                            FORCED RENAME
+                          </span>
+                        )}
+                        {player.warningMessage && (
+                          <span className="text-yellow-500 bg-yellow-950/50 px-2 py-0.5 rounded border border-yellow-800 w-fit truncate max-w-[120px]" title={player.warningMessage}>
+                            ⚠️ {player.warningMessage}
+                          </span>
+                        )}
+                        {!player.banUntil && !player.forceUsernameChange && !player.warningMessage && (
+                          <span className="text-zinc-600">CLEAN</span>
+                        )}
+                      </div>
+                    </td>
+
                     {/* Action Buttons */}
                     <td className="p-3.5 pr-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-2">
@@ -194,6 +221,22 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
                           }`}
                         >
                           <Activity className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Moderation Actions */}
+                        <button
+                          onClick={() => onModerateAction(player, 'warning')}
+                          title="Issue Warning"
+                          className="p-1.5 rounded-lg border bg-yellow-950/50 text-yellow-500 border-yellow-700/50 hover:bg-yellow-900 transition-all"
+                        >
+                          <ShieldAlert className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => onModerateAction(player, 'force_rename')}
+                          title="Force Username Change"
+                          className="p-1.5 rounded-lg border bg-purple-950/50 text-purple-400 border-purple-700/50 hover:bg-purple-900 transition-all font-mono font-black tracking-widest text-[8px]"
+                        >
+                          Aa
                         </button>
 
                         {/* Suspend / Activate Toggle Button */}

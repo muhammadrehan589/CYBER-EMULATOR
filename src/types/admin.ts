@@ -12,6 +12,9 @@ export interface Player {
   xp?: number;
   coins?: number;
   joinedAt: string;
+  warningMessage?: string;
+  banUntil?: string;
+  forceUsernameChange?: boolean;
 }
 
 export interface ActivityLogEntry {
