@@ -163,7 +163,7 @@ io.on('connection', (socket) => {
     }
 
     if (!battleRooms.has(matchId)) {
-      battleRooms.set(matchId, { p1Hp: 100, p2Hp: 100, answersThisRound: 0, p1Answer: null, p2Answer: null, round: 0, isAsync: isAsync || false });
+      battleRooms.set(matchId, { p1Hp: 100, p2Hp: 100, p1Correct: 0, p2Correct: 0, p1EmpId: isAsync ? empId : empId, answersThisRound: 0, p1Answer: null, p2Answer: null, round: 0, isAsync: isAsync || false });
       console.log(`[SOCKET_SERVER] Created new battle room: ${matchId}`);
       
       if (isAsync && asyncBattleStats.has(matchId) && asyncBattleStats.get(matchId).questions) {
@@ -224,19 +224,14 @@ io.on('connection', (socket) => {
 
     if (isChallenger) {
       battle.p1Answer = { isCorrect, damage };
+      if (isCorrect) battle.p1Correct = (battle.p1Correct || 0) + 1;
     } else {
       battle.p2Answer = { isCorrect, damage };
+      if (isCorrect) battle.p2Correct = (battle.p2Correct || 0) + 1;
     }
 
     if (battle.isAsync) {
-      // Dynamic ghost opponent: They perform opposite to the player!
-      // If player is correct, ghost is wrong (takes 10 damage).
-      // If player is wrong, ghost is correct (takes 0 damage).
-      const oppAnswer = { isCorrect: !isCorrect, damage: isCorrect ? 10 : 0 };
-      
-      if (isChallenger) battle.p2Answer = oppAnswer;
-      else battle.p1Answer = oppAnswer;
-      battle.answersThisRound = 2;
+      // Process round for single player without ghost
       processRound(battle, matchId, io, isChallenger);
       return;
     }
@@ -301,62 +296,69 @@ io.on('connection', (socket) => {
 const asyncBattleStats = new Map(); // matchId -> { challengerFinalHp, targetFinalHp }
 
   const processRound = (battle, matchId, io, isChallengerAsync = null) => {
-    console.log(`[SOCKET_SERVER] Both players answered! Processing round ${battle.round}...`);
+    console.log(`[SOCKET_SERVER] Processing round ${battle.round}... async: ${battle.isAsync}`);
 
-    // If both are correct, 0 damage to both (bump animation)
-    if (battle.p1Answer.isCorrect && battle.p2Answer.isCorrect) {
-      battle.p1Answer.damage = 0;
-      battle.p2Answer.damage = 0;
-    }
+    if (battle.isAsync) {
+      // Async (Offline) Match processing
+      let activeHp, activeAnswer;
+      if (isChallengerAsync) {
+        activeHp = battle.p1Hp;
+        activeAnswer = battle.p1Answer;
+        if (!activeAnswer.isCorrect) battle.p1Hp -= activeAnswer.damage;
+      } else {
+        activeHp = battle.p2Hp;
+        activeAnswer = battle.p2Answer;
+        if (!activeAnswer.isCorrect) battle.p2Hp -= activeAnswer.damage;
+      }
 
-    // Apply damage: wrong answer player takes damage
-    battle.p1Hp -= battle.p1Answer.damage;
-    battle.p2Hp -= battle.p2Answer.damage;
+      // Prevent negative HP
+      battle.p1Hp = Math.max(0, battle.p1Hp);
+      battle.p2Hp = Math.max(0, battle.p2Hp);
 
-    // Prevent negative HP
-    battle.p1Hp = Math.max(0, battle.p1Hp);
-    battle.p2Hp = Math.max(0, battle.p2Hp);
+      const activeDead = isChallengerAsync ? battle.p1Hp <= 0 : battle.p2Hp <= 0;
+      const outOfQuestions = battle.questions && battle.round >= battle.questions.length - 1;
 
-    const p1Dead = battle.p1Hp <= 0;
-    const p2Dead = battle.p2Hp <= 0;
-    const outOfQuestions = battle.questions && battle.round >= battle.questions.length - 1;
+      // Ensure we always provide both answers to the frontend to avoid null errors, even if one is dummy
+      const dummyAnswer = { isCorrect: false, damage: 0, isDummy: true };
 
-    console.log(`[SOCKET_SERVER] After round: P1 HP=${battle.p1Hp}, P2 HP=${battle.p2Hp}. nextRound=${!(p1Dead || p2Dead || outOfQuestions)}`);
+      io.to(matchId).emit('battle_update', {
+        p1Hp: battle.p1Hp,
+        p2Hp: battle.p2Hp,
+        nextRound: !(activeDead || outOfQuestions),
+        p1Answer: isChallengerAsync ? battle.p1Answer : dummyAnswer,
+        p2Answer: !isChallengerAsync ? battle.p2Answer : dummyAnswer,
+        gameOver: activeDead || outOfQuestions
+      });
 
-    // Emit update to both players
-    io.to(matchId).emit('battle_update', {
-      p1Hp: battle.p1Hp,
-      p2Hp: battle.p2Hp,
-      nextRound: !(p1Dead || p2Dead || outOfQuestions),
-      p1Answer: battle.p1Answer,
-      p2Answer: battle.p2Answer,
-      gameOver: p1Dead || p2Dead || outOfQuestions
-    });
-
-    if (p1Dead || p2Dead || outOfQuestions) {
-      if (battle.isAsync) {
+      if (activeDead || outOfQuestions) {
         if (!asyncBattleStats.has(matchId)) asyncBattleStats.set(matchId, {});
         const stats = asyncBattleStats.get(matchId);
         
-        if (isChallengerAsync !== null) {
-          if (isChallengerAsync) {
-            stats.challengerFinalHp = battle.p1Hp;
-            console.log(`[SOCKET_SERVER] Async Challenger finished with HP ${battle.p1Hp}`);
-          } else {
-            stats.targetFinalHp = battle.p2Hp;
-            console.log(`[SOCKET_SERVER] Async Target finished with HP ${battle.p2Hp}`);
-          }
+        if (isChallengerAsync) {
+          stats.challengerFinalHp = battle.p1Hp;
+          stats.challengerCorrect = battle.p1Correct || 0;
+          stats.challengerId = stats.challengerId || battle.p1EmpId;
+          console.log(`[SOCKET_SERVER] Async Challenger finished with HP ${battle.p1Hp}, Correct: ${stats.challengerCorrect}`);
+        } else {
+          stats.targetFinalHp = battle.p2Hp;
+          stats.targetCorrect = battle.p2Correct || 0;
+          stats.targetId = stats.targetId || battle.p2EmpId;
+          console.log(`[SOCKET_SERVER] Async Target finished with HP ${battle.p2Hp}, Correct: ${stats.targetCorrect}`);
         }
 
-        // Only evaluate winner once BOTH players have finished
         if (stats.challengerFinalHp !== undefined && stats.targetFinalHp !== undefined) {
           let winner = 'draw';
-          if (stats.challengerFinalHp > stats.targetFinalHp) winner = 'challenger';
-          else if (stats.targetFinalHp > stats.challengerFinalHp) winner = 'target';
+          // Change 4: Win condition is based on correct answers recorded
+          if (stats.challengerCorrect > stats.targetCorrect) winner = 'challenger';
+          else if (stats.targetCorrect > stats.challengerCorrect) winner = 'target';
+          else {
+            // Tie breaker on HP
+            if (stats.challengerFinalHp > stats.targetFinalHp) winner = 'challenger';
+            else if (stats.targetFinalHp > stats.challengerFinalHp) winner = 'target';
+          }
           
-          console.log(`[SOCKET_SERVER] Async battle final result: ${winner} wins (challengerHp=${stats.challengerFinalHp}, targetHp=${stats.targetFinalHp})`);
+          console.log(`[SOCKET_SERVER] Async battle final result: ${winner} wins (challengerCorrect=${stats.challengerCorrect}, targetCorrect=${stats.targetCorrect})`);
 
-          // Notify each player on their personal socket
           const challengerSocket = userSockets.get(stats.challengerId);
           const targetSocket = userSockets.get(stats.targetId);
           
@@ -367,7 +369,7 @@ const asyncBattleStats = new Map(); // matchId -> { challengerFinalHp, targetFin
             io.to(challengerSocket).emit('new_notification', {
               type: 'ASYNC_RESULT',
               matchId,
-              message: challengerWon ? 'ASYNC BATTLE RESULT: You WON! 🏆' : (winner === 'draw' ? 'ASYNC BATTLE RESULT: It was a DRAW!' : 'ASYNC BATTLE RESULT: You LOST the ghost battle.'),
+              message: challengerWon ? 'ASYNC BATTLE RESULT: You WON! 🏆' : (winner === 'draw' ? 'ASYNC BATTLE RESULT: It was a DRAW!' : 'ASYNC BATTLE RESULT: You LOST the offline battle.'),
               timestamp: Date.now()
             });
           }
@@ -375,32 +377,58 @@ const asyncBattleStats = new Map(); // matchId -> { challengerFinalHp, targetFin
             io.to(targetSocket).emit('new_notification', {
               type: 'ASYNC_RESULT',
               matchId,
-              message: targetWon ? 'ASYNC BATTLE RESULT: You WON! 🏆' : (winner === 'draw' ? 'ASYNC BATTLE RESULT: It was a DRAW!' : 'ASYNC BATTLE RESULT: You LOST the ghost battle.'),
+              message: targetWon ? 'ASYNC BATTLE RESULT: You WON! 🏆' : (winner === 'draw' ? 'ASYNC BATTLE RESULT: It was a DRAW!' : 'ASYNC BATTLE RESULT: You LOST the offline battle.'),
               timestamp: Date.now()
             });
           }
-
-          // Clean up
           asyncBattleStats.delete(matchId);
         }
       } else {
-        let winner = 'draw';
-        if (battle.p1Hp > battle.p2Hp) winner = 'challenger';
-        else if (battle.p2Hp > battle.p1Hp) winner = 'target';
-
-        console.log(`[SOCKET_SERVER] Battle over! Winner: ${winner}`);
-        setTimeout(() => {
-          io.to(matchId).emit('battle_over', { winner });
-          battleRooms.delete(matchId);
-        }, 3000);
+        battle.round++;
       }
+      return;
+    }
+
+    // Synchronous (Online) Match processing
+    if (battle.p1Answer && battle.p2Answer) {
+      if (battle.p1Answer.isCorrect && battle.p2Answer.isCorrect) {
+        battle.p1Answer.damage = 0;
+        battle.p2Answer.damage = 0;
+      }
+      battle.p1Hp -= battle.p1Answer.damage;
+      battle.p2Hp -= battle.p2Answer.damage;
+    }
+
+    battle.p1Hp = Math.max(0, battle.p1Hp);
+    battle.p2Hp = Math.max(0, battle.p2Hp);
+
+    const p1Dead = battle.p1Hp <= 0;
+    const p2Dead = battle.p2Hp <= 0;
+    const outOfQuestions = battle.questions && battle.round >= battle.questions.length - 1;
+
+    io.to(matchId).emit('battle_update', {
+      p1Hp: battle.p1Hp,
+      p2Hp: battle.p2Hp,
+      nextRound: !(p1Dead || p2Dead || outOfQuestions),
+      p1Answer: battle.p1Answer,
+      p2Answer: battle.p2Answer,
+      gameOver: p1Dead || p2Dead || outOfQuestions
+    });
+
+    if (p1Dead || p2Dead || outOfQuestions) {
+      let winner = 'draw';
+      if (battle.p1Hp > battle.p2Hp) winner = 'challenger';
+      else if (battle.p2Hp > battle.p1Hp) winner = 'target';
+      console.log(`[SOCKET_SERVER] Battle over! Winner: ${winner}`);
+      setTimeout(() => {
+        io.to(matchId).emit('battle_over', { winner });
+        battleRooms.delete(matchId);
+      }, 3000);
     } else {
-      // Reset for next round
       battle.answersThisRound = 0;
       battle.p1Answer = null;
       battle.p2Answer = null;
       battle.round++;
-      console.log(`[SOCKET_SERVER] Moving to round ${battle.round}`);
     }
   };
 

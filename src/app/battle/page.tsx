@@ -83,10 +83,17 @@ function BattlePageContent() {
         const myAnswer  = parsedUser.empId === challengerId ? data.p1Answer : data.p2Answer;
         const oppAnswer = parsedUser.empId === challengerId ? data.p2Answer : data.p1Answer;
         if (!myAnswer || !oppAnswer) return;
-        if (myAnswer.isCorrect && oppAnswer.isCorrect) { setAnimationState('both_correct'); }
-          else if (myAnswer.isCorrect && !oppAnswer.isCorrect) { setAnimationState('player_shoot'); setTimeout(() => { if (isMounted) setAnimationState('opponent_damage'); }, 500); }
-          else if (!myAnswer.isCorrect && oppAnswer.isCorrect) { setAnimationState('opponent_shoot'); setTimeout(() => { if (isMounted) setAnimationState('player_damage'); }, 500); }
-          else { setAnimationState('system_zap'); } // BOTH WRONG -> LASER
+        if (isAsync) {
+          if (!myAnswer.isCorrect) {
+            setAnimationState('system_zap');
+            setTimeout(() => { if (isMounted) setAnimationState('player_damage'); }, 200);
+          }
+        } else {
+          if (myAnswer.isCorrect && oppAnswer.isCorrect) { setAnimationState('both_correct'); }
+            else if (myAnswer.isCorrect && !oppAnswer.isCorrect) { setAnimationState('player_shoot'); setTimeout(() => { if (isMounted) setAnimationState('opponent_damage'); }, 500); }
+            else if (!myAnswer.isCorrect && oppAnswer.isCorrect) { setAnimationState('opponent_shoot'); setTimeout(() => { if (isMounted) setAnimationState('player_damage'); }, 500); }
+            else { setAnimationState('system_zap'); setTimeout(() => { if (isMounted) setAnimationState('both_damage'); }, 200); }
+        }
         setTimeout(() => {
             if (!isMounted) return;
             setAnimationState('idle');
@@ -249,16 +256,7 @@ function BattlePageContent() {
             <p className="text-white mt-4 tracking-widest bg-black/50 px-4 py-2 rounded">Controls disabled for 10 seconds</p>
           </div>
         )}
-        <AnimatePresence>
-          {animationState === 'system_zap' && (
-            <motion.div key="laser-overlay" className="absolute inset-0 pointer-events-none z-50">
-               <motion.div className="absolute top-0 bottom-[60%] left-[25%] w-[16px] bg-red-500 shadow-[0_0_40px_10px_red] rounded-b-full"
-                  initial={{ scaleY: 0, originY: 0 }} animate={{ scaleY: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} />
-               <motion.div className="absolute top-0 bottom-[60%] right-[25%] w-[16px] bg-red-500 shadow-[0_0_40px_10px_red] rounded-b-full"
-                  initial={{ scaleY: 0, originY: 0 }} animate={{ scaleY: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} />
-            </motion.div>
-          )}
-        </AnimatePresence>
+
       {/* HUD */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#111] bg-[#060606] shrink-0 gap-3">
         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -281,22 +279,36 @@ function BattlePageContent() {
           </div>
         </div>
         <div className="flex items-center gap-3 flex-1 min-w-0 flex-row-reverse">
-          <div className="w-11 h-11 rounded border border-[#ff0055] bg-[#ff0055]/10 flex items-center justify-center overflow-hidden shrink-0">
-            <AvatarSVG avatar={oppAvatar} size={44} mini={true} />
-          </div>
-          <div className="flex-1 min-w-0 text-right">
-            <p className="text-[#ff0055] font-black text-sm tracking-wider truncate">@{opponent.username}</p>
-            <div className="w-full bg-[#0d0d0d] h-[10px] rounded-full mt-1 border border-[#ff0055]/20 overflow-hidden flex justify-end">
-              <motion.div className="bg-[#ff0055] h-full rounded-full" initial={{ width: '100%' }} animate={{ width: `${Math.max(0, opponentHp)}%` }} transition={{ duration: 0.5 }} />
-            </div>
-            <p className="text-[10px] text-[#ff0055]/60 mt-0.5 font-bold">{Math.max(0, opponentHp)} HP</p>
-          </div>
+          {!isAsync && (
+            <>
+              <div className="w-11 h-11 rounded border border-[#ff0055] bg-[#ff0055]/10 flex items-center justify-center overflow-hidden shrink-0">
+                <AvatarSVG avatar={oppAvatar} size={44} mini={true} />
+              </div>
+              <div className="flex-1 min-w-0 text-right">
+                <p className="text-[#ff0055] font-black text-sm tracking-wider truncate">@{opponent.username}</p>
+                <div className="w-full bg-[#0d0d0d] h-[10px] rounded-full mt-1 border border-[#ff0055]/20 overflow-hidden flex justify-end">
+                  <motion.div className="bg-[#ff0055] h-full rounded-full" initial={{ width: '100%' }} animate={{ width: `${Math.max(0, opponentHp)}%` }} transition={{ duration: 0.5 }} />
+                </div>
+                <p className="text-[10px] text-[#ff0055]/60 mt-0.5 font-bold">{Math.max(0, opponentHp)} HP</p>
+              </div>
+            </>
+          )}
         </div>
       </div>
       {/* Arena */}
-      <div className="relative flex items-end justify-between px-8 sm:px-20 md:px-36 pb-3 shrink-0" style={{ height: '36%' }}>
+      <div className={`relative flex items-end px-8 sm:px-20 md:px-36 pb-3 shrink-0 ${isAsync ? 'justify-center' : 'justify-between'}`} style={{ height: '36%' }}>
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_110%,rgba(255,0,85,0.05),transparent)] pointer-events-none" />
         <AnimatePresence>
+          {animationState === 'system_zap' && (
+            <motion.div key="laser-overlay" className="absolute inset-0 pointer-events-none z-50">
+               <motion.div className={`absolute top-0 bottom-[60%] ${isAsync ? 'left-1/2 -translate-x-1/2' : 'left-[25%]'} w-[16px] bg-red-500 shadow-[0_0_40px_10px_red] rounded-b-full`}
+                  initial={{ scaleY: 0, originY: 0 }} animate={{ scaleY: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} />
+               {!isAsync && (
+                 <motion.div className="absolute top-0 bottom-[60%] right-[25%] w-[16px] bg-red-500 shadow-[0_0_40px_10px_red] rounded-b-full"
+                    initial={{ scaleY: 0, originY: 0 }} animate={{ scaleY: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} />
+               )}
+            </motion.div>
+          )}
           {(animationState === 'player_shoot' || animationState === 'both_shoot') && (
             <motion.div key="pb" className="absolute top-[32%] left-[16%] flex items-center z-50 pointer-events-none"
               initial={{ width: 0, x: -20, opacity: 0, scale: 0.5 }} 
@@ -315,7 +327,7 @@ function BattlePageContent() {
                 </div>
             </motion.div>
           )}
-          {(animationState === 'opponent_shoot' || animationState === 'both_shoot') && (
+          {(animationState === 'opponent_shoot' || animationState === 'both_shoot') && !isAsync && (
             <motion.div key="ob" className="absolute top-[32%] right-[16%] flex items-center flex-row-reverse z-50 pointer-events-none"
               initial={{ width: 0, x: 20, opacity: 0, scale: 0.5 }} 
               animate={{ width: '60%', x: '-35%', opacity: 1, scale: [0.8, 1.5, 1.2] }} 
@@ -342,15 +354,20 @@ function BattlePageContent() {
           </div>
           <div className="w-24 h-4 mt-1 rounded-[100%] bg-[#10b981]/5 shadow-[0_0_25px_10px_rgba(16,185,129,0.1)]" />
         </motion.div>
-        <div className="text-[#1c1c1c] font-black text-5xl tracking-widest select-none z-10 hidden sm:block">VS</div>
-        <motion.div className="flex flex-col items-center z-10"
-          animate={bump ? { x: [0, -55, 0] } : opponentDmg ? { x: [-10, 10, -10, 10, 0], filter: 'brightness(0.3) sepia(1) hue-rotate(-40deg) saturate(10)' } : { x: 0, filter: 'none' }}
-          transition={{ duration: 0.4 }}>
-          <div className={`drop-shadow-[0_0_20px_rgba(255,0,85,0.3)] ${opponentHp <= 20 ? 'animate-[pulse_0.5s_infinite] drop-shadow-[0_0_20px_rgba(255,0,0,0.8)]' : ''}`} style={{ transform: 'scaleX(-1)' }}>
-            <AvatarSVG avatar={oppAvatar} size={130} mini={false} pose={(animationState === 'opponent_shoot' || animationState === 'both_shoot') ? 'firingRight' : 'idle'} />
-          </div>
-          <div className="w-24 h-4 mt-1 rounded-[100%] bg-[#ff0055]/5 shadow-[0_0_25px_10px_rgba(255,0,85,0.1)]" />
-        </motion.div>
+        
+        {!isAsync && (
+          <>
+            <div className="text-[#1c1c1c] font-black text-5xl tracking-widest select-none z-10 hidden sm:block">VS</div>
+            <motion.div className="flex flex-col items-center z-10"
+              animate={bump ? { x: [0, -55, 0] } : opponentDmg ? { x: [-10, 10, -10, 10, 0], filter: 'brightness(0.3) sepia(1) hue-rotate(-40deg) saturate(10)' } : { x: 0, filter: 'none' }}
+              transition={{ duration: 0.4 }}>
+              <div className={`drop-shadow-[0_0_20px_rgba(255,0,85,0.3)] ${opponentHp <= 20 ? 'animate-[pulse_0.5s_infinite] drop-shadow-[0_0_20px_rgba(255,0,0,0.8)]' : ''}`} style={{ transform: 'scaleX(-1)' }}>
+                <AvatarSVG avatar={oppAvatar} size={130} mini={false} pose={(animationState === 'opponent_shoot' || animationState === 'both_shoot') ? 'firingRight' : 'idle'} />
+              </div>
+              <div className="w-24 h-4 mt-1 rounded-[100%] bg-[#ff0055]/5 shadow-[0_0_25px_10px_rgba(255,0,85,0.1)]" />
+            </motion.div>
+          </>
+        )}
       </div>
       {/* Question Panel */}
       <div className="flex-1 bg-[#070707] border-t border-[#111] flex flex-col justify-start px-4 md:px-8 py-4 overflow-y-auto">

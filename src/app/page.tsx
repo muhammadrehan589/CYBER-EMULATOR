@@ -17,8 +17,11 @@ import {
   Wifi, 
   WifiOff,
   List,
-  Bell
+  Bell,
+  Play
 } from 'lucide-react';
+import { driver } from 'driver.js';
+import 'driver.js/dist/driver.css';
 import { MiniAvatar, AvatarSVG, DEFAULT_AVATAR, type AvatarState } from '@/components/Avatar';
 import ItemShopModal from '@/components/shop/ItemShopModal';
 import PasswordQuest from '@/components/dashboard/PasswordQuest';
@@ -68,7 +71,9 @@ export default function Phase3RealtimeDashboard() {
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isQuestOpen, setIsQuestOpen] = useState(false);
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
-  const [showOperantsList, setShowOperantsList] = useState(false);
+  const [showOnline1v1, setShowOnline1v1] = useState(false);
+  const [showOffline1v1, setShowOffline1v1] = useState(false);
+  const [offlineSearchQuery, setOfflineSearchQuery] = useState('');
   const [incomingChallenge, setIncomingChallenge] = useState<{challengerId: string, challengerName: string} | null>(null);
   const [challengeTimer, setChallengeTimer] = useState<number | null>(null);
   const [duelCountdown, setDuelCountdown] = useState<number | null>(null);
@@ -263,6 +268,31 @@ export default function Phase3RealtimeDashboard() {
     }
   };
 
+  const startTour = () => {
+    const driverObj = driver({
+      showProgress: true,
+      animate: true,
+      popoverClass: 'cyber-tour-theme',
+      steps: [
+        { element: '#tour-notifications', popover: { title: 'System Alerts', description: 'Check for incoming challenges and system events here.', side: "bottom", align: 'end' }},
+        { element: '#tour-avatar', popover: { title: 'Edit Avatar', description: 'Customize your visual identity in the matrix.', side: "bottom", align: 'start' }},
+        { element: '#tour-market', popover: { title: 'Black Market', description: 'Exchange your coins for items and upgrades.', side: "bottom", align: 'start' }},
+        { element: '#tour-inventory', popover: { title: 'Inventory', description: 'View and equip your acquired items.', side: "bottom", align: 'start' }},
+        { element: '#tour-profile', popover: { title: 'Operant Profile', description: 'Your basic identification and visual status.', side: "right", align: 'start' }},
+        { element: '#tour-guide', popover: { title: 'Survival Guide', description: 'Replay this tour anytime you need a refresher.', side: "right", align: 'start' }},
+        { element: '#tour-stats', popover: { title: 'Stats Panel', description: 'Track your XP level and total coins.', side: "right", align: 'start' }},
+        { element: '#tour-battles', popover: { title: 'Recent Battles', description: 'Your combat history and outcomes.', side: "right", align: 'start' }},
+        { element: '#tour-matrix', popover: { title: 'Simulation Matrix', description: 'Enter the main solo training environment.', side: "bottom", align: 'center' }},
+        { element: '#tour-online', popover: { title: 'Online Duel', description: 'Challenge other Operants who are currently online.', side: "bottom", align: 'start' }},
+        { element: '#tour-offline', popover: { title: 'Offline Duel', description: 'Challenge disconnected Operants asynchronously.', side: "bottom", align: 'start' }},
+        { element: '#tour-leaderboard', popover: { title: 'Live Leaderboard', description: 'Track rankings and select targets from the active player list.', side: "left", align: 'start' }},
+        { element: '#tour-full-leaderboard', popover: { title: 'Full Roster', description: 'View the complete historical player rankings.', side: "left", align: 'start' }},
+        { element: '#tour-target-panel', popover: { title: 'Target Engagement', description: 'Once a target is locked from the leaderboard, send them reactions or coin-funded XP boosts!', side: "left", align: 'start' }},
+      ]
+    });
+    driverObj.drive();
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="h-screen w-screen bg-black flex items-center justify-center text-red-500 font-mono tracking-[0.3em]">
@@ -274,10 +304,22 @@ export default function Phase3RealtimeDashboard() {
   return (
     <div className="min-h-screen h-screen bg-black text-white p-4 sm:p-6 lg:p-8 font-sans relative overflow-x-hidden flex flex-col justify-between select-none">
       {ToastContainer}
+      
+      {/* Huge Fixed Floating Guide on Far Left Edge */}
+      <button 
+        id="tour-guide"
+        onClick={startTour}
+        className="fixed left-0 top-1/2 -translate-y-1/2 bg-[#ff0055]/10 hover:bg-[#ff0055] text-[#ff0055] hover:text-white border-y border-r border-[#ff0055] py-12 px-4 rounded-r-3xl transition-all z-50 group backdrop-blur-md shadow-[0_0_25px_rgba(255,0,85,0.5)] cursor-pointer overflow-hidden"
+      >
+        <span className="absolute inset-0 border-y border-r border-white/20 rounded-r-3xl animate-pulse group-hover:border-transparent pointer-events-none"></span>
+        <div className="flex flex-col gap-3 font-mono font-black text-2xl uppercase relative z-10">
+          <span>G</span><span>U</span><span>I</span><span>D</span><span>E</span>
+        </div>
+      </button>
       <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#ff0055]/15 rounded-full blur-3xl pointer-events-none z-0" />
       <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-[#e60039]/15 rounded-full blur-3xl pointer-events-none z-0" />
 
-      <div className="max-w-7xl w-full mx-auto space-y-6 relative z-10 my-auto">
+      <div className="max-w-[1600px] w-full mx-auto space-y-6 relative z-10 my-auto px-0 2xl:px-8">
         <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[#ff0055]/30">
           <div className="flex items-center gap-3">
             <Link
@@ -306,167 +348,263 @@ export default function Phase3RealtimeDashboard() {
           </div>
 
           <div className="flex items-center gap-4">
+            <button 
+              id="tour-market"
+              onClick={() => setIsShopOpen(true)} 
+              className="bg-black hover:bg-[#ff0055]/10 text-white px-4 py-2.5 rounded-xl font-bold border border-[#ff0055] font-mono tracking-widest text-xs shadow-[0_0_15px_rgba(255,0,85,0.4)] transition-all active:scale-95 cursor-pointer"
+            >
+              🛒 BLACK MARKET
+            </button>
+            <button 
+              id="tour-inventory"
+              onClick={() => setIsInventoryOpen(true)}
+              className="bg-black hover:bg-[#ff0055]/10 text-white px-4 py-2.5 rounded-xl font-bold border border-[#ff0055] font-mono tracking-widest text-xs shadow-[0_0_15px_rgba(255,0,85,0.4)] transition-all active:scale-95 cursor-pointer"
+            >
+              📦 INVENTORY
+            </button>
             <Link
+              id="tour-avatar"
               href="/avatar"
               className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#ff0055] to-[#e60039] hover:from-[#e60039] hover:to-[#ff0055] text-white text-xs font-extrabold uppercase tracking-wider flex items-center gap-2 shadow-[0_0_20px_rgba(255,0,85,0.5)] border border-white/20 transition-all active:scale-95 cursor-pointer"
             >
               <Sparkles className="w-4 h-4 text-white" />
               EDIT AVATAR
             </Link>
-            <button 
-              onClick={() => setIsShopOpen(true)} 
-              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl font-bold border border-purple-400 font-mono tracking-widest text-xs shadow-[0_0_15px_rgba(147,51,234,0.5)] transition-all active:scale-95 cursor-pointer"
-            >
-              🛒 BLACK MARKET
-            </button>
-            <button 
-              onClick={() => setIsQuestOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold border border-blue-400 font-mono tracking-widest text-xs shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all active:scale-95 cursor-pointer"
-            >
-              🛡️ SIDE QUESTS
-            </button>
-            <button 
-              onClick={() => setIsInventoryOpen(true)}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl font-bold border border-green-400 font-mono tracking-widest text-xs shadow-[0_0_15px_rgba(34,197,94,0.5)] transition-all active:scale-95 cursor-pointer"
-            >
-              📦 INVENTORY
-            </button>
             <div className="relative">
               <button 
+                id="tour-notifications"
                 onClick={() => setIsNotifOpen(!isNotifOpen)}
-                className="relative bg-yellow-400 hover:bg-yellow-500 text-black p-2.5 rounded-xl font-bold border border-yellow-300 shadow-[0_0_15px_rgba(250,204,21,0.5)] transition-all active:scale-95 cursor-pointer">
-                <Bell className="w-5 h-5" />
+                className="relative bg-[#ff0055] hover:bg-white text-white hover:text-[#ff0055] p-2.5 rounded-xl font-bold shadow-[0_0_15px_rgba(255,0,85,0.5)] transition-all active:scale-95 cursor-pointer border border-[#ff0055]"
+              >
+                <Bell className="w-5 h-5 fill-current" />
                 {notifications.length > 0 && (
-                  <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-black text-white border-2 border-[#0a0a0a] shadow-[0_0_10px_rgba(220,38,38,0.8)]">
+                  <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-white text-[10px] font-black text-[#ff0055] border-2 border-[#ff0055] shadow-[0_0_10px_rgba(255,255,255,0.8)] animate-pulse">
                     {notifications.length}
                   </span>
                 )}
               </button>
 
               {isNotifOpen && (
-                <div className="absolute right-0 mt-3 w-80 bg-gray-950 border border-gray-800 rounded-xl shadow-2xl z-50 font-mono overflow-hidden">
-                  <div className="p-3 border-b border-gray-800 bg-gray-900 flex justify-between items-center">
-                    <span className="text-gray-300 font-bold text-xs uppercase tracking-wider">System Alerts</span>
-                    <button onClick={() => setNotifications([])} className="text-xs text-red-500 hover:text-red-400">Clear All</button>
-                  </div>
-                  <div className="max-h-64 overflow-y-auto">
-                    {notifications.length === 0 ? (
-                      <div className="p-4 text-center text-gray-500 text-xs">No pending alerts.</div>
-                    ) : (
-                      notifications.map((n, i) => (
-                        <div key={i} className="p-3 border-b border-gray-800/50 hover:bg-gray-900 transition-colors">
-                          <p className="text-xs text-gray-300 mb-2">{n.message}</p>
-                          {n.type === 'OFFLINE_CHALLENGE' && (
-                            <button 
-                              onClick={() => {
-                                setIsNotifOpen(false);
-                                window.location.href = `/battle?matchId=${n.matchId}&challengerId=${n.challengerId}&targetId=${empId}&async=true`;
-                              }}
-                              className="w-full py-1.5 bg-[#ff0055] text-white text-[10px] font-bold uppercase rounded"
-                            >
-                              ACCEPT ASYNC BATTLE
-                            </button>
-                          )}
+                <>
+                  {/* Invisible backdrop to detect outside clicks */}
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setIsNotifOpen(false)}
+                  ></div>
+                  
+                  <div className="absolute right-0 mt-3 w-80 bg-[#0a0a0a] border border-[#ff0055] rounded-xl shadow-[0_0_30px_rgba(255,0,85,0.4)] z-50 font-mono overflow-hidden flex flex-col">
+                    <div className="p-3 border-b border-[#ff0055]/30 bg-[#ff0055]/10 flex justify-between items-center">
+                      <span className="text-[#ff0055] font-black text-xs uppercase tracking-widest drop-shadow-[0_0_5px_currentColor]">System Alerts</span>
+                      <button onClick={() => setNotifications([])} className="text-[10px] text-white hover:text-[#ff0055] transition-colors border border-transparent hover:border-[#ff0055]/50 px-2 rounded">CLEAR ALL</button>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto cyber-scrollbar" style={{ scrollbarWidth: 'thin', scrollbarColor: '#ff0055 transparent' }}>
+                      {notifications.length === 0 ? (
+                        <div className="p-6 text-center text-zinc-600 text-xs tracking-widest flex flex-col items-center gap-2">
+                          <Bell className="w-6 h-6 opacity-20" />
+                          NO INCOMING ALERTS
                         </div>
-                      ))
-                    )}
+                      ) : (
+                        notifications.map((n, i) => (
+                          <div key={i} className="p-4 border-b border-[#ff0055]/20 hover:bg-[#ff0055]/5 transition-colors group">
+                            <p className="text-xs text-gray-300 mb-3 leading-relaxed">{n.message}</p>
+                            {n.type === 'OFFLINE_CHALLENGE' && (
+                              <button 
+                                onClick={() => {
+                                  setIsNotifOpen(false);
+                                  window.location.href = `/battle?matchId=${n.matchId}&challengerId=${n.challengerId}&targetId=${empId}&async=true`;
+                                }}
+                                className="w-full py-2 bg-[#ff0055]/20 border border-[#ff0055] text-[#ff0055] group-hover:bg-[#ff0055] group-hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest rounded flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(255,0,85,0.2)]"
+                              >
+                                <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                                ACCEPT ASYNC DUEL
+                              </button>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
-                </div>
+                </>
               )}
             </div>
           </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 items-start">
-          <div className="lg:col-span-6 xl:col-span-7 space-y-6">
-            <div className="bg-[#030303]/90 rounded-3xl p-6 sm:p-8 border border-[#ff0055]/40 backdrop-blur-xl shadow-[0_0_35px_rgba(255,0,85,0.25)] relative overflow-hidden space-y-6">
-              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-                <button 
-                  onClick={() => window.location.href = '/simulation-matrix'}
-                  className="px-10 py-5 rounded-2xl bg-[#0a0a0a] border border-red-500 hover:shadow-[0_0_40px_rgba(255,0,60,0.6)] hover:bg-[#ff003c] text-[#ff003c] hover:text-white font-mono font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 shadow-[0_0_15px_rgba(255,0,60,0.5)] transition-all active:scale-95 cursor-pointer"
-                >
-                  <span className="w-2 h-2 rounded-full bg-[#ff003c] animate-pulse group-hover:bg-white" />
-                  ENTER SIMULATION MATRIX
-                </button>
-
-              </div>
-            </div>
-
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left Column */}
+          <div className="lg:col-span-3 space-y-4">
             {(() => {
               const currentEmpId = typeof window !== 'undefined' ? empId : null;
               const me = leaderboard.find(p => p.empId === currentEmpId);
               return (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {/* MY XP */}
-                  <div className="relative p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
-                    <span className="text-[10px] font-mono text-zinc-400 uppercase">MY XP</span>
-                    <span className="text-xl font-extrabold text-[#ff0055] font-mono">
-                      {(me?.xp || 0).toLocaleString()} XP
-                    </span>
-                    <AnimatePresence>
-                      {floatingStats.filter(s => s.empId === me?.empId && s.type === 'xp_up').map(s => (
-                        <motion.div
-                          key={s.id}
-                          initial={{ y: 0, opacity: 1, scale: 1 }}
-                          animate={{ y: -40, opacity: 0, scale: 1.5 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 2, ease: 'easeOut' }}
-                          className="absolute right-4 top-2 text-[#ff0055] font-black font-mono text-lg drop-shadow-[0_0_10px_currentColor] z-50 pointer-events-none"
-                        >
-                          ↑ +{s.amount} XP
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
+                <>
+                  {/* Player Profile */}
+                  <div id="tour-profile" className="bg-[#030303]/90 rounded-2xl p-6 border border-[#ff0055]/40 backdrop-blur-xl shadow-[0_0_20px_rgba(255,0,85,0.15)] flex flex-col space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 rounded bg-gray-800 flex items-center justify-center border border-[#ff0055] overflow-hidden">
+                        {me ? <MiniAvatar avatar={me.avatar as AvatarState} /> : <div className="text-xs text-gray-500">NO ID</div>}
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">PLAYER</span>
+                        <h2 className="text-xl font-extrabold text-white font-mono truncate">{me?.name || '—'}</h2>
+                        <span className="text-xs text-[#ff0055] font-mono">@{me?.username || me?.name?.split(' ')[0].toLowerCase() || 'player'}</span>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* PLAYER */}
-                  <div className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
-                    <span className="text-[10px] font-mono text-zinc-400 uppercase">PLAYER</span>
-                    <span className="text-xl font-extrabold text-white font-mono truncate">
-                      {me?.name || '—'}
-                    </span>
-                  </div>
+                  {/* XP Dashboard and Coins (Horizontally aligned) */}
+                  <div id="tour-stats" className="grid grid-cols-2 gap-4">
+                    {/* MY XP */}
+                    <div className="relative p-4 rounded-2xl bg-[#0a0a0a]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
+                      <span className="text-[10px] font-mono text-[#ff0055] uppercase tracking-widest text-center">XP LEVEL</span>
+                      <span className="text-xl font-extrabold text-white font-mono text-center">
+                        {(me?.xp || 0).toLocaleString()}
+                      </span>
+                      <AnimatePresence>
+                        {floatingStats.filter(s => s.empId === me?.empId && s.type === 'xp_up').map(s => (
+                          <motion.div
+                            key={s.id}
+                            initial={{ y: 0, opacity: 1, scale: 1 }}
+                            animate={{ y: -40, opacity: 0, scale: 1.5 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 2, ease: 'easeOut' }}
+                            className="absolute right-4 top-2 text-[#ff0055] font-black font-mono text-lg drop-shadow-[0_0_10px_currentColor] z-50 pointer-events-none"
+                          >
+                            ↑ +{s.amount}
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </div>
 
-                  {/* MY COINS */}
-                  <div className="relative p-4 rounded-2xl bg-[#0a030d]/80 border border-blue-500/30 backdrop-blur-md flex flex-col justify-between space-y-2">
-                    <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">MY COINS</span>
-                    <span className="text-xl font-extrabold text-yellow-500 font-mono tabular-nums">
-                      {(me?.coins || 0).toLocaleString()} COINS
-                    </span>
-                    <AnimatePresence>
-                      {floatingStats.filter(s => s.empId === me?.empId && s.type === 'coins_down').map(s => (
-                        <motion.div
-                          key={s.id}
-                          initial={{ y: 0, opacity: 1, scale: 1 }}
-                          animate={{ y: 40, opacity: 0, scale: 1.5 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 2, ease: 'easeOut' }}
-                          className="absolute right-4 top-2 text-yellow-500 font-black font-mono text-lg drop-shadow-[0_0_10px_currentColor] z-50 pointer-events-none"
-                        >
-                          ↓ -{s.amount} COINS
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
+                    {/* MY COINS */}
+                    <div className="relative p-4 rounded-2xl bg-[#0a0a0a]/80 border border-[#ff0055]/30 backdrop-blur-md flex flex-col justify-between space-y-2">
+                      <span className="text-[10px] font-mono text-[#ff0055] uppercase tracking-widest text-center">COINS</span>
+                      <span className="text-xl font-extrabold text-white font-mono tabular-nums text-center">
+                        {(me?.coins || 0).toLocaleString()}
+                      </span>
+                      <AnimatePresence>
+                        {floatingStats.filter(s => s.empId === me?.empId && s.type === 'coins_down').map(s => (
+                          <motion.div
+                            key={s.id}
+                            initial={{ y: 0, opacity: 1, scale: 1 }}
+                            animate={{ y: 40, opacity: 0, scale: 1.5 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 2, ease: 'easeOut' }}
+                            className="absolute right-4 top-2 text-[#ff0055] font-black font-mono text-lg drop-shadow-[0_0_10px_currentColor] z-50 pointer-events-none"
+                          >
+                            ↓ -{s.amount}
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </div>
                   </div>
-
-                  {/* ACTIVE OPERANTS */}
-                  <div
-                    onClick={() => setShowOperantsList(true)}
-                    className="p-4 rounded-2xl bg-[#0a030d]/80 border border-[#ff0055]/30 hover:border-emerald-500/50 hover:bg-[#111] backdrop-blur-md flex flex-col justify-between space-y-2 cursor-pointer transition-all"
-                  >
-                    <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">OPERANTS</span>
-                    <span className="text-xl font-extrabold text-emerald-400 font-mono">
-                      {typeof window !== 'undefined'
-                        ? leaderboard.filter(p => p.empId !== empId && onlineUsers.includes(p.empId)).length
-                        : 0} ACTIVE
-                    </span>
-                  </div>
-                </div>
+                </>
               );
             })()}
+
+            {/* Recent Battles List (3 Mock Matches) */}
+            <div id="tour-battles" className="bg-[#030303]/90 rounded-2xl p-4 border border-[#ff0055]/40 backdrop-blur-xl shadow-[0_0_20px_rgba(255,0,85,0.15)] flex flex-col space-y-3">
+              <h3 className="text-xs font-mono font-bold uppercase text-[#ff0055] tracking-widest border-b border-[#ff0055]/30 pb-2">
+                RECENT BATTLES
+              </h3>
+              <div className="flex flex-col gap-2">
+                {[
+                  { id: 1, opponent: 'Player 067', result: 'WIN', type: 'ONLINE DUEL', color: 'text-green-500' },
+                  { id: 2, opponent: 'Player 456', result: 'LOSS', type: 'OFFLINE DUEL', color: 'text-red-500' },
+                  { id: 3, opponent: 'Player 218', result: 'WIN', type: 'ONLINE DUEL', color: 'text-green-500' }
+                ].map(match => (
+                  <div key={match.id} className="flex items-center justify-between bg-[#0a0a0a] p-3 rounded border border-white/5">
+                    <div className="flex flex-col">
+                      <span className="text-white text-xs font-bold font-mono">VS {match.opponent}</span>
+                      <span className="text-gray-500 text-[9px] font-mono tracking-widest mt-0.5">{match.type}</span>
+                    </div>
+                    <span className={`${match.color} font-black font-mono text-xs uppercase tracking-wider`}>
+                      {match.result}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
-          <div className="lg:col-span-4 xl:col-span-3 bg-[#030303]/90 rounded-3xl p-6 border border-[#ff0055]/40 backdrop-blur-xl shadow-[0_0_35px_rgba(255,0,85,0.25)] space-y-5">
+          {/* Center Column: Simulation Hub */}
+          <div className="lg:col-span-6 flex flex-col h-full min-h-[500px]">
+            <div className="bg-[#030303]/90 rounded-3xl p-8 sm:p-12 border border-[#ff0055]/50 backdrop-blur-xl shadow-[0_0_50px_rgba(255,0,85,0.2)] flex flex-col items-center justify-center flex-1 space-y-12 relative overflow-hidden">
+              {/* Squid Game BG shapes aesthetic */}
+              <div className="absolute inset-0 flex justify-center items-center opacity-10 pointer-events-none">
+                <Circle className="w-64 h-64 text-[#ff0055] absolute -mt-32 -ml-32" strokeWidth={1} />
+                <Triangle className="w-64 h-64 text-[#ff0055] absolute mt-32 ml-32" strokeWidth={1} />
+                <Square className="w-64 h-64 text-[#ff0055] absolute -mr-64" strokeWidth={1} />
+              </div>
+
+              <div className="text-center z-10">
+                <h1 className="text-4xl sm:text-5xl md:text-6xl font-black font-mono tracking-[0.2em] text-white mb-3 drop-shadow-[0_0_15px_rgba(255,0,85,0.5)]">
+                  SIMULATION<span className="text-[#ff0055]">_</span>HUB
+                </h1>
+                <p className="text-[#ff0055] text-sm tracking-widest font-mono uppercase">
+                  Awaiting Operant Directives
+                </p>
+              </div>
+
+              <div className="flex flex-col items-center gap-10 w-full max-w-md z-10 pb-8">
+                <div className="flex flex-col items-center text-center group">
+                  <button 
+                    id="tour-matrix"
+                    onClick={() => window.location.href = '/simulation-matrix'}
+                    className="w-32 h-32 rounded-full bg-[#ff0055] hover:bg-white text-white hover:text-[#ff0055] flex flex-col items-center justify-center shadow-[0_0_50px_rgba(255,0,85,0.6)] hover:shadow-[0_0_80px_rgba(255,255,255,0.8)] transition-all active:scale-95 relative z-10 mb-6"
+                  >
+                    <Play className="w-12 h-12 ml-2 fill-current" />
+                  </button>
+                  <h2 className="text-[#ff0055] font-black font-mono text-xl tracking-[0.2em] uppercase drop-shadow-[0_0_10px_rgba(255,0,85,0.5)]">
+                    ENTER SIMULATION MATRIX
+                  </h2>
+                  <p className="text-zinc-400 text-[10px] uppercase font-mono tracking-widest mt-2 group-hover:text-white transition-colors">
+                    System loaded. Ready for ingestion.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 w-full">
+                  <button 
+                    id="tour-online"
+                    onClick={() => setShowOnline1v1(true)}
+                    className="py-4 rounded-xl bg-black border border-[#ff0055]/50 hover:border-[#ff0055] text-gray-300 hover:text-white hover:bg-[#ff0055]/10 font-mono font-bold text-sm uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(255,0,85,0.1)] active:scale-95 flex items-center justify-center"
+                  >
+                    <span className="text-[#ff0055] mr-2">●</span>
+                    ONLINE DUEL
+                  </button>
+                  <button 
+                    id="tour-offline"
+                    onClick={() => setShowOffline1v1(true)}
+                    className="py-4 rounded-xl bg-black border border-[#ff0055]/50 hover:border-[#ff0055] text-gray-300 hover:text-white hover:bg-[#ff0055]/10 font-mono font-bold text-sm uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(255,0,85,0.1)] active:scale-95 flex items-center justify-center"
+                  >
+                    <span className="text-gray-500 mr-2">●</span>
+                    OFFLINE DUEL
+                  </button>
+                </div>
+              </div>
+
+              {/* Global Event Ticker */}
+              <style dangerouslySetInnerHTML={{__html: `
+                @keyframes marquee {
+                  0% { transform: translateX(100%); }
+                  100% { transform: translateX(-100%); }
+                }
+              `}} />
+              <div className="absolute bottom-0 left-0 w-full bg-[#ff0055]/10 border-t border-[#ff0055]/30 p-2 overflow-hidden flex items-center z-20">
+                <span className="text-[#ff0055] text-[10px] font-mono tracking-widest uppercase mr-4 shrink-0 font-bold bg-[#030303] px-2 relative z-30 shadow-[0_0_10px_#ff0055]">
+                  GLOBAL LINK //
+                </span>
+                <div className="flex-1 overflow-hidden relative flex">
+                  <div className="whitespace-nowrap text-[10px] font-mono text-zinc-400 inline-block w-full" style={{ animation: 'marquee 25s linear infinite' }}>
+                    OPERANT #402 CLEARED LEVEL 9 • NEW CONTRABAND IN BLACK MARKET • DOUBLE XP WEEKEND ACTIVE • OPERANT #099 DEFEATED IN OFFLINE DUEL • SYSTEM MATRIX STABLE...
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Leaderboard */}
+          <div id="tour-leaderboard" className="lg:col-span-3 bg-[#030303]/90 rounded-3xl p-6 border border-[#ff0055]/40 backdrop-blur-xl shadow-[0_0_35px_rgba(255,0,85,0.25)] space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-[#ff0055]/30">
               <div className="flex items-center gap-2">
                 <Trophy className="w-4 h-4 text-[#ff0055]" />
@@ -479,7 +617,7 @@ export default function Phase3RealtimeDashboard() {
               </span>
             </div>
 
-            <div className="space-y-2 relative min-h-[280px] max-h-[350px] overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin', scrollbarColor: '#ff0055 transparent' }}>
+            <div className="space-y-2 relative min-h-[280px] max-h-[350px] overflow-y-auto pr-2 cyber-scrollbar" style={{ scrollbarWidth: 'thin', scrollbarColor: '#ff0055 transparent' }}>
               {leaderboard.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-[280px] text-zinc-600 font-mono text-xs text-center gap-2">
                   <Trophy className="w-8 h-8 opacity-30" />
@@ -499,15 +637,16 @@ export default function Phase3RealtimeDashboard() {
             </div>
 
             <button
+              id="tour-full-leaderboard"
               onClick={() => setIsFullLeaderboardOpen(true)}
-              className="w-full mt-4 py-3 rounded-xl bg-gradient-to-r from-zinc-800 to-zinc-900 border border-zinc-700 hover:border-[#ff0055]/50 hover:bg-[#1a0515] transition-all text-xs font-bold font-mono tracking-widest text-zinc-300 hover:text-[#ff0055] flex items-center justify-center gap-2 cursor-pointer shadow-md"
+              className="w-full mt-4 py-3 rounded-xl bg-[#0a0a0a] border border-[#ff0055]/50 hover:border-[#ff0055] hover:bg-[#ff0055]/10 transition-all text-xs font-bold font-mono tracking-widest text-zinc-300 hover:text-white flex items-center justify-center gap-2 cursor-pointer shadow-md"
             >
-              <List className="w-4 h-4" />
+              <List className="w-4 h-4 text-[#ff0055]" />
               FULL PLAYER LEADERBOARD
             </button>
 
-            <div className="mt-6 border-t border-white/10 pt-6">
-              <h4 className="text-xs text-zinc-500 font-mono mb-4 uppercase tracking-[0.2em]">
+            <div id="tour-target-panel" className="mt-6 border-t border-[#ff0055]/30 pt-6">
+              <h4 className="text-xs text-[#ff0055] font-mono mb-4 uppercase tracking-[0.2em] text-center">
                 {selectedTarget ? `TARGET LOCKED: ${selectedTarget.name}` : 'SELECT A TARGET TO ENGAGE'}
               </h4>
               
@@ -518,7 +657,7 @@ export default function Phase3RealtimeDashboard() {
                      key={emoji}
                      disabled={!selectedTarget}
                      onClick={() => selectedTarget && handleEmitEmoji(selectedTarget.empId, emoji)}
-                     className="flex-1 bg-black py-3 rounded border border-white/5 hover:border-blue-500 disabled:opacity-20 transition-all text-xl cursor-pointer"
+                     className="flex-1 bg-black py-3 rounded border border-[#ff0055]/30 hover:border-[#ff0055] hover:bg-[#ff0055]/20 disabled:opacity-20 transition-all text-xl cursor-pointer"
                    >
                      {emoji}
                    </button>
@@ -537,10 +676,10 @@ export default function Phase3RealtimeDashboard() {
                      key={tier.xp}
                      disabled={!selectedTarget}
                      onClick={() => selectedTarget && handleScoreBoost(selectedTarget.empId, tier.xp, tier.cost)}
-                     className="bg-black group flex justify-between items-center p-3 font-mono border border-green-900/50 hover:bg-green-900/20 disabled:opacity-20 rounded transition-all cursor-pointer"
+                     className="bg-black group flex justify-between items-center p-3 font-mono border border-[#ff0055]/30 hover:bg-[#ff0055]/20 hover:border-[#ff0055] disabled:opacity-20 rounded transition-all cursor-pointer"
                   >
-                     <span className="text-green-500 text-sm font-bold group-hover:text-green-400">+{tier.xp} XP</span>
-                     <span className="text-yellow-600 text-xs tracking-widest">{tier.cost} 🪙</span>
+                     <span className="text-[#ff0055] text-sm font-bold group-hover:text-white">+{tier.xp} XP</span>
+                     <span className="text-zinc-500 group-hover:text-zinc-300 text-xs tracking-widest">{tier.cost} 🪙</span>
                   </button>
                 ))}
               </div>
@@ -562,42 +701,84 @@ export default function Phase3RealtimeDashboard() {
       {isQuestOpen && <PasswordQuest onClose={() => setIsQuestOpen(false)} onClaimed={() => socket?.emit('trigger_refresh')} />}
         {isInventoryOpen && <InventoryModal onClose={() => setIsInventoryOpen(false)} />}
       
-      {showOperantsList && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setShowOperantsList(false)}>
-          <div className="bg-[#0a0a0a] border border-green-500/30 p-6 rounded-lg min-w-[320px] shadow-[0_0_30px_rgba(34,197,94,0.1)]" onClick={(e) => e.stopPropagation()}>
+      {showOnline1v1 && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setShowOnline1v1(false)}>
+          <div className="bg-[#0a0a0a] border border-emerald-500/30 p-6 rounded-lg min-w-[320px] shadow-[0_0_30px_rgba(16,185,129,0.1)]" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4 border-b border-gray-800 pb-2">
-              <h3 className="text-green-400 font-black tracking-widest text-lg flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                ACTIVE OPERANTS
+              <h3 className="text-emerald-400 font-black tracking-widest text-lg flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                1v1 ONLINE
               </h3>
-              <button onClick={() => setShowOperantsList(false)} className="text-gray-500 hover:text-white transition-colors">✕</button>
+              <button onClick={() => setShowOnline1v1(false)} className="text-gray-500 hover:text-white transition-colors">✕</button>
             </div>
             <div className="max-h-[40vh] overflow-y-auto cyber-scrollbar flex flex-col gap-2">
-              {leaderboard.filter(p => p.empId !== empId).map((player, idx) => {
-                const isOnline = onlineUsers.includes(player.empId);
-                return (
-                <div key={player.empId || idx} className="flex items-center gap-3 bg-[#111] p-2 border border-gray-800/50 rounded hover:border-gray-700 transition-colors">
+              {leaderboard.filter(p => p.empId !== empId && onlineUsers.includes(p.empId)).map((player, idx) => (
+                <div key={player.empId || idx} className="flex items-center gap-3 bg-[#111] p-2 border border-gray-800/50 rounded hover:border-emerald-700/50 transition-colors">
                   <div className="w-8 h-8 rounded bg-gray-800 flex items-center justify-center text-xs overflow-hidden">
                     <MiniAvatar avatar={player.avatar as AvatarState} />
                   </div>
                   <div className="flex flex-col">
                     <span className="text-gray-200 text-sm font-bold">{player.name || `Operant-${idx}`}</span>
-                    <span className={`text-[10px] uppercase tracking-wider flex items-center gap-1 ${isOnline ? 'text-green-500' : 'text-gray-500'}`}><span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-500'}`}></span> {isOnline ? 'ONLINE' : 'OFFLINE'}</span>
+                    <span className="text-[10px] uppercase tracking-wider flex items-center gap-1 text-emerald-500"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> ONLINE</span>
                   </div>
-                  <div className="ml-auto text-green-500 text-xs font-mono">12ms</div>
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
                       sendDuelChallenge(player.empId, player.name || player.username || `Operant-${idx}`);
                     }}
-                    className="ml-3 bg-red-950/40 hover:bg-red-900 border border-red-700/50 text-red-500 hover:text-red-400 px-3 py-1 rounded text-[10px] font-black tracking-widest transition-all"
+                    className="ml-auto bg-red-950/40 hover:bg-red-900 border border-red-700/50 text-red-500 hover:text-red-400 px-3 py-1 rounded text-[10px] font-black tracking-widest transition-all"
                   >
                     ⚔️ CHALLENGE
                   </button>
                 </div>
-              )})}
-              {leaderboard.filter(p => p.empId !== empId).length === 0 && (
-                <div className="text-gray-600 text-center py-6 font-mono text-sm">NO OTHER OPERANTS REGISTERED IN SYSTEM</div>
+              ))}
+              {leaderboard.filter(p => p.empId !== empId && onlineUsers.includes(p.empId)).length === 0 && (
+                <div className="text-gray-600 text-center py-6 font-mono text-sm">NO ONLINE OPERANTS FOUND</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showOffline1v1 && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={() => setShowOffline1v1(false)}>
+          <div className="bg-[#0a0a0a] border border-purple-500/30 p-6 rounded-lg min-w-[320px] shadow-[0_0_30px_rgba(168,85,247,0.1)]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4 border-b border-gray-800 pb-2">
+              <h3 className="text-purple-400 font-black tracking-widest text-lg flex items-center gap-2">
+                1v1 OFFLINE
+              </h3>
+              <button onClick={() => setShowOffline1v1(false)} className="text-gray-500 hover:text-white transition-colors">✕</button>
+            </div>
+            <input 
+              type="text" 
+              placeholder="SEARCH PLAYER..." 
+              value={offlineSearchQuery}
+              onChange={(e) => setOfflineSearchQuery(e.target.value)}
+              className="w-full bg-[#111] text-white border border-gray-700 p-2 mb-4 rounded font-mono text-xs focus:outline-none focus:border-purple-500"
+            />
+            <div className="max-h-[40vh] overflow-y-auto cyber-scrollbar flex flex-col gap-2">
+              {leaderboard.filter(p => p.empId !== empId && !onlineUsers.includes(p.empId) && (p.name?.toLowerCase().includes(offlineSearchQuery.toLowerCase()) || p.username?.toLowerCase().includes(offlineSearchQuery.toLowerCase()))).map((player, idx) => (
+                <div key={player.empId || idx} className="flex items-center gap-3 bg-[#111] p-2 border border-gray-800/50 rounded hover:border-purple-700/50 transition-colors">
+                  <div className="w-8 h-8 rounded bg-gray-800 flex items-center justify-center text-xs overflow-hidden">
+                    <MiniAvatar avatar={player.avatar as AvatarState} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-gray-200 text-sm font-bold">{player.name || `Operant-${idx}`}</span>
+                    <span className="text-[10px] uppercase tracking-wider flex items-center gap-1 text-gray-500"><span className="w-1.5 h-1.5 rounded-full bg-gray-500"></span> OFFLINE</span>
+                  </div>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      sendDuelChallenge(player.empId, player.name || player.username || `Operant-${idx}`);
+                    }}
+                    className="ml-auto bg-purple-950/40 hover:bg-purple-900 border border-purple-700/50 text-purple-400 hover:text-purple-300 px-3 py-1 rounded text-[10px] font-black tracking-widest transition-all"
+                  >
+                    ⚔️ ASYNC DUEL
+                  </button>
+                </div>
+              ))}
+              {leaderboard.filter(p => p.empId !== empId && !onlineUsers.includes(p.empId) && (p.name?.toLowerCase().includes(offlineSearchQuery.toLowerCase()) || p.username?.toLowerCase().includes(offlineSearchQuery.toLowerCase()))).length === 0 && (
+                <div className="text-gray-600 text-center py-6 font-mono text-sm">NO OFFLINE OPERANTS FOUND</div>
               )}
             </div>
           </div>
