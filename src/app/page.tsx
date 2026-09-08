@@ -41,7 +41,7 @@ import { useToast } from '@/components/ui/Toast';
 
 export default function Phase3RealtimeDashboard() {
   const router = useRouter();
-  const { empId, isAuthenticated, isAuthReady } = useAuth();
+  const { empId, role, isAuthenticated, isAuthReady } = useAuth();
   const { socket, isConnected } = useSocket(empId);
   const { leaderboard, setLeaderboard, fetchLeaderboard } = useLeaderboard(socket);
 
@@ -51,10 +51,14 @@ export default function Phase3RealtimeDashboard() {
   const { showToast, ToastContainer } = useToast();
 
   useEffect(() => {
-    if (isAuthReady && !isAuthenticated) {
-      window.location.href = '/login';
+    if (isAuthReady) {
+      if (!isAuthenticated) {
+        window.location.href = '/login';
+      } else if (role === 'Admin') {
+        window.location.href = '/admin';
+      }
     }
-  }, [isAuthReady, isAuthenticated, router]);
+  }, [isAuthReady, isAuthenticated, role, router]);
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
   const [floatingStats, setFloatingStats] = useState<FloatingStat[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);

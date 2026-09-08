@@ -13,8 +13,8 @@ export function useLeaderboard(socket: Socket | null) {
       const res = await fetch('/api/users');
       const json = await res.json();
       if (json.success && json.data.length > 0) {
-        // Filter out suspended players or players forced to rename (to hide unethical names from public view)
-        const activeUsers = json.data.filter((u: any) => u.status !== 'suspended' && u.forceUsernameChange !== true);
+        // Filter out suspended players, forced renames, and ADMINS from public view
+        const activeUsers = json.data.filter((u: any) => u.status !== 'suspended' && u.forceUsernameChange !== true && u.role !== 'Admin');
         const sorted = activeUsers.sort(
           (a: any, b: any) => (b.xp - a.xp) || (b.coins - a.coins)
         );

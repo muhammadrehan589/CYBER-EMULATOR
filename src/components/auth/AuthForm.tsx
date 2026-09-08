@@ -134,7 +134,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
 
       // Save user to local storage so other pages know who is logged in
       if (data.data && data.data.empId) {
-        setAuthSession(data.data.empId);
+        setAuthSession(data.data.empId, data.data.role);
       }
 
       if (data.data?.forceUsernameChange) {
