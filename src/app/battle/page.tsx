@@ -62,8 +62,8 @@ function BattlePageContent() {
       currentSocket.on('connect', () => {
         currentSocket!.emit('join_battle', { matchId, empId: parsedUser.empId, isAsync });
         if (parsedUser.empId === challengerId) {
-          const pool = localStorage.getItem('selectedPool') || '';
-          fetch(`/api/questions?random=true&limit=50&exclude=${useQuizStore.getState().playedQuestions.join(',')}&pool=${encodeURIComponent(pool)}`).then(r => r.json()).then(data => {
+          const burnedQuestions = JSON.parse(localStorage.getItem('burned_questions') || '[]');
+          fetch(`/api/questions?random=true&limit=50&exclude=${burnedQuestions.join(',')}`).then(r => r.json()).then(data => {
             if (data.success && isMounted) {
               currentSocket!.emit('init_battle_data', { matchId, questions: data.data });
               setQuestions(data.data);
@@ -190,7 +190,7 @@ function BattlePageContent() {
 
         if (iWon) {
           showToast('VICTORY! You earned 300 Coins and 200 XP!', 'success');
-          try { await fetch('/api/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ empId: parsedUser.empId, updates: { coins: (parsedUser.coins || 0) + 300, xp: (parsedUser.xp || 0) + 200 } }) }); } catch {}
+          try { await fetch('/api/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ empId: parsedUser.empId, inc: { coins: 300, xp: 200 } }) }); } catch (e) { console.error('Failed to update score:', e); }
         } else if (data.winner === 'draw') {
           showToast('DRAW — Equally matched operatives.', 'info');
         } else {
@@ -244,17 +244,38 @@ function BattlePageContent() {
       setHasAnswered(true); setSelectedOption(option);
       const q = questions[currentRound];
       let correct = false;
-      if (q?.type === 'sequence' || q?.type === 'drag_and_drop') {
+      if (q?.type === 'sequence') {
         try {
-          const defaultOrder = JSON.stringify(q.draggableItems?.map((i: any) => i.id) || []);
+          const defaultOrder = JSON.stringify(q.items?.map((i: any) => i.id) || []);
           const orderIds = JSON.parse(option || defaultOrder);
           correct = JSON.stringify(orderIds) === JSON.stringify(q.correctOrder);
         } catch(e) { correct = false; }
+      } else if (q?.type === 'text_input') {
+        const userInput = (option || '').toLowerCase();
+        const keywords = (q.keywords || []).map((k: string) => k.toLowerCase());
+        if (keywords.length > 0) {
+          let matched = 0;
+          keywords.forEach((k: string) => {
+             if (userInput.includes(k)) matched++;
+          });
+          correct = (matched / keywords.length) >= 0.5;
+        } else {
+          correct = false;
+        }
       } else {
         const ans = q?.correctAnswer || '';
         correct = option === ans || option.startsWith(ans + '.') || option.startsWith(ans + ')');
       }
       setIsCorrect(correct);
+      
+      if (correct && q?.questionId) {
+        const burnedQuestions = JSON.parse(localStorage.getItem('burned_questions') || '[]');
+        if (!burnedQuestions.includes(q.questionId)) {
+          burnedQuestions.push(q.questionId);
+          localStorage.setItem('burned_questions', JSON.stringify(burnedQuestions));
+        }
+      }
+
       socket?.emit('submit_battle_answer', { matchId, empId: localUser?.empId, isCorrect: correct, damage: correct ? 0 : getDmg(currentRound), isChallenger });
     };
 
@@ -401,14 +422,11 @@ function BattlePageContent() {
       <div className="flex-1 bg-[#070707] border-t border-[#111] flex flex-col justify-start px-4 md:px-8 py-4 overflow-y-auto">
         {currentQ && (
           <div className="max-w-4xl mx-auto w-full my-auto">
-            <div className="flex items-center justify-center mb-3">
-              <span className="bg-[#0f0f0f] text-gray-500 border border-[#1c1c1c] px-3 py-1 rounded text-[10px] font-black tracking-[0.25em] uppercase">{currentQ.category}</span>
-            </div>
             <h2 className="text-sm md:text-lg font-bold text-center text-white mb-4 leading-snug">{currentQ.question}</h2>
-            {(currentQ.type === 'sequence' || currentQ.type === 'drag_and_drop') ? (
+            {currentQ.type === 'sequence' && (
               <div className="flex flex-col h-full w-full">
                 <SequenceOrdering 
-                  items={currentQ.items || currentQ.draggableItems || []}
+                  items={currentQ.items || []}
                   onChange={(val: any) => !hasAnswered && !screenFrozen && setSelectedOption(val)}
                   disabled={hasAnswered || screenFrozen}
                   solvedCount={0}
@@ -421,7 +439,28 @@ function BattlePageContent() {
                   {hasAnswered ? 'ANSWER SUBMITTED' : 'Submit Sequence'}
                 </button>
               </div>
-            ) : (
+            )}
+            
+            {currentQ.type === 'text_input' && (
+              <div className="flex flex-col h-full w-full">
+                <textarea
+                  disabled={hasAnswered || screenFrozen}
+                  value={selectedOption || ''}
+                  onChange={(e) => !hasAnswered && !screenFrozen && setSelectedOption(e.target.value)}
+                  placeholder="Enter your analysis..."
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg p-4 text-white font-mono focus:border-[#ff0055] focus:ring-1 focus:ring-[#ff0055] outline-none min-h-[120px]"
+                />
+                <button
+                  onClick={() => handleOptionClick(selectedOption || '')}
+                  disabled={hasAnswered || screenFrozen || !selectedOption}
+                  className="w-full mt-4 py-3 bg-[#ff0055] text-white font-black uppercase tracking-widest hover:bg-[#cc0044] disabled:opacity-50 disabled:cursor-not-allowed transition-all rounded"
+                >
+                  {hasAnswered ? 'ANSWER SUBMITTED' : 'Submit Intel'}
+                </button>
+              </div>
+            )}
+
+            {currentQ.type === 'multiple_choice' && (
               <div className="grid grid-cols-2 gap-3">
                 {currentQ.options?.map((option: string, i: number) => {
                   const isEliminated = eliminatedOptions.includes(option);
@@ -447,42 +486,8 @@ function BattlePageContent() {
         )}
       </div>
 
-      {/* INJECT GADGET DEPLOYMENT BUTTON */}
       <div className="absolute bottom-6 right-6 z-40">
         <button onClick={handleForfeit} className="bg-red-900/60 hover:bg-red-600 border border-red-500 text-white px-4 py-2 rounded-full font-mono text-[10px] sm:text-xs tracking-widest transition-all cursor-pointer shadow-[0_0_15px_rgba(255,0,85,0.4)]">FORFEIT MATCH</button>
-      </div>
-      <div className="absolute bottom-6 left-6 z-40">
-        <button onClick={() => setIsInventoryOpen(true)} className="bg-purple-900/60 hover:bg-purple-600 border border-purple-500 text-white px-4 py-2 rounded-full font-mono text-[10px] sm:text-xs tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all cursor-pointer">
-          DEPLOY GADGET
-        </button>
-        {isInventoryOpen && (
-          <div className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center p-4">
-            <div className="bg-gray-950 border border-purple-500 p-4 sm:p-6 rounded-lg text-white font-mono w-72 sm:w-80 max-w-[90vw] shadow-[0_0_30px_rgba(168,85,247,0.3)]">
-               <h3 className="text-purple-400 mb-4 border-b border-purple-900/50 pb-2">ACTIVE INVENTORY</h3>
-               {Object.entries(inventory).filter(([_, count]) => count > 0).length === 0 ? (
-                 <p className="text-gray-500 text-xs">No tactical assets available.</p>
-               ) : (
-                 Object.entries(inventory).filter(([_, count]) => count > 0).map(([key, count], idx) => (
-                   <button key={idx} onClick={() => {
-                     gadgetRegistry.execute(key, {
-                       currentQ,
-                       setEliminatedOptions,
-                       setTimer,
-                       socket,
-                       opponent,
-                       localUser,
-                       consumeItem
-                     });
-                     setIsInventoryOpen(false);
-                   }} className="block w-full text-left p-3 mb-2 bg-purple-900/20 hover:bg-purple-600 text-sm border border-purple-900 rounded cursor-pointer transition-colors">
-                     [{count}x] {key.toUpperCase()}
-                   </button>
-                 ))
-               )}
-               <button onClick={() => setIsInventoryOpen(false)} className="mt-4 text-gray-500 hover:text-white text-xs w-full text-right cursor-pointer transition-colors">[ CLOSE ]</button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

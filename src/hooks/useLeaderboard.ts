@@ -32,6 +32,8 @@ export function useLeaderboard(socket: Socket | null) {
             u.activeAvatar && Object.keys(u.activeAvatar).length > 0
               ? { ...DEFAULT_AVATAR, ...u.activeAvatar }
               : DEFAULT_AVATAR,
+          warningMessage: u.warningMessage,
+          hasSeenTour: u.hasSeenTour || false,
         }));
         setLeaderboard(mapped);
       }

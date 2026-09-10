@@ -3,8 +3,9 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IUser extends Document {
   empId: string;
   name: string;
-  username: string;
+  username?: string;
   email?: string;
+  password?: string;
   passwordHash?: string;
   department: string;
   role: 'Admin' | 'Player' | 'VIP' | 'Guard';
@@ -19,14 +20,17 @@ export interface IUser extends Document {
   warningMessage?: string;
   banUntil?: Date;
   forceUsernameChange?: boolean;
+  hasSeenTour?: boolean;
+  lastUsernameChange?: Date;
 }
 
 const UserSchema = new Schema<IUser>(
   {
     empId: { type: String, required: true, unique: true },
     name: { type: String, required: true },
-    username: { type: String, required: true, unique: true },
-    email: { type: String, sparse: true },
+    username: { type: String, unique: true, sparse: true, required: false },
+    email: { type: String, sparse: true, required: false },
+    password: { type: String },
     passwordHash: { type: String },
     department: { type: String, default: 'Operations' },
     role: {
@@ -49,8 +53,14 @@ const UserSchema = new Schema<IUser>(
     warningMessage: { type: String, default: null },
     banUntil: { type: Date, default: null },
     forceUsernameChange: { type: Boolean, default: false },
+    hasSeenTour: { type: Boolean, default: false },
+    lastUsernameChange: { type: Date, default: null },
   },
   { timestamps: true }
 );
 
-export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
+if (mongoose.models.User) {
+  delete mongoose.models.User;
+}
+
+export default mongoose.model<IUser>('User', UserSchema);

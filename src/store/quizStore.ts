@@ -1,8 +1,5 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import quizData from '@/data/questions.json';
-
-const questions = quizData.questions;
 
 interface SessionLog {
   questionId: string;
@@ -83,45 +80,7 @@ export const useQuizStore = create<QuizState>()(
         }
 
         const newPlayed = [...state.playedQuestions, state.currentQuestionIndex];
-        
-        // Determine Next Difficulty
-        const currentQuestion = questions[state.currentQuestionIndex];
-        let currentTierStr = currentQuestion?.difficulty?.toLowerCase() || 'easy';
-        if (currentTierStr === 'difficult') currentTierStr = 'hard';
-
-        let currentTierIndex = DIFFICULTY_TIERS.indexOf(currentTierStr);
-        if (currentTierIndex === -1) currentTierIndex = 0;
-
-        let targetTierIndex = currentTierIndex;
-        if (isCorrect) {
-          targetTierIndex = Math.min(DIFFICULTY_TIERS.length - 1, currentTierIndex + 1);
-        } else {
-          targetTierIndex = Math.max(0, currentTierIndex - 1);
-        }
-
-        let targetDifficulty = DIFFICULTY_TIERS[targetTierIndex];
-        
-        // Find next question
-        let nextIndex = -1;
-        
-        // Try to find an unplayed question of the target difficulty
-        const availableOfTarget = questions.findIndex((q: any, idx: number) => {
-           let diff = q.difficulty?.toLowerCase() || 'easy';
-           if (diff === 'difficult') diff = 'hard';
-           return diff === targetDifficulty && !newPlayed.includes(idx);
-        });
-
-        if (availableOfTarget !== -1) {
-           nextIndex = availableOfTarget;
-        } else {
-           // Fallback to any unplayed question
-           nextIndex = questions.findIndex((_, idx: number) => !newPlayed.includes(idx));
-        }
-
-        // If no unplayed questions remain, fallback to sequential
-        if (nextIndex === -1) {
-           nextIndex = state.currentQuestionIndex + 1;
-        }
+        const nextIndex = state.currentQuestionIndex + 1;
 
         return {
           score: newScore,

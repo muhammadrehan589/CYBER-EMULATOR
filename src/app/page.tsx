@@ -19,7 +19,8 @@ import {
   List,
   Bell,
   Play,
-  X
+  X,
+  AlertTriangle
 } from 'lucide-react';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
@@ -36,12 +37,13 @@ import { LeaderboardPlayer, FloatingEmoji, FloatingStat } from '@/types/dashboar
 import { LeaderboardItem, BADGE_COLORS } from '@/components/dashboard/LeaderboardItem';
 import { FullLeaderboardModal } from '@/components/dashboard/FullLeaderboardModal';
 import { useToast } from '@/components/ui/Toast';
+import EditUsernameModal from '@/components/dashboard/EditUsernameModal';
 
 
 
 export default function Phase3RealtimeDashboard() {
   const router = useRouter();
-  const { empId, role, isAuthenticated, isAuthReady } = useAuth();
+  const { empId, role, username, isAuthenticated, isAuthReady } = useAuth();
   const { socket, isConnected } = useSocket(empId);
   const { leaderboard, setLeaderboard, fetchLeaderboard } = useLeaderboard(socket);
 
@@ -53,36 +55,32 @@ export default function Phase3RealtimeDashboard() {
   useEffect(() => {
     if (isAuthReady) {
       if (!isAuthenticated) {
-        window.location.href = '/login';
+        router.push('/login');
       } else if (role === 'Admin') {
-        window.location.href = '/admin';
+        router.push('/admin');
+      } else if (!username || username.startsWith('init_')) {
+        router.push('/setup-username');
       }
     }
-  }, [isAuthReady, isAuthenticated, role, router]);
+  }, [isAuthReady, isAuthenticated, role, username, router]);
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
   const [floatingStats, setFloatingStats] = useState<FloatingStat[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [activeWarning, setActiveWarning] = useState<any>(null);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [recentBattles, setRecentBattles] = useState<any[]>([]);
   const [expandedBattle, setExpandedBattle] = useState<string | null>(null);
   const [isBattlesExpanded, setIsBattlesExpanded] = useState(false);
+  const [showEditUsername, setShowEditUsername] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showRecentBattlesModal, setShowRecentBattlesModal] = useState(false);
-  const [selectedPool, setSelectedPool] = useState<'Technical' | 'Non-Technical' | null>(null);
-
+  const [selectedPool, setSelectedPool] = useState<string | null>(null);
   const [showPreBriefing, setShowPreBriefing] = useState(false);
-  const [isFirstTimeBriefing, setIsFirstTimeBriefing] = useState(false);
 
   useEffect(() => {
     try {
       const hist = localStorage.getItem('battleHistory');
       if (hist) setRecentBattles(JSON.parse(hist));
-      
-      const hasSeenTour = localStorage.getItem('hasSeenTour');
-      if (!hasSeenTour) {
-        setShowPreBriefing(true);
-        setIsFirstTimeBriefing(true);
-      }
     } catch (e) {}
   }, []);
 
@@ -186,10 +184,14 @@ export default function Phase3RealtimeDashboard() {
 
     socket.on('pending_notifications', (notifs: any[]) => {
       setNotifications(notifs);
+      if (notifs.length > 0) {
+        setActiveWarning(notifs[notifs.length - 1]);
+      }
     });
 
     socket.on('new_notification', (notif: any) => {
       setNotifications(prev => [...prev, notif]);
+      setActiveWarning(notif);
       showToast(notif.message, 'info');
     });
 
@@ -297,28 +299,83 @@ export default function Phase3RealtimeDashboard() {
     }
   };
 
+  const [isFirstTimeBriefing, setIsFirstTimeBriefing] = useState(false);
+
+  const me = leaderboard.find(p => p.empId === empId);
+
+  useEffect(() => {
+    try {
+      const hist = localStorage.getItem('battleHistory');
+      if (hist) setRecentBattles(JSON.parse(hist));
+    } catch (e) {}
+  }, []);
+
+  const [hasCheckedTour, setHasCheckedTour] = useState(false);
+
+  useEffect(() => {
+    if (leaderboard.length > 0 && empId && me && !hasCheckedTour) {
+      setHasCheckedTour(true);
+      
+      const localSeen = localStorage.getItem(`hasSeenTour_${empId}`);
+      if (!me.hasSeenTour && !localSeen) {
+        if (me.xp === 0 && me.coins === 0) {
+          setShowPreBriefing(true);
+          setIsFirstTimeBriefing(true);
+        } else {
+          // Old player, skip the auto-tour permanently
+          localStorage.setItem(`hasSeenTour_${empId}`, 'true');
+          fetch('/api/users', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ empId, updates: { hasSeenTour: true } })
+          });
+        }
+      }
+    }
+  }, [leaderboard, empId, me, hasCheckedTour]);
+
+  const handleBriefingAcknowledge = () => {
+    setShowPreBriefing(false);
+    if (isFirstTimeBriefing) {
+      setShowWelcome(true);
+    }
+  };
+
+  const handleWelcomeAcknowledge = () => {
+    setShowWelcome(false);
+    if (empId) {
+      localStorage.setItem(`hasSeenTour_${empId}`, 'true');
+      fetch('/api/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ empId, updates: { hasSeenTour: true } })
+      });
+    }
+    setTimeout(() => {
+      startTour();
+    }, 500);
+  };
+
   const startTour = () => {
     const driverObj = driver({
       showProgress: true,
       animate: true,
       popoverClass: 'cyber-tour-theme',
       steps: [
-        { element: '#tour-notifications', popover: { title: 'System Alerts', description: 'Check for incoming challenges and system events here.', side: "bottom", align: 'end' }},
-        { element: '#tour-avatar', popover: { title: 'Edit Avatar', description: 'Customize your visual identity in the matrix.', side: "bottom", align: 'start' }},
-        { element: '#tour-market', popover: { title: 'Black Market', description: 'Exchange your coins for items and upgrades.', side: "bottom", align: 'start' }},
-        { element: '#tour-inventory', popover: { title: 'Inventory', description: 'View and equip your acquired items.', side: "bottom", align: 'start' }},
-        { element: '#tour-profile', popover: { title: 'Operant Profile', description: 'Your basic identification and visual status.', side: "right", align: 'start' }},
-        { element: '#tour-briefing', popover: { title: 'Mission Briefing', description: 'Review the rules and objectives of the simulation.', side: "right", align: 'start' }},
-        { element: '#tour-guide', popover: { title: 'Survival Guide', description: 'Replay this tour anytime you need a refresher.', side: "right", align: 'start' }},
-        { element: '#tour-stats', popover: { title: 'Stats Panel', description: 'Track your XP level and total coins.', side: "right", align: 'start' }},
-        { element: '#tour-battles', popover: { title: 'Recent Battles', description: 'Your combat history and outcomes.', side: "right", align: 'start' }},
-        { element: '#tour-pool-selector', popover: { title: 'Question Pool', description: 'Select the technical or non-technical category before entering the matrix.', side: "top", align: 'center' }},
-        { element: '#tour-matrix', popover: { title: 'Simulation Matrix', description: 'Enter the main solo training environment.', side: "bottom", align: 'center' }},
-        { element: '#tour-online', popover: { title: 'Online Duel', description: 'Challenge other Operants who are currently online.', side: "bottom", align: 'start' }},
-        { element: '#tour-offline', popover: { title: 'Offline Duel', description: 'Challenge disconnected Operants asynchronously.', side: "bottom", align: 'start' }},
-        { element: '#tour-leaderboard', popover: { title: 'Live Leaderboard', description: 'Track rankings and select targets from the active player list.', side: "left", align: 'start' }},
-        { element: '#tour-full-leaderboard', popover: { title: 'Full Roster', description: 'View the complete historical player rankings.', side: "left", align: 'start' }},
-        { element: '#tour-target-panel', popover: { title: 'Target Engagement', description: 'Once a target is locked from the leaderboard, send them reactions or coin-funded XP boosts!', side: "left", align: 'start' }},
+        { element: '#tour-briefing', popover: { title: 'Mission Briefing', description: 'Click this tab to instantly pull up the Tactical Briefing manual. Use it to review the core rules, security protocols, and game mechanics whenever you need a refresher.', side: "right", align: 'start' }},
+        { element: '#tour-guide', popover: { title: 'Survival Guide', description: 'Click here to restart this interactive system tour. Helpful if you forget where a specific function is located.', side: "right", align: 'start' }},
+        { element: '#tour-signout', popover: { title: 'Emergency Exit', description: 'Click this button to securely sign out of your session and return to the login gateway.', side: "bottom", align: 'start' }},
+        { element: '#tour-avatar', popover: { title: 'Avatar Customization', description: 'Click this button to modify your Operant visual identity. Personalize your look as you progress.', side: "bottom", align: 'start' }},
+        { element: '#tour-profile', popover: { title: 'Operative Profile', description: 'This panel displays your current operative identity and avatar.', side: "right", align: 'start' }},
+        { element: '#tour-edit-alias', popover: { title: 'Edit Alias', description: 'Click here to change your displayed operative name. Note that changes are subject to a 10-day cooldown policy.', side: "right", align: 'start' }},
+        { element: '#tour-stats', popover: { title: 'Performance Metrics', description: 'Track your current XP Level and accrued Coins here. Earn these by dominating in the Simulation Matrix.', side: "bottom", align: 'start' }},
+        { element: '#tour-notifications', popover: { title: 'System Alerts', description: 'Click here to review incoming system notifications, battle challenges, and alerts. Keep an eye out for the glowing indicator showing unread messages.', side: "bottom", align: 'end' }},
+        { element: '#tour-battles', popover: { title: 'Battle History', description: 'Click this panel to open a detailed log of your recent simulation matches. Review past outcomes, scores, and opponent history.', side: "right", align: 'start' }},
+        { element: '#tour-matrix', popover: { title: 'Simulation Matrix', description: 'Click to launch the primary solo training environment. Questions are completely randomized, and difficulty scales dynamically as you play.', side: "bottom", align: 'center' }},
+        { element: '#tour-online', popover: { title: 'Online Duel', description: 'Click to challenge other Operants who are currently online in real-time. Matches are synchronized for both players.', side: "bottom", align: 'start' }},
+        { element: '#tour-offline', popover: { title: 'Offline Duel', description: 'Click to send an asynchronous challenge to an offline Operant. They can respond and complete the match when they next log in.', side: "bottom", align: 'start' }},
+        { element: '#tour-full-leaderboard', popover: { title: 'Full Roster', description: 'Click to open the comprehensive, scrollable modal of every Operant ranked globally by XP.', side: "left", align: 'start' }},
+        { element: '#tour-target-panel', popover: { title: 'Engagement Interface', description: 'Select any Operant on the leaderboard to unlock this panel. You can send them animated reactions or spend your Coins to boost their XP.', side: "top", align: 'end' }},
       ]
     });
     driverObj.drive();
@@ -332,20 +389,7 @@ export default function Phase3RealtimeDashboard() {
     );
   }
 
-  const handleBriefingAcknowledge = () => {
-    setShowPreBriefing(false);
-    if (isFirstTimeBriefing) {
-      setShowWelcome(true);
-    }
-  };
 
-  const handleWelcomeAcknowledge = () => {
-    setShowWelcome(false);
-    localStorage.setItem('hasSeenTour', 'true');
-    setTimeout(() => {
-      startTour();
-    }, 500);
-  };
 
   return (
     <div className="min-h-screen h-screen bg-black text-white p-4 sm:p-6 lg:p-8 font-sans relative overflow-x-hidden flex flex-col justify-between select-none">
@@ -403,13 +447,16 @@ export default function Phase3RealtimeDashboard() {
       <div className="max-w-[1600px] w-full mx-auto space-y-6 relative z-10 my-auto px-0 2xl:px-8">
         <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[#ff0055]/30">
           <div className="flex items-center gap-3">
-            <Link
-              href="/login"
+            <button
+              id="tour-signout"
+              onClick={() => {
+                import('next-auth/react').then(({ signOut }) => signOut({ callbackUrl: '/login' }));
+              }}
               className="p-2.5 rounded-xl bg-[#0e0414] border border-[#ff0055]/30 text-[#ff0055] hover:bg-[#ff0055] hover:text-white transition-all shadow-[0_0_10px_rgba(255,0,85,0.2)]"
               title="Sign Out to Login"
             >
               <ArrowLeft className="w-4 h-4" />
-            </Link>
+            </button>
 
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-[#ff0055]/20 border border-[#ff0055]/40 text-[#ff0055] shadow-[0_0_15px_#ff0055]">
@@ -429,20 +476,7 @@ export default function Phase3RealtimeDashboard() {
           </div>
 
           <div className="flex items-center gap-4">
-            <button 
-              id="tour-market"
-              onClick={() => setIsShopOpen(true)} 
-              className="bg-black hover:bg-[#ff0055]/10 text-white px-4 py-2.5 rounded-xl font-bold border border-[#ff0055] font-mono tracking-widest text-xs shadow-[0_0_15px_rgba(255,0,85,0.4)] transition-all active:scale-95 cursor-pointer"
-            >
-              🛒 BLACK MARKET
-            </button>
-            <button 
-              id="tour-inventory"
-              onClick={() => setIsInventoryOpen(true)}
-              className="bg-black hover:bg-[#ff0055]/10 text-white px-4 py-2.5 rounded-xl font-bold border border-[#ff0055] font-mono tracking-widest text-xs shadow-[0_0_15px_rgba(255,0,85,0.4)] transition-all active:scale-95 cursor-pointer"
-            >
-              📦 INVENTORY
-            </button>
+
             <Link
               id="tour-avatar"
               href="/avatar"
@@ -473,12 +507,12 @@ export default function Phase3RealtimeDashboard() {
                     onClick={() => setIsNotifOpen(false)}
                   ></div>
                   
-                  <div className="absolute right-0 mt-3 w-80 bg-[#0a0a0a] border border-[#ff0055] rounded-xl shadow-[0_0_30px_rgba(255,0,85,0.4)] z-50 font-mono overflow-hidden flex flex-col">
+                  <div className="absolute right-0 mt-3 w-[450px] bg-[#0a0a0a] border border-[#ff0055] rounded-xl shadow-[0_0_30px_rgba(255,0,85,0.4)] z-50 font-mono overflow-hidden flex flex-col">
                     <div className="p-3 border-b border-[#ff0055]/30 bg-[#ff0055]/10 flex justify-between items-center">
                       <span className="text-[#ff0055] font-black text-xs uppercase tracking-widest drop-shadow-[0_0_5px_currentColor]">System Alerts</span>
                       <button onClick={() => setNotifications([])} className="text-[10px] text-white hover:text-[#ff0055] transition-colors border border-transparent hover:border-[#ff0055]/50 px-2 rounded">CLEAR ALL</button>
                     </div>
-                    <div className="max-h-80 overflow-y-auto cyber-scrollbar" style={{ scrollbarWidth: 'thin', scrollbarColor: '#ff0055 transparent' }}>
+                    <div className="max-h-[500px] overflow-y-auto cyber-scrollbar" style={{ scrollbarWidth: 'thin', scrollbarColor: '#ff0055 transparent' }}>
                       {notifications.length === 0 ? (
                         <div className="p-6 text-center text-zinc-600 text-xs tracking-widest flex flex-col items-center gap-2">
                           <Bell className="w-6 h-6 opacity-20" />
@@ -510,6 +544,38 @@ export default function Phase3RealtimeDashboard() {
             </div>
           </div>
         </header>
+        
+        {/* Warning Banner */}
+        {leaderboard.find(p => p.empId === empId)?.warningMessage && (
+          <div className="w-full bg-yellow-950/80 border-l-4 border-yellow-500 p-4 rounded-r-xl flex items-start gap-3 shadow-[0_0_15px_rgba(234,179,8,0.2)] mb-4">
+            <AlertTriangle className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="text-yellow-500 font-bold uppercase tracking-wider text-sm mb-1">Official Warning from System Admin</h3>
+              <p className="text-yellow-200 text-sm font-mono">{leaderboard.find(p => p.empId === empId)?.warningMessage}</p>
+            </div>
+            <button
+              onClick={async () => {
+                try {
+                  await fetch('/api/users', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ empId, updates: { warningMessage: '' } }),
+                  });
+                  if (socket && isConnected) {
+                    socket.emit('trigger_refresh');
+                  } else {
+                    fetchLeaderboard();
+                  }
+                } catch (error) {
+                  console.error('Failed to clear warning:', error);
+                }
+              }}
+              className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-yellow-950 font-bold text-xs rounded transition-colors uppercase tracking-widest shadow-[0_0_10px_rgba(234,179,8,0.4)] whitespace-nowrap self-center"
+            >
+              Acknowledge & Clear
+            </button>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Column */}
@@ -525,10 +591,17 @@ export default function Phase3RealtimeDashboard() {
                       <div className="w-16 h-16 rounded bg-gray-800 flex items-center justify-center border border-[#ff0055] overflow-hidden">
                         {me ? <MiniAvatar avatar={me.avatar as AvatarState} /> : <div className="text-xs text-gray-500">NO ID</div>}
                       </div>
-                      <div>
-                        <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">PLAYER</span>
-                        <h2 className="text-xl font-extrabold text-white font-mono truncate">{me?.name || '—'}</h2>
-                        <span className="text-xs text-[#ff0055] font-mono">@{me?.username || me?.name?.split(' ')[0].toLowerCase() || 'player'}</span>
+                      <div className="flex-1 flex flex-col justify-center">
+                        <span className="text-xl font-black text-white drop-shadow-[0_0_8px_rgba(255,0,85,0.6)] font-mono truncate">
+                          {me?.username || '—'}
+                        </span>
+                        <button 
+                          id="tour-edit-alias"
+                          onClick={() => setShowEditUsername(true)}
+                          className="mt-2 self-start text-[10px] font-mono text-zinc-400 hover:text-white border-b border-transparent hover:border-white transition-colors"
+                        >
+                          EDIT ALIAS
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -613,44 +686,14 @@ export default function Phase3RealtimeDashboard() {
               </div>
 
               <div className="flex flex-col items-center gap-10 w-full max-w-md z-10 pb-8">
-                <div id="tour-pool-selector" className="flex bg-black border border-[#ff0055] rounded-xl overflow-hidden shadow-[0_0_15px_rgba(255,0,85,0.3)]">
-                  <button
-                    onClick={() => setSelectedPool('Technical')}
-                    className={`px-6 py-3 font-mono font-bold tracking-widest text-sm uppercase transition-all ${
-                      selectedPool === 'Technical'
-                        ? 'bg-[#ff0055] text-white'
-                        : 'text-[#ff0055] hover:bg-[#ff0055]/20'
-                    }`}
-                  >
-                    Technical
-                  </button>
-                  <button
-                    onClick={() => setSelectedPool('Non-Technical')}
-                    className={`px-6 py-3 font-mono font-bold tracking-widest text-sm uppercase transition-all ${
-                      selectedPool === 'Non-Technical'
-                        ? 'bg-[#ff0055] text-white'
-                        : 'text-[#ff0055] hover:bg-[#ff0055]/20'
-                    }`}
-                  >
-                    Non-Technical
-                  </button>
-                </div>
-
                 <div className="flex flex-col items-center text-center group">
                   <button 
                     id="tour-matrix"
-                    disabled={!selectedPool}
                     onClick={() => {
-                      if (selectedPool) {
-                        localStorage.setItem('selectedPool', selectedPool);
-                        window.location.href = '/simulation-matrix';
-                      }
+                      localStorage.removeItem('selectedPool');
+                      window.location.href = '/simulation-matrix';
                     }}
-                    className={`w-32 h-32 rounded-full flex flex-col items-center justify-center transition-all relative z-10 mb-6 ${
-                      selectedPool 
-                        ? 'bg-[#ff0055] hover:bg-white text-white hover:text-[#ff0055] shadow-[0_0_50px_rgba(255,0,85,0.6)] hover:shadow-[0_0_80px_rgba(255,255,255,0.8)] active:scale-95 cursor-pointer' 
-                        : 'bg-gray-800 text-gray-500 opacity-50 cursor-not-allowed'
-                    }`}
+                    className="w-32 h-32 rounded-full flex flex-col items-center justify-center transition-all relative z-10 mb-6 bg-[#ff0055] hover:bg-white text-white hover:text-[#ff0055] shadow-[0_0_50px_rgba(255,0,85,0.6)] hover:shadow-[0_0_80px_rgba(255,255,255,0.8)] active:scale-95 cursor-pointer"
                   >
                     <Play className="w-12 h-12 ml-2 fill-current" />
                   </button>
@@ -662,28 +705,22 @@ export default function Phase3RealtimeDashboard() {
                 <div className="grid grid-cols-2 gap-4 w-full">
                   <button 
                     id="tour-online"
-                    disabled={!selectedPool}
                     onClick={() => {
-                      if (selectedPool) {
-                        localStorage.setItem('selectedPool', selectedPool);
-                        setShowOnline1v1(true);
-                      }
+                      localStorage.removeItem('selectedPool');
+                      setShowOnline1v1(true);
                     }}
-                    className={`py-4 rounded-xl border font-mono font-bold text-sm uppercase tracking-widest transition-all flex items-center justify-center ${selectedPool ? 'bg-black border-[#ff0055]/50 hover:border-[#ff0055] text-gray-300 hover:text-white hover:bg-[#ff0055]/10 shadow-[0_0_15px_rgba(255,0,85,0.1)] active:scale-95 cursor-pointer' : 'bg-gray-800 border-gray-600 text-gray-500 opacity-50 cursor-not-allowed'}`}
+                    className="py-4 rounded-xl border font-mono font-bold text-sm uppercase tracking-widest transition-all flex items-center justify-center bg-black border-[#ff0055]/50 hover:border-[#ff0055] text-gray-300 hover:text-white hover:bg-[#ff0055]/10 shadow-[0_0_15px_rgba(255,0,85,0.1)] active:scale-95 cursor-pointer"
                   >
                     <span className="text-[#ff0055] mr-2">●</span>
                     ONLINE DUEL
                   </button>
                   <button 
                     id="tour-offline"
-                    disabled={!selectedPool}
                     onClick={() => {
-                      if (selectedPool) {
-                        localStorage.setItem('selectedPool', selectedPool);
-                        setShowOffline1v1(true);
-                      }
+                      localStorage.removeItem('selectedPool');
+                      setShowOffline1v1(true);
                     }}
-                    className={`py-4 rounded-xl border font-mono font-bold text-sm uppercase tracking-widest transition-all flex items-center justify-center ${selectedPool ? 'bg-black border-[#ff0055]/50 hover:border-[#ff0055] text-gray-300 hover:text-white hover:bg-[#ff0055]/10 shadow-[0_0_15px_rgba(255,0,85,0.1)] active:scale-95 cursor-pointer' : 'bg-gray-800 border-gray-600 text-gray-500 opacity-50 cursor-not-allowed'}`}
+                    className="py-4 rounded-xl border font-mono font-bold text-sm uppercase tracking-widest transition-all flex items-center justify-center bg-black border-[#ff0055]/50 hover:border-[#ff0055] text-gray-300 hover:text-white hover:bg-[#ff0055]/10 shadow-[0_0_15px_rgba(255,0,85,0.1)] active:scale-95 cursor-pointer"
                   >
                     <span className="text-gray-500 mr-2">●</span>
                     OFFLINE DUEL
@@ -923,7 +960,7 @@ export default function Phase3RealtimeDashboard() {
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
-                      window.location.href = `/battle?matchId=offline_${empId}_${player.empId}_${Date.now()}&challengerId=${empId}&targetId=${player.empId}&async=true`;
+                      sendDuelChallenge(player.empId, player.name || `Operant-${idx}`);
                     }}
                     className="ml-auto bg-purple-950/40 hover:bg-purple-900 border border-purple-700/50 text-purple-400 hover:text-white px-4 py-2 rounded text-xs font-black tracking-widest transition-all shadow-[0_0_15px_rgba(168,85,247,0.2)]"
                   >
@@ -986,6 +1023,53 @@ export default function Phase3RealtimeDashboard() {
           </div>
         </div>
       )}
+      {activeWarning && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/90 backdrop-blur-sm pointer-events-auto">
+          <div className="bg-[#0a0a0a] border-2 border-[#ff0055] p-8 rounded-xl shadow-[0_0_60px_rgba(255,0,85,0.4)] max-w-lg w-full mx-4 flex flex-col items-center text-center">
+            <AlertTriangle className="w-16 h-16 text-[#ff0055] mb-4 animate-pulse" />
+            <h2 className="text-2xl font-black text-white tracking-widest mb-4 uppercase drop-shadow-[0_0_8px_rgba(255,0,85,0.8)]">System Warning</h2>
+            <p className="text-gray-300 font-mono mb-8 leading-relaxed text-sm">
+              {activeWarning.message}
+            </p>
+            {activeWarning.type === 'OFFLINE_CHALLENGE' ? (
+              <div className="flex gap-4 w-full">
+                <button 
+                  onClick={() => {
+                    const url = `/battle?matchId=${activeWarning.matchId}&challengerId=${activeWarning.challengerId}&targetId=${empId}&async=true`;
+                    setActiveWarning(null);
+                    window.location.href = url;
+                  }}
+                  className="flex-1 bg-[#ff0055] hover:bg-white text-white hover:text-[#ff0055] font-black uppercase tracking-widest py-3 rounded transition-all shadow-[0_0_15px_rgba(255,0,85,0.4)]"
+                >
+                  Accept Duel
+                </button>
+                <button 
+                  onClick={() => setActiveWarning(null)}
+                  className="flex-1 bg-transparent border border-[#ff0055]/50 text-gray-400 hover:text-white py-3 rounded transition-all font-black uppercase tracking-widest"
+                >
+                  Later
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => setActiveWarning(null)}
+                className="w-full bg-[#ff0055] hover:bg-white text-white hover:text-[#ff0055] font-black uppercase tracking-widest py-3 rounded transition-all shadow-[0_0_15px_rgba(255,0,85,0.4)]"
+              >
+                Acknowledge
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+      <EditUsernameModal 
+        isOpen={showEditUsername}
+        onClose={() => setShowEditUsername(false)}
+        currentUser={leaderboard.find(p => p.empId === empId)}
+        onSuccess={() => {
+          if (socket && isConnected) socket.emit('trigger_refresh');
+          else fetchLeaderboard();
+        }}
+      />
     </div>
   );
 }

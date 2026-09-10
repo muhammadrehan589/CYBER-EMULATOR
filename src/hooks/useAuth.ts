@@ -1,48 +1,59 @@
 'use client';
-// Single place that reads/writes auth session from localStorage.
-// All components use this instead of raw localStorage calls.
 
+import { useSession, signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
 export interface AuthSession {
   empId: string | null;
   role: string | null;
+  username: string | null;
   isAuthenticated: boolean;
   isAuthReady: boolean;
 }
 
 export function useAuth(): AuthSession {
-  const [empId, setEmpId] = useState<string | null>(null);
-  const [role, setRole] = useState<string | null>(null);
-  const [isAuthReady, setIsAuthReady] = useState(false);
+  const { data: session, status } = useSession();
+  const [fallbackEmpId, setFallbackEmpId] = useState<string | null>(null);
+  const [fallbackRole, setFallbackRole] = useState<string | null>(null);
+  const [fallbackUsername, setFallbackUsername] = useState<string | null>(null);
 
   useEffect(() => {
-    // Only runs on client — safe from SSR issues
-    const stored = localStorage.getItem('currentUserEmpId');
+    // Legacy credential-login fallback kept for non-NextAuth paths.
+    const storedEmpId = localStorage.getItem('currentUserEmpId');
     const storedRole = localStorage.getItem('currentUserRole');
-    setEmpId(stored);
-    setRole(storedRole);
-    setIsAuthReady(true);
+    const storedUsername = localStorage.getItem('currentUsername');
+    setFallbackEmpId(storedEmpId);
+    setFallbackRole(storedRole);
+    setFallbackUsername(storedUsername);
   }, []);
+
+  const sessionUser = (session?.user as any) || null;
+  const empId = sessionUser?.empId || fallbackEmpId;
+  const role = sessionUser?.role || fallbackRole;
+  const username = sessionUser?.username || fallbackUsername;
 
   return {
     empId,
     role,
-    isAuthenticated: !!empId,
-    isAuthReady,
+    username,
+    isAuthenticated: status === 'authenticated' || !!empId,
+    isAuthReady: status !== 'loading',
   };
 }
 
-// Utility to set auth session (used after login/signup)
-export function setAuthSession(empId: string, role?: string) {
+export function setAuthSession(empId: string, role?: string, username?: string) {
   localStorage.setItem('currentUserEmpId', empId);
   if (role) {
     localStorage.setItem('currentUserRole', role);
   }
+  if (username) {
+    localStorage.setItem('currentUsername', username);
+  }
 }
 
-// Utility to clear auth session (used on logout)
 export function clearAuthSession() {
   localStorage.removeItem('currentUserEmpId');
   localStorage.removeItem('currentUserRole');
+  localStorage.removeItem('currentUsername');
+  signOut({ callbackUrl: '/login' });
 }

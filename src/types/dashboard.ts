@@ -11,6 +11,8 @@ export interface LeaderboardPlayer {
   coins: number;
   badgeColor: string;
   avatar: AvatarState;
+  warningMessage?: string;
+  hasSeenTour?: boolean;
 }
 
 export interface FloatingEmoji {
