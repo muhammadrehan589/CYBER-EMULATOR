@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuizStore } from '@/store/quizStore';
-import quizData from '@/data/questions.json';
 import { useRouter } from 'next/navigation';
 import LiveLeaderboard from './LiveLeaderboard';
 import SequenceOrdering from './SequenceOrdering';
+import { PreGameBriefing } from '@/components/PreGameBriefing';
 import { QRCodeSVG } from 'qrcode.react';
 import { DIFFICULTY_TIME_LIMITS, DIFFICULTY_XP_REWARDS, DIFFICULTY_COIN_REWARDS } from '@/config/quiz';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,8 +19,6 @@ const shuffleArray = (array: any[]) => {
   return shuffled;
 };
 
-const initialQuestions = quizData.questions;
-
 // QuizEngine owns its own local question index (soloQuestionIndex) that is
 // always bounded to the local 10-question shuffled array.
 // The store's advanceQuestion is called only for score/streak side-effects.
@@ -31,39 +29,42 @@ export default function QuizEngine() {
   const { empId } = useAuth();
   const { advanceQuestion, score, multiplier, resetStreak, coinsEarned, xpEarned, inventory } = useQuizStore();
 
-  // Local 10-question session array — shuffled & burn-filtered on mount
+  const [allQuestions, setAllQuestions] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
-  // soloQuestionIndex is owned entirely by QuizEngine — always within [0, questions.length)
   const [soloQuestionIndex, setSoloQuestionIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    // Fetch the burn list and selected pool
-    const burnedQuestions = JSON.parse(localStorage.getItem('burned_questions') || '[]');
-    const selectedPool = localStorage.getItem('selectedPool');
-    
-    // Filter out any question whose ID is in the burn list and match pool
-    const freshQuestions = initialQuestions.filter((q: any) => {
-       const isNotBurned = !burnedQuestions.includes(q.id);
-       const matchesPool = !selectedPool || q.pool === selectedPool;
-       return isNotBurned && matchesPool;
-    });
-    
-    // Failsafe: If they answer every question in the DB, clear the burn list to restart
-    if (freshQuestions.length === 0) {
-       console.log("Database exhausted for this pool. Resetting matrix...");
-       // Only remove burned questions of this pool
-       const remainingBurned = burnedQuestions.filter((id: string) => {
-          const q = initialQuestions.find((iq: any) => iq.id === id);
-          return q && q.pool !== selectedPool;
-       });
-       localStorage.setItem('burned_questions', JSON.stringify(remainingBurned));
-       
-       const reFreshQuestions = initialQuestions.filter((q: any) => (!selectedPool || q.pool === selectedPool));
-       setQuestions(shuffleArray(reFreshQuestions)); 
-    } else {
-       // Proceed with the fresh, unplayed questions
-       setQuestions(shuffleArray(freshQuestions));
-    }
+    const fetchQuestions = async () => {
+      const url = `/api/questions`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const dbQuestions = data.data || [];
+        
+        const burnedQuestions = JSON.parse(localStorage.getItem('burned_questions') || '[]');
+        let freshQuestions = dbQuestions.filter((q: any) => !burnedQuestions.includes(q.questionId));
+        
+        if (freshQuestions.length === 0 && dbQuestions.length > 0) {
+           console.log("Database exhausted. Resetting matrix...");
+           localStorage.setItem('burned_questions', JSON.stringify([]));
+           freshQuestions = dbQuestions;
+        }
+        
+        const shuffledFresh = shuffleArray(freshQuestions);
+        setAllQuestions(shuffledFresh);
+        
+        // Pick first question (completely random)
+        if (shuffledFresh[0]) {
+          setQuestions([shuffledFresh[0]]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch questions:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchQuestions();
   }, []);
 
   const [qrEvent, setQrEvent] = useState({ active: false, payload: "" });
@@ -82,9 +83,7 @@ export default function QuizEngine() {
     const popTime = Math.floor(Math.random() * 20000) + 10000; // 10s to 30s delay
     
     const dropTimer = setTimeout(() => {
-      // Pick a random asset from the array
       const randomAsset = publicAssets[Math.floor(Math.random() * publicAssets.length)];
-      // Generate the full URL so a mobile scanner can actually open the file
       const fullUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://cyber-emulator.vercel.app'}/black-market?secret=qr_discovery`;
       
       setQrEvent({ active: true, payload: fullUrl });
@@ -96,21 +95,55 @@ export default function QuizEngine() {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
+  const [isSkipping, setIsSkipping] = useState(false);
+  const [skipTimer, setSkipTimer] = useState(0);
+  const [eliminatedOptions, setEliminatedOptions] = useState<string[]>([]);
+
+  const [activeMedia, setActiveMedia] = useState<{ type: 'video'|'image'|'audio', url: string } | null>(null);
+
+  const activeQuestion = questions[soloQuestionIndex];
+
+  // For sequence challenges
+  const [currentSequence, setCurrentSequence] = useState<any[]>([]);
+  
+  // For text challenges
+  const [textInputAnswer, setTextInputAnswer] = useState('');
+
+  // 1. Timer Logic
+  const [timeLeft, setTimeLeft] = useState(999);
   const [isTimeout, setIsTimeout] = useState(false);
   
-  const [timeLeft, setTimeLeft] = useState<number>(30);
-  const [activeMedia, setActiveMedia] = useState<{ type: 'video' | 'image' | 'audio', url: string } | null>(null);
+  const getInitialTime = (q: any) => {
+    if (!q) return 30;
+    if (q.type === 'sequence') return 30;
+    if (q.type === 'text_input') return 60;
+    if (q.category && q.category.toLowerCase().includes('scenario')) return 45;
+    return 30;
+  };
+
+  useEffect(() => {
+    if (!activeQuestion || isSubmitted) return;
+    
+    // Initialize Timer
+    if (timeLeft === 999) {
+      setTimeLeft(getInitialTime(activeQuestion));
+      return; 
+    }
+
+    if (timeLeft <= 0) {
+      handleTimeout();
+      return;
+    }
+    const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
+    return () => clearInterval(timer);
+  }, [activeQuestion, timeLeft, isSubmitted]);
   
   const [isTimerFrozen, setIsTimerFrozen] = useState(false);
   
   const [isSabotaged, setIsSabotaged] = useState(false);
   const [sabotageMessage, setSabotageMessage] = useState<string | null>(null);
-    const [eliminatedOptions, setEliminatedOptions] = useState<string[]>([]);
     const [autoSolvedCount, setAutoSolvedCount] = useState(0);
-    const [currentSequence, setCurrentSequence] = useState<any[]>([]);
   const [socket, setSocket] = useState<any>(null);
-
-  const [quizMode, setQuizMode] = useState<'standard' | 'wager'>('standard');
   // Removed duplicate wagerAmount
 
   useEffect(() => {
@@ -139,27 +172,9 @@ export default function QuizEngine() {
     }
   };
 
-  const initiateWagerRound = () => {
-    setQuizMode('wager');
-    // Logic to pause standard timer and render the betting UI
-  };
-
-  useEffect(() => {
-    const handlePhysicalSmash = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && quizMode === 'standard') {
-        initiateWagerRound();
-      }
-    };
-    window.addEventListener('keydown', handlePhysicalSmash);
-    return () => window.removeEventListener('keydown', handlePhysicalSmash);
-  }, [quizMode]);
-  
   // Hydration check since we use localStorage persist
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-
-  const activeQuestion = questions[soloQuestionIndex];
-
 
   useEffect(() => {
     if (!socket) return;
@@ -198,8 +213,7 @@ export default function QuizEngine() {
       setAutoSolvedCount(0);
       setCurrentSequence(activeQuestion.draggableItems || []);
     
-    const diff = (activeQuestion.difficulty?.toLowerCase() || 'easy') as keyof typeof DIFFICULTY_TIME_LIMITS;
-    const initialTime = DIFFICULTY_TIME_LIMITS[diff] ?? 30;    
+    const initialTime = getInitialTime(activeQuestion);    
     setTimeLeft(initialTime);
   }, [soloQuestionIndex, activeQuestion]);
 
@@ -232,7 +246,7 @@ export default function QuizEngine() {
       const initialTime = DIFFICULTY_TIME_LIMITS[diff] ?? 30;
 
       useQuizStore.getState().addLog({
-        questionId: String(activeQuestion.id),
+        questionId: String(activeQuestion.questionId),
         isCorrect: false,
         timeSpent: initialTime,
       });
@@ -241,7 +255,7 @@ export default function QuizEngine() {
 
   // Handle Simulation Complete - Save Session
   useEffect(() => {
-    if (mounted && !activeQuestion && score > 0) {
+    if (mounted && !activeQuestion) {
       const saveSession = async () => {
         const state = useQuizStore.getState();
         const sessionEmpId = empId || 'EMP-456'; 
@@ -273,62 +287,92 @@ export default function QuizEngine() {
       };
       saveSession();
     }
-  }, [activeQuestion, mounted, score]);
+  }, [activeQuestion, mounted, score, empId]);
 
-  if (!mounted) return <div className="min-h-screen w-full bg-[#050505]" />;
+  useEffect(() => {
+    if (isSkipping && skipTimer > 0) {
+      const timer = setTimeout(() => {
+        setSkipTimer(prev => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (isSkipping && skipTimer === 0) {
+      setIsSkipping(false);
+      handleAction(true);
+    }
+  }, [isSkipping, skipTimer]);
 
-  if (!activeQuestion) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen w-full">
-        <h1 className="text-3xl text-[#ff0055] font-black uppercase tracking-widest mb-4">Simulation Complete</h1>
-        <p className="text-gray-400 font-mono mb-2">Final Score: {score}</p>
-        <p className="text-yellow-400 font-mono mb-2">Coins Earned: {coinsEarned}</p>
-        <p className="text-blue-400 font-mono mb-8">XP Earned: {xpEarned}</p>
-        <button 
-          onClick={() => {
-            useQuizStore.getState().resetQuiz();
-            router.push('/');
-          }}
-          className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded transition-colors"
-        >
-          Return to Dashboard
-        </button>
-      </div>
-    );
-  }
+  const handleTimeout = () => {
+    if (isSubmitted) return;
+    setIsTimeout(true);
+    setIsSubmitted(true);
+    setIsCorrect(false);
+
+    const initialTime = getInitialTime(activeQuestion);
+
+    useQuizStore.getState().addLog({
+      questionId: String(activeQuestion.questionId),
+      isCorrect: false,
+      timeSpent: initialTime,
+    });
+  };
+
+  const handleSkip = () => {
+    if (isSubmitted || isSkipping) return;
+    
+    const initialTime = getInitialTime(activeQuestion);
+
+    useQuizStore.getState().addLog({
+      questionId: String(activeQuestion.questionId),
+      isCorrect: false,
+      timeSpent: initialTime - timeLeft,
+    });
+
+    setIsSubmitted(true);
+    setIsCorrect(false);
+    setIsSkipping(true);
+    setSkipTimer(5);
+  };
 
   const submitAnswer = (selected: string | null) => {
     const answer = activeQuestion.correctAnswer || '';
     let correct = false;
     
-    
-      if (activeQuestion.type === 'sequence' || activeQuestion.type === 'drag_and_drop') {
-        try {
-          const defaultOrder = JSON.stringify(activeQuestion.draggableItems?.map((i: any) => i.id) || []);
-            const orderIds = JSON.parse(selected || defaultOrder);
-          correct = JSON.stringify(orderIds) === JSON.stringify(activeQuestion.correctOrder);
-        } catch(e) { correct = false; }
-      } else if (selected) {
-      correct = 
-        selected === answer || 
-        selected.startsWith(answer + '.') || 
-        selected.startsWith(answer + ')');
+    if (activeQuestion.type === 'sequence') {
+      try {
+        const defaultOrder = JSON.stringify(activeQuestion.items?.map((i: any) => i.id) || []);
+        const orderIds = JSON.parse(selected || defaultOrder);
+        correct = JSON.stringify(orderIds) === JSON.stringify(activeQuestion.correctOrder);
+      } catch(e) { correct = false; }
+    } else if (activeQuestion.type === 'text_input') {
+      const userInput = (selected || '').toLowerCase();
+      const keywords = (activeQuestion.keywords || []).map((k: string) => k.toLowerCase());
+      if (keywords.length > 0) {
+        let matched = 0;
+        keywords.forEach((k: string) => {
+           if (userInput.includes(k)) matched++;
+        });
+        correct = (matched / keywords.length) >= 0.5;
+      } else {
+        correct = false;
+      }
+    } else {
+      correct = selected === answer;
     }
       
     setIsCorrect(correct);
     setIsTimeout(false);
     setIsSubmitted(true);
 
-    const diff = (activeQuestion.difficulty?.toLowerCase() || 'easy') as keyof typeof DIFFICULTY_TIME_LIMITS;
-    const initialTime = DIFFICULTY_TIME_LIMITS[diff] ?? 30;
+    const initialTime = getInitialTime(activeQuestion);
 
     useQuizStore.getState().addLog({
-      questionId: String(activeQuestion.id),
+      questionId: String(activeQuestion.questionId),
       isCorrect: correct,
       timeSpent: initialTime - timeLeft,
     });
 
     if (correct) {
+      const diff = (activeQuestion.difficulty?.toLowerCase() || 'easy') as keyof typeof DIFFICULTY_XP_REWARDS;
       const xpEarned = DIFFICULTY_XP_REWARDS[diff] ?? 20;
       const coinsEarned = DIFFICULTY_COIN_REWARDS[diff] ?? 10;
 
@@ -355,10 +399,37 @@ export default function QuizEngine() {
     }
   };
 
-  const handleAction = () => {
-    if (!isSubmitted) {
-      if (!selectedOption) return;
-      submitAnswer(selectedOption);
+  const handleAction = (forceAdvance: boolean | string = false) => {
+    if (!isSubmitted && typeof forceAdvance !== 'boolean') {
+      if (!forceAdvance) return;
+      submitAnswer(forceAdvance as string);
+    } else if (!isSubmitted && forceAdvance === true) {
+      // It's a skip!
+      setIsSubmitted(true);
+      setIsCorrect(false);
+      
+      setSelectedOption(null);
+      setIsSubmitted(false);
+      setIsTimeout(false);
+      setEliminatedOptions([]);
+      setTimeLeft(999); 
+      
+      advanceQuestion(false, 10);
+      
+      if (soloQuestionIndex >= 9) {
+         setQuestions(prev => [...prev, null]);
+         setSoloQuestionIndex(prev => prev + 1);
+      } else {
+         const usedIds = questions.map(q => q?.questionId);
+         let nextQ = allQuestions.find(q => !usedIds.includes(q.questionId));
+         if (nextQ) {
+            setQuestions(prev => [...prev, nextQ]);
+            setSoloQuestionIndex(prev => prev + 1);
+         } else {
+            setQuestions(prev => [...prev, null]);
+            setSoloQuestionIndex(prev => prev + 1);
+         }
+      }
     } else {
       // --- WAGER RESOLUTION ---
       if (isWagerActive) {
@@ -374,23 +445,25 @@ export default function QuizEngine() {
         setIsWagerActive(false);
       }
 
-      // Log question ID to the permanent burn list
-      const burnedQuestions = JSON.parse(localStorage.getItem('burned_questions') || '[]');
-      if (activeQuestion && !burnedQuestions.includes(activeQuestion.id)) {
-        burnedQuestions.push(activeQuestion.id);
-        localStorage.setItem('burned_questions', JSON.stringify(burnedQuestions));
+      // Log question ID to the permanent burn list ONLY if correct!
+      if (isCorrect) {
+        const burnedQuestions = JSON.parse(localStorage.getItem('burned_questions') || '[]');
+        if (activeQuestion && !burnedQuestions.includes(activeQuestion.questionId)) {
+          burnedQuestions.push(activeQuestion.questionId);
+          localStorage.setItem('burned_questions', JSON.stringify(burnedQuestions));
+        }
       }
 
       setSelectedOption(null);
       setIsSubmitted(false);
       setIsTimeout(false);
       setEliminatedOptions([]);
-      setTimeLeft(999); // Prevent old zero-timer from instantly timing out the next question before Timer Initialization runs
+      setTimeLeft(999); 
       
       // Call store for score/streak/multiplier side-effects only
       if (!isCorrect && useQuizStore.getState().inventory.shields > 0) {
          useQuizStore.getState().consumeItem('shields');
-         advanceQuestion(true, 0); // Shield prevents streak loss
+         advanceQuestion(true, 0); 
       } else {
          advanceQuestion(isCorrect || false, 10);
       }
@@ -400,26 +473,24 @@ export default function QuizEngine() {
       if (newStreak > 0 && newStreak % 5 === 0 && !wagerOffered && !isWagerActive) {
          setWagerAmount({ coins: 50, xp: 100 });
          setWagerOffered(true);
-         return; // Pause advancement for the popup
+         return; 
       }
 
       // Advance or reload seamlessly
-      if (soloQuestionIndex === questions.length - 1) {
-         const burned = JSON.parse(localStorage.getItem('burned_questions') || '[]');
-         const selectedPool = localStorage.getItem('selectedPool');
-         let fresh = initialQuestions.filter((q: any) => !burned.includes(q.id) && (!selectedPool || q.pool === selectedPool));
-         if (fresh.length === 0) {
-            const remainingBurned = burned.filter((id: string) => {
-               const q = initialQuestions.find((iq: any) => iq.id === id);
-               return q && q.pool !== selectedPool;
-            });
-            localStorage.setItem('burned_questions', JSON.stringify(remainingBurned));
-            fresh = initialQuestions.filter((q: any) => (!selectedPool || q.pool === selectedPool));
-         }
-         setQuestions(shuffleArray(fresh));
-         setSoloQuestionIndex(0);
-      } else {
+      if (soloQuestionIndex >= 9) {
+         setQuestions(prev => [...prev, null]); 
          setSoloQuestionIndex(prev => prev + 1);
+      } else {
+         const usedIds = questions.map(q => q?.questionId);
+         let nextQ = allQuestions.find(q => !usedIds.includes(q.questionId));
+
+         if (nextQ) {
+            setQuestions(prev => [...prev, nextQ]);
+            setSoloQuestionIndex(prev => prev + 1);
+         } else {
+            setQuestions(prev => [...prev, null]); 
+            setSoloQuestionIndex(prev => prev + 1);
+         }
       }
     }
   };
@@ -430,22 +501,20 @@ export default function QuizEngine() {
       setIsWagerActive(true);
     }
     // Proceed to next question
-    if (soloQuestionIndex === questions.length - 1) {
-       const burned = JSON.parse(localStorage.getItem('burned_questions') || '[]');
-       const selectedPool = localStorage.getItem('selectedPool');
-       let fresh = initialQuestions.filter((q: any) => !burned.includes(q.id) && (!selectedPool || q.pool === selectedPool));
-       if (fresh.length === 0) {
-          const remainingBurned = burned.filter((id: string) => {
-             const q = initialQuestions.find((iq: any) => iq.id === id);
-             return q && q.pool !== selectedPool;
-          });
-          localStorage.setItem('burned_questions', JSON.stringify(remainingBurned));
-          fresh = initialQuestions.filter((q: any) => (!selectedPool || q.pool === selectedPool));
-       }
-       setQuestions(shuffleArray(fresh));
-       setSoloQuestionIndex(0);
-    } else {
+    if (soloQuestionIndex >= 9) {
+       setQuestions(prev => [...prev, null]);
        setSoloQuestionIndex(prev => prev + 1);
+    } else {
+       const usedIds = questions.map(q => q?.questionId);
+       let nextQ = allQuestions.find(q => !usedIds.includes(q.questionId));
+
+       if (nextQ) {
+          setQuestions(prev => [...prev, nextQ]);
+          setSoloQuestionIndex(prev => prev + 1);
+       } else {
+          setQuestions(prev => [...prev, null]);
+          setSoloQuestionIndex(prev => prev + 1);
+       }
     }
   };
 
@@ -493,28 +562,40 @@ export default function QuizEngine() {
     router.push('/');
   };
 
-  if (isBriefing) {
+  if (!mounted) return <div className="min-h-screen w-full bg-[#050505]" />;
+
+  if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
-        <div className="bg-gray-950 border border-red-500/50 rounded-lg p-8 max-w-2xl w-full shadow-[0_0_30px_rgba(220,38,38,0.15)] font-mono">
-          <h2 className="text-3xl text-red-500 mb-6 tracking-widest text-center border-b border-red-900/30 pb-4">
-            SYSTEM BRIEFING
-          </h2>
-          <ul className="space-y-4 text-gray-300 text-sm md:text-base mb-8 font-mono">
-            <li><span className="text-red-400">»</span> Answer rapidly. Speed yields higher point multipliers.</li>
-            <li><span className="text-red-400">»</span> Access the Black Market via the lower console to deploy tactical gadgets.</li>
-            <li><span className="text-purple-400 font-bold">» GADGET EFFECT: Deploying an item will freeze the system timer for exactly 5 seconds.</span></li>
-            <li><span className="text-yellow-400 font-bold">» SYSTEM EXIT: You must press "SAVE AND ABORT" to securely extract your progress before leaving.</span></li>
-          </ul>
-          <button 
-            onClick={() => setIsBriefing(false)} 
-            className="w-full bg-red-900/20 hover:bg-red-600 border border-red-500 text-white py-4 rounded font-bold tracking-[0.2em] transition-all duration-300 hover:shadow-[0_0_20px_rgba(220,38,38,0.4)]"
-          >
-            ACKNOWLEDGE & INITIATE
-          </button>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-screen w-full bg-[#050505]">
+        <p className="text-[#ff0055] font-black tracking-[0.3em] text-xl uppercase animate-pulse">
+          Initializing Matrix...
+        </p>
       </div>
     );
+  }
+
+  if (!activeQuestion) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen w-full">
+        <h1 className="text-3xl text-[#ff0055] font-black uppercase tracking-widest mb-4">Simulation Complete</h1>
+        <p className="text-gray-400 font-mono mb-2">Final Score: {score}</p>
+        <p className="text-yellow-400 font-mono mb-2">Coins Earned: {coinsEarned}</p>
+        <p className="text-blue-400 font-mono mb-8">XP Earned: {xpEarned}</p>
+        <button 
+          onClick={() => {
+            useQuizStore.getState().resetQuiz();
+            router.push('/');
+          }}
+          className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded transition-colors"
+        >
+          Return to Dashboard
+        </button>
+      </div>
+    );
+  }
+
+  if (isBriefing) {
+    return <PreGameBriefing onAcknowledge={() => setIsBriefing(false)} isFirstTime={true} />;
   }
 
   return (
@@ -529,8 +610,7 @@ export default function QuizEngine() {
       {/* QUIZ UI */}
       <div className="flex flex-col w-full h-auto mt-12">
 
-        <div className="w-full flex justify-between mb-4 text-gray-500 font-mono text-sm uppercase tracking-wider">
-          <span>Unit {soloQuestionIndex + 1} / {questions.length}</span>
+        <div className="w-full flex justify-end mb-4 text-gray-500 font-mono text-sm uppercase tracking-wider">
           <div className="flex items-center gap-4">
             {multiplier > 1 && (
               <span className="text-[#ff9900] font-black animate-pulse">🔥 {multiplier}X ACTIVE</span>
@@ -543,8 +623,6 @@ export default function QuizEngine() {
         <div className="conic-border-box w-full h-auto p-6 pb-24 rounded-2xl shadow-[0_0_30px_rgba(255,0,60,0.2)] text-white flex flex-col relative min-h-[500px]">
           <div className="mb-4 text-xs font-mono text-[#ff0055] uppercase tracking-widest flex items-center justify-between border-b border-gray-800 pb-2">
             <div className="flex gap-4">
-              <span>{activeQuestion.category}</span>
-              <span className="text-gray-700">•</span>
               <span>{activeQuestion.difficulty}</span>
             </div>
             <div className={`font-black text-lg ${timeLeft <= 5 && !isSubmitted ? 'text-red-500 animate-pulse drop-shadow-[0_0_8px_rgba(255,0,0,0.8)]' : 'text-gray-400'}`}>
@@ -557,16 +635,28 @@ export default function QuizEngine() {
           </h2>
 
 
-          {(activeQuestion.type === 'sequence' || activeQuestion.type === 'drag_and_drop') && (
+          {activeQuestion.type === 'sequence' && (
               <SequenceOrdering 
-                items={currentSequence.length > 0 ? currentSequence : (activeQuestion.items || activeQuestion.draggableItems || [])}
+                items={currentSequence.length > 0 ? currentSequence : (activeQuestion.items || [])}
                 onChange={(val: any) => !isSubmitted && setSelectedOption(val)}
                 disabled={isSubmitted}
                 solvedCount={autoSolvedCount}
               />
             )}
 
-            {(activeQuestion.type === 'mcq' || activeQuestion.type === 'true_false') && (
+            {activeQuestion.type === 'text_input' && (
+              <div className="mb-8">
+                <textarea
+                  disabled={isSubmitted}
+                  value={selectedOption || ''}
+                  onChange={(e) => setSelectedOption(e.target.value)}
+                  placeholder="Enter your analysis..."
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg p-4 text-white font-mono focus:border-[#ff0055] focus:ring-1 focus:ring-[#ff0055] outline-none min-h-[120px]"
+                />
+              </div>
+            )}
+
+            {activeQuestion.type === 'multiple_choice' && (
             activeQuestion.options && activeQuestion.options.length > 0 ? (
                 <div className="space-y-3 mb-8">
                   {activeQuestion.options.map((option: string, index: number) => {
@@ -608,90 +698,38 @@ export default function QuizEngine() {
                 {isTimeout ? 'INCORRECT - TIME EXPIRED' : (isCorrect ? 'CORRECT' : 'INCORRECT')}
               </h3>
               <p className="text-gray-300 mb-2 font-bold">
-                Correct Answer: {activeQuestion.correctAnswer}
+                Correct Answer: {activeQuestion.correctAnswer || (activeQuestion.type === 'sequence' ? 'Valid Sequence Order' : 'Valid Text')}
               </p>
               <p className="text-gray-400 text-sm">
                 {activeQuestion.explanation}
               </p>
+              {isCorrect && (
+                <p className="mt-4 font-black text-blue-400 text-sm animate-pulse tracking-widest">
+                  + {DIFFICULTY_XP_REWARDS[(activeQuestion.difficulty?.toLowerCase() || 'easy') as keyof typeof DIFFICULTY_XP_REWARDS] ?? 20} XP
+                </p>
+              )}
             </div>
           )}
 
-          <div className="mt-auto">
+          <div className="mt-8 flex flex-col gap-3">
             <button
-              onClick={handleAction}
-              disabled={!isSubmitted && !selectedOption}
+              onClick={() => handleAction(selectedOption || undefined)}
+              disabled={(!isSubmitted && !selectedOption && activeQuestion.type !== 'sequence') || isSkipping}
               className="w-full mt-4 py-4 bg-[#ff0055] text-white font-black uppercase tracking-widest hover:bg-[#cc0044] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              {isSubmitted ? 'NEXT QUESTION' : 'Submit Intel'}
+              {isSkipping ? `ADVANCING IN ${skipTimer}S...` : (isSubmitted ? 'NEXT QUESTION' : 'Submit Intel')}
             </button>
+            {!isSubmitted && !isSkipping && (
+              <button
+                onClick={handleSkip}
+                className="w-full py-3 bg-transparent border border-gray-600 text-gray-400 font-bold uppercase tracking-widest hover:border-gray-400 hover:text-white transition-all rounded"
+              >
+                SKIP QUESTION
+              </button>
+            )}
           </div>
 
-          {/* INJECT GADGET DEPLOYMENT BUTTON */}
-          <div className="absolute bottom-6 left-6 z-40">
-            <button 
-              onClick={() => (document.getElementById('inventory-modal') as HTMLDialogElement)?.showModal()}
-              className="bg-purple-900/60 hover:bg-purple-600 border border-purple-500 text-white px-6 py-3 rounded-full font-mono text-sm tracking-widest shadow-[0_0_20px_rgba(168,85,247,0.4)] transition-all cursor-pointer"
-            >
-              DEPLOY GADGET 🛠️
-            </button>
-            
-            {/* Simple native dialog for inventory */}
-            <dialog id="inventory-modal" className="bg-gray-950 border border-purple-500 p-6 rounded-lg text-white font-mono backdrop:bg-black/80 w-80">
-               <h3 className="text-purple-400 mb-4 border-b border-purple-900/50 pb-2">ACTIVE INVENTORY</h3>
-               {Object.entries(inventory).filter(([_, count]) => count > 0).length === 0 ? (
-                 <p className="text-gray-500 text-xs">No tactical assets available.</p>
-               ) : (
-                 Object.entries(inventory)
-                   .filter(([_, count]) => count > 0)
-                   .map(([key, count], idx) => (
-                   <button 
-                     key={idx} 
-                     onClick={() => {
-                       const store = useQuizStore.getState();
-                       store.consumeItem(key as any);
-                       
-                       if (key === 'timeFreezes') {
-                         setIsTimerFrozen(true);
-                         setTimeout(() => setIsTimerFrozen(false), 10000); // Thaws after 10 seconds
-                       } else if (key === 'overclocks') {
-                         store.addXP(250);
-                       } else if (key === 'hints') {
-                           const answer = activeQuestion.correctAnswer || '';
-                           const wrongOptions = activeQuestion.options?.filter((o: string) => !(o === answer || o.startsWith(answer + '.') || o.startsWith(answer + ')'))) || [];
-                           if (wrongOptions.length > 0) {
-                             setEliminatedOptions([wrongOptions[0], wrongOptions[1]].filter(Boolean));
-                           }
-                         } else if (key === 'autoSorters') {
-                           if (activeQuestion.type !== 'sequence' && activeQuestion.type !== 'drag_and_drop') {
-                             alert('Auto-Sorters can only be deployed on sequence questions.');
-                             useQuizStore.getState().buyItem('autoSorters', 0);
-                           } else {
-                             const correctIds = activeQuestion.correctOrder.slice(0, 2);
-                             const correctItems = correctIds.map((id: string) => currentSequence.find(i => i.id === id)).filter(Boolean);
-                             const remainingItems = currentSequence.filter(i => !correctIds.includes(i.id));
-                             const newOrder = [...correctItems, ...remainingItems];
-                             setCurrentSequence(newOrder);
-                             setAutoSolvedCount(correctItems.length);
-                             setSelectedOption(JSON.stringify(newOrder.map(i => i.id)));
-                           }
-                         } else if (['sabotagers', 'ddosEmps', 'decoys'].includes(key)) {
-                           alert('This tactical asset is reserved for 1v1 Multiplayer engagements.');
-                           useQuizStore.getState().buyItem(key as any, 0); // refund
-                         }
-                       
-                       (document.getElementById('inventory-modal') as HTMLDialogElement)?.close();
-                     }}
-                     className="block w-full text-left p-3 mb-2 bg-purple-900/20 hover:bg-purple-600 text-sm border border-purple-900 rounded cursor-pointer"
-                   >
-                     {">"} {key.toUpperCase()} (x{count})
-                   </button>
-                 ))
-               )}
-               <button onClick={() => (document.getElementById('inventory-modal') as HTMLDialogElement)?.close()} className="mt-4 text-gray-500 hover:text-white text-xs w-full text-right cursor-pointer">
-                 [ CLOSE ]
-               </button>
-            </dialog>
-          </div>
+
         </div>
       </div>
 
@@ -723,13 +761,7 @@ export default function QuizEngine() {
         </div>
       )}
 
-      {quizMode === 'wager' && (
-        <div className="absolute inset-0 bg-red-900/90 z-40 flex flex-col items-center justify-center border-8 border-red-600 animate-pulse">
-          <h2 className="text-4xl font-black text-white">🔥 HIGH STAKES WAGER 🔥</h2>
-          <p className="text-xl text-red-200 mt-2">Bet your coins. Double the payout, or lose it all.</p>
-          {/* Betting input and Wager Question component go here */}
-        </div>
-      )}
+
 
       {wagerOffered && (
         <div className="fixed inset-0 z-[99999] bg-red-950/90 backdrop-blur-sm flex flex-col items-center justify-center p-4">
@@ -770,8 +802,7 @@ export default function QuizEngine() {
             Scan immediately to claim:
             <br/>
             <span className="text-blue-400 font-bold text-lg drop-shadow-[0_0_5px_rgba(96,165,250,0.8)]">⚡ FREE XP</span> | 
-            <span className="text-green-400 font-bold text-lg drop-shadow-[0_0_5px_rgba(74,222,128,0.8)]"> 💰 BONUS COINS</span> | 
-            <span className="text-purple-400 font-bold text-lg drop-shadow-[0_0_5px_rgba(168,85,247,0.8)]"> 🛠️ GADGETS</span>
+            <span className="text-green-400 font-bold text-lg drop-shadow-[0_0_5px_rgba(74,222,128,0.8)]"> 💰 BONUS COINS</span>
           </p>
           
           <div className="bg-white p-4 inline-block rounded-xl shadow-[0_0_25px_rgba(255,255,255,0.3)] mb-6">

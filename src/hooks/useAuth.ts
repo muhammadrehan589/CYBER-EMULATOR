@@ -1,39 +1,30 @@
 'use client';
-// Single place that reads/writes auth session from localStorage.
-// All components use this instead of raw localStorage calls.
 
+import { useSession, signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
 export interface AuthSession {
   empId: string | null;
+  username: string | null;
   isAuthenticated: boolean;
   isAuthReady: boolean;
 }
 
 export function useAuth(): AuthSession {
-  const [empId, setEmpId] = useState<string | null>(null);
-  const [isAuthReady, setIsAuthReady] = useState(false);
-
-  useEffect(() => {
-    // Only runs on client — safe from SSR issues
-    const stored = localStorage.getItem('currentUserEmpId');
-    setEmpId(stored);
-    setIsAuthReady(true);
-  }, []);
-
+  const { data: session, status } = useSession();
+  
   return {
-    empId,
-    isAuthenticated: !!empId,
-    isAuthReady,
+    empId: (session?.user as any)?.empId || null,
+    username: (session?.user as any)?.username || null,
+    isAuthenticated: status === 'authenticated',
+    isAuthReady: status !== 'loading',
   };
 }
 
-// Utility to set auth session (used after login/signup)
 export function setAuthSession(empId: string) {
-  localStorage.setItem('currentUserEmpId', empId);
+  // Deprecated in favor of NextAuth
 }
 
-// Utility to clear auth session (used on logout)
 export function clearAuthSession() {
-  localStorage.removeItem('currentUserEmpId');
+  signOut({ callbackUrl: '/login' });
 }

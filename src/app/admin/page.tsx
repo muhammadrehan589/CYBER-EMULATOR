@@ -16,9 +16,9 @@ import {
   Circle,
   Triangle,
   Square,
-  Lock
 } from 'lucide-react';
 import Link from 'next/link';
+import { useSocket } from '@/hooks/useSocket';
 
 // Initial Mock Player State with 'Abdurrehman' as Default Admin - NOW LOADED FROM API
 
@@ -40,8 +40,14 @@ export default function AdminPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  const { socket } = useSocket(null);
+
+
   const [modTarget, setModTarget] = useState<Player | null>(null);
   const [modAction, setModAction] = useState<'warning' | 'ban' | 'force_rename' | null>(null);
+
+  const [resourceModTarget, setResourceModTarget] = useState<{player: Player, type: 'coins' | 'xp'} | null>(null);
+  const [resourceAmount, setResourceAmount] = useState<number>(0);
 
   const handleModerateAction = async (payload: any) => {
     if (!modTarget) return;
@@ -81,6 +87,48 @@ export default function AdminPage() {
     }
   };
 
+  const handleEditResource = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resourceModTarget) return;
+
+    try {
+      const incPayload = { [resourceModTarget.type]: resourceAmount };
+      
+      await fetch('/api/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ empId: resourceModTarget.player.empId, inc: incPayload }),
+      });
+
+      await fetch('/api/activity-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          empId: resourceModTarget.player.empId,
+          action: `Resource Update`,
+          type: 'score',
+          details: `Admin added ${resourceAmount} ${resourceModTarget.type.toUpperCase()} to ${resourceModTarget.player.username}`,
+        }),
+      });
+
+      await fetchPlayers();
+      await fetchLogs();
+
+      try {
+        const { io } = await import('socket.io-client');
+        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || `http://${window.location.hostname}:3001`;
+        const tempSocket = io(socketUrl, { transports: ['websocket'] });
+        tempSocket.emit('trigger_refresh');
+        setTimeout(() => tempSocket.disconnect(), 1000);
+      } catch (e) {}
+    } catch (error) {
+      console.error('[Admin] Edit resource failed:', error);
+    } finally {
+      setResourceModTarget(null);
+      setResourceAmount(0);
+    }
+  };
+
   // Reusable fetch helpers
   const fetchPlayers = async () => {
     try {
@@ -95,6 +143,8 @@ export default function AdminPage() {
           role: u.role,
           status: u.status,
           score: u.score,
+          coins: u.coins || 0,
+          xp: u.xp || 0,
           joinedAt: u.joinedAt ? new Date(u.joinedAt).toISOString().slice(0, 10) : '',
           warningMessage: u.warningMessage,
           banUntil: u.banUntil,
@@ -142,6 +192,18 @@ export default function AdminPage() {
     };
     init();
   }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    
+    socket.on('refresh_leaderboard', fetchPlayers);
+    socket.on('update_score', fetchPlayers);
+    
+    return () => {
+      socket.off('refresh_leaderboard', fetchPlayers);
+      socket.off('update_score', fetchPlayers);
+    };
+  }, [socket]);
 
   // Filtered Players Logic
   const filteredPlayers = players.filter((player) => {
@@ -351,6 +413,14 @@ export default function AdminPage() {
                 setModTarget(player);
                 setModAction(action);
               }}
+              onEditCoins={(player) => {
+                setResourceModTarget({ player, type: 'coins' });
+                setResourceAmount(0);
+              }}
+              onEditXP={(player) => {
+                setResourceModTarget({ player, type: 'xp' });
+                setResourceAmount(0);
+              }}
               onOpenAddModal={() => setIsAddModalOpen(true)}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
@@ -386,6 +456,44 @@ export default function AdminPage() {
             }}
             onConfirm={handleModerateAction}
           />
+        )}
+
+        {resourceModTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="w-full max-w-md bg-[#0a030d] border border-[#ff0055]/30 rounded-2xl shadow-[0_0_40px_rgba(255,0,85,0.2)] p-6">
+              <h2 className="text-xl font-bold text-white mb-4">
+                Modify {resourceModTarget.type.toUpperCase()} for {resourceModTarget.player.name}
+              </h2>
+              <form onSubmit={handleEditResource} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-mono text-zinc-400 mb-1">
+                    Amount to Add/Remove (use negative numbers to remove)
+                  </label>
+                  <input
+                    type="number"
+                    value={resourceAmount}
+                    onChange={(e) => setResourceAmount(parseInt(e.target.value) || 0)}
+                    className="w-full px-4 py-2 bg-[#120315] border border-[#ff0055]/30 rounded-lg text-white font-mono focus:outline-none focus:border-[#ff0055]"
+                  />
+                </div>
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setResourceModTarget(null)}
+                    className="px-4 py-2 text-zinc-400 hover:text-white transition-colors text-sm font-bold"
+                  >
+                    CANCEL
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-[#ff0055] hover:bg-[#e60039] text-white rounded-lg text-sm font-bold shadow-[0_0_10px_#ff0055] transition-colors"
+                  >
+                    CONFIRM
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         )}
       </div>
     </div>

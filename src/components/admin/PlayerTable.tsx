@@ -11,7 +11,9 @@ import {
   ShieldAlert, 
   ShieldCheck,
   Building2,
-  ChevronRight
+  ChevronRight,
+  Coins,
+  Zap
 } from 'lucide-react';
 
 interface PlayerTableProps {
@@ -23,6 +25,8 @@ interface PlayerTableProps {
   onOpenAddModal: () => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  onEditCoins: (player: Player) => void;
+  onEditXP: (player: Player) => void;
   selectedDepartment: string;
   onDepartmentChange: (dept: string) => void;
   departments: string[];
@@ -37,6 +41,8 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
   onOpenAddModal,
   searchQuery,
   onSearchChange,
+  onEditCoins,
+  onEditXP,
   selectedDepartment,
   onDepartmentChange,
   departments,
@@ -164,9 +170,12 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
                       </span>
                     </td>
 
-                    {/* Coins */}
+                    {/* Score */}
                     <td className="p-3.5 font-mono font-bold text-white">
-                      {player.coins?.toLocaleString() || 0} COINS
+                      <div className="flex flex-col">
+                        <span className="text-blue-400">{player.xp?.toLocaleString() || 0} XP</span>
+                        <span className="text-amber-500">{player.coins?.toLocaleString() || 0} COINS</span>
+                      </div>
                     </td>
 
                     {/* Status Badge */}
@@ -237,6 +246,22 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
                           className="p-1.5 rounded-lg border bg-purple-950/50 text-purple-400 border-purple-700/50 hover:bg-purple-900 transition-all font-mono font-black tracking-widest text-[8px]"
                         >
                           Aa
+                        </button>
+
+                        <button
+                          onClick={() => onEditCoins(player)}
+                          title="Add/Remove Coins"
+                          className="p-1.5 rounded-lg border bg-amber-950/50 text-amber-500 border-amber-700/50 hover:bg-amber-900 transition-all"
+                        >
+                          <Coins className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          onClick={() => onEditXP(player)}
+                          title="Add/Remove XP"
+                          className="p-1.5 rounded-lg border bg-blue-950/50 text-blue-400 border-blue-700/50 hover:bg-blue-900 transition-all"
+                        >
+                          <Zap className="w-3.5 h-3.5" />
                         </button>
 
                         {/* Suspend / Activate Toggle Button */}

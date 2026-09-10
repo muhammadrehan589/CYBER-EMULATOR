@@ -2,24 +2,30 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IQuestion extends Document {
   questionId: number;
-  category: string;
+  category: 'Threat Assessments' | 'Trick Questions' | 'Enterprise Use-Cases' | 'Sequence Challenges' | 'Text Prompts';
   difficulty: 'easy' | 'medium' | 'difficult';
-  type: 'mcq' | 'true_false' | 'sequence' | 'drag_and_drop' | 'visual';
+  type: 'multiple_choice' | 'sequence' | 'text_input';
   question: string;
-  options: string[];
-  correctAnswer: string;
-  explanation: string;
+  // For multiple_choice
+  options?: string[];
+  correctAnswer?: string;
+  // For sequence
   items?: any[];
-  draggableItems?: any[];
   correctOrder?: string[];
-  correctSequence?: string[];
+  // For text_input
+  keywords?: string[];
+  explanation: string;
   imageUrl?: string;
-  pool?: 'Technical' | 'Non-Technical';
+  pool?: string;
 }
+
 const QuestionSchema = new Schema<IQuestion>(
   {
     questionId: { type: Number, required: true, unique: true },
-    category: { type: String, required: true },
+    category: { 
+      type: String, 
+      required: true
+    },
     difficulty: {
       type: String,
       required: true,
@@ -28,24 +34,19 @@ const QuestionSchema = new Schema<IQuestion>(
     type: {
       type: String,
       required: true,
-      enum: ['mcq', 'true_false', 'sequence', 'drag_and_drop', 'visual'],
+      enum: ['multiple_choice', 'sequence', 'text_input'],
     },
     question: { type: String, required: true },
     options: { type: [String] },
-    correctAnswer: { type: String, required: false },
-    correctSequence: { type: [String] },
-    explanation: { type: String },
+    correctAnswer: { type: String },
     items: { type: [Schema.Types.Mixed] },
-    draggableItems: { type: [Schema.Types.Mixed] },
     correctOrder: { type: [String] },
+    keywords: { type: [String] },
+    explanation: { type: String },
     imageUrl: { type: String },
-    pool: { type: String, enum: ['Technical', 'Non-Technical'] },
+    pool: { type: String }
   },
   { timestamps: true }
 );
 
-export default mongoose.models.Question ||
-  mongoose.model<IQuestion>('Question', QuestionSchema);
-
-
-
+export default mongoose.models.Question || mongoose.model<IQuestion>('Question', QuestionSchema);
