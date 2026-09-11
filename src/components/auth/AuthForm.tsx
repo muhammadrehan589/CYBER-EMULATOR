@@ -78,29 +78,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         return;
       }
 
-      // Save user to local storage so other pages know who is logged in
-      if (data.data && data.data.empId) {
-        setAuthSession(data.data.empId, data.data.role, data.data.username);
-      }
-
-      if (data.data?.forceUsernameChange) {
-        setLoginStatus('success');
-        setTimeout(() => {
-          router.push('/setup-username');
-        }, 800);
-        return;
-      }
-
-      // Check if user is Admin → redirect directly to admin panel
-      if (data.data?.role === 'Admin') {
-        setLoginStatus('success');
-        setTimeout(() => {
-          router.push('/admin');
-        }, 800);
-        return;
-      }
-
-      // Normal Player Login → Redirect to Player Arena
+      // NextAuth signIn succeeded — session is now set.
+      // Routing is handled by useAuth in page.tsx (Admin → /admin, init username → /setup-username).
       setLoginStatus('success');
       setTimeout(() => {
         router.push('/');

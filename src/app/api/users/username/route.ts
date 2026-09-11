@@ -8,9 +8,10 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
+    console.log("[POST /api/users/username] session:", session);
     const empId = (session?.user as any)?.empId;
     if (!session || !empId) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ success: false, error: "Unauthorized", sessionDebug: session }, { status: 401 });
     }
 
     const { username } = await req.json();
@@ -27,6 +28,10 @@ export async function POST(req: NextRequest) {
     const existingUser = await User.findOne({ username });
     if (existingUser && existingUser._id.toString() !== dbUser._id.toString()) {
       return NextResponse.json({ success: false, error: "Username is already taken" }, { status: 409 });
+    }
+
+    if (dbUser.username === username) {
+      return NextResponse.json({ success: true, data: { username } });
     }
 
     // Check cooldown

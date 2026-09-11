@@ -80,24 +80,31 @@ export const authOptions: NextAuthOptions = {
       }
       return true;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
+      // On initial sign-in, `user` is populated — seed the token's email/empId.
       if (user) {
         token.email = user.email;
-        token.empId = user.id; // authorize returns id: user.empId
+        token.empId = user.id; // authorize() returns { id: user.empId }
       }
-      await connectDB();
-      let dbUser = null;
-      if (token.email) {
-        dbUser = await User.findOne({ email: token.email });
-      } else if (token.empId) {
-        dbUser = await User.findOne({ empId: token.empId });
+
+      // Only hit the DB when the role is missing from the token (first sign-in
+      // or token refresh), OR when update() is explicitly called from the client.
+      if (!token.role || trigger === 'update') {
+        await connectDB();
+        let dbUser = null;
+        if (token.email) {
+          dbUser = await User.findOne({ email: token.email }).select('empId username role').lean();
+        } else if (token.empId) {
+          dbUser = await User.findOne({ empId: token.empId }).select('empId username role').lean();
+        }
+
+        if (dbUser) {
+          token.empId = (dbUser as any).empId;
+          token.username = (dbUser as any).username;
+          token.role = (dbUser as any).role;
+        }
       }
-      
-      if (dbUser) {
-        token.empId = dbUser.empId;
-        token.username = dbUser.username;
-        token.role = dbUser.role;
-      }
+
       return token;
     },
     async session({ session, token }) {

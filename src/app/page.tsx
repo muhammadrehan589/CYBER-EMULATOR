@@ -381,6 +381,19 @@ export default function Phase3RealtimeDashboard() {
     driverObj.drive();
   };
 
+  // Guard: Admin users are never shown the Player Dashboard.
+  // router.push('/admin') is async — this prevents the dashboard from
+  // flashing on screen while Next.js compiles /admin in the background.
+  if (isAuthReady && role === 'Admin') {
+    return (
+      <div className="h-screen w-screen bg-black flex flex-col items-center justify-center gap-3">
+        <span className="font-mono text-[#ff0055] text-xs tracking-[0.4em] uppercase animate-pulse">
+          Routing to Admin Mainframe...
+        </span>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="h-screen w-screen bg-black flex items-center justify-center text-red-500 font-mono tracking-[0.3em]">
@@ -388,7 +401,6 @@ export default function Phase3RealtimeDashboard() {
       </div>
     );
   }
-
 
 
   return (

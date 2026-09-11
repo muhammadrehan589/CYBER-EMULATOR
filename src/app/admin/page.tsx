@@ -18,6 +18,7 @@ import {
   Square,
 } from 'lucide-react';
 import Link from 'next/link';
+import { signOut } from 'next-auth/react';
 import { useSocket } from '@/hooks/useSocket';
 
 // Initial Mock Player State with 'Abdurrehman' as Default Admin - NOW LOADED FROM API
@@ -310,13 +311,13 @@ export default function AdminPage() {
         {/* Top Navigation Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[#ff0055]/25">
           <div className="flex items-center gap-3">
-            <Link
-              href="/"
+            <button
+              onClick={() => signOut({ callbackUrl: '/login' })}
               className="p-2.5 rounded-xl bg-[#0e0414] border border-[#ff0055]/30 text-[#ff0055] hover:bg-[#ff0055] hover:text-white transition-all shadow-[0_0_10px_rgba(255,0,85,0.2)]"
-              title="Return to Main Portal"
+              title="Secure Logout"
             >
               <ArrowLeft className="w-4 h-4" />
-            </Link>
+            </button>
 
             <div>
               <div className="flex items-center gap-2">
