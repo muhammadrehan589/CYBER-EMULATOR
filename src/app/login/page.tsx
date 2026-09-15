@@ -32,9 +32,11 @@ export default function LoginPage() {
       
       {/* Right side: Auth Form */}
       <div className="flex-1 w-full lg:w-1/2 flex flex-col h-full bg-[#030005]">
-        <AuthForm 
-          setIsInputFocused={setIsInputFocused}
-        />
+        <React.Suspense fallback={<div className="m-auto text-[#ff0055] font-mono">LOADING AUTH...</div>}>
+          <AuthForm 
+            setIsInputFocused={setIsInputFocused}
+          />
+        </React.Suspense>
       </div>
     </div>
   );

@@ -64,7 +64,16 @@ export const authOptions: NextAuthOptions = {
         try {
           await connectDB();
           const existingUser = await User.findOne({ email: user.email });
+          
           if (!existingUser) {
+            const { cookies } = await import('next/headers');
+            const cookieStore = cookies();
+            const mode = cookieStore.get('googleAuthMode')?.value;
+
+            if (mode === 'login') {
+              return "/login?error=AccountNotFound";
+            }
+
             await User.create({
                empId: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
                name: user.name || "Google User",

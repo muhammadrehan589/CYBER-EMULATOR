@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { signIn } from 'next-auth/react';
 import { 
@@ -23,6 +23,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
   setIsInputFocused,
 }) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   
@@ -51,6 +52,19 @@ export const AuthForm: React.FC<AuthFormProps> = ({
       setButtonOffset({ x: 0, y: 0 });
     }
   }, [isFormValid]);
+
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error === 'AccountNotFound') {
+      setAuthMode('signup');
+      setLoginError('Google Account not found. Please sign up to create a new profile.');
+      
+      // clean the URL
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('error');
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [searchParams]);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -240,18 +254,16 @@ export const AuthForm: React.FC<AuthFormProps> = ({
               </motion.button>
             </div>
 
-            {authMode === 'signup' && (
-              <div className="pt-2 text-center">
-                <div className="flex items-center justify-center gap-4 py-4 w-full">
-                  <div className="h-[1px] bg-zinc-800 flex-1"></div>
-                  <span className="text-zinc-600 text-xs font-bold uppercase tracking-widest">OR</span>
-                  <div className="h-[1px] bg-zinc-800 flex-1"></div>
-                </div>
-                <div className="flex justify-center w-full mt-2">
-                   <GoogleLoginButton />
-                </div>
+            <div className="pt-2 text-center">
+              <div className="flex items-center justify-center gap-4 py-4 w-full">
+                <div className="h-[1px] bg-zinc-800 flex-1"></div>
+                <span className="text-zinc-600 text-xs font-bold uppercase tracking-widest">OR</span>
+                <div className="h-[1px] bg-zinc-800 flex-1"></div>
               </div>
-            )}
+              <div className="flex justify-center w-full mt-2">
+                 <GoogleLoginButton mode={authMode} />
+              </div>
+            </div>
 
             {authMode === 'login' ? (
               <div className="pt-6 text-center">
