@@ -25,6 +25,6 @@ export interface FloatingEmoji {
 export interface FloatingStat {
   id: string;
   empId: string;
-  type: 'xp_up' | 'coins_down';
+  type: 'xp_up' | 'xp_down' | 'coins_up' | 'coins_down';
   amount: number;
 }

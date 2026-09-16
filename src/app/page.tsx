@@ -192,7 +192,32 @@ export default function Phase3RealtimeDashboard() {
     socket.on('new_notification', (notif: any) => {
       setNotifications(prev => [...prev, notif]);
       setActiveWarning(notif);
-      showToast(notif.message, 'info');
+
+      // For async battle results: refresh leaderboard in real-time so XP/coins
+      // update immediately on the dashboard without requiring a page reload.
+      if (notif.type === 'ASYNC_RESULT') {
+        fetchLeaderboard();
+
+        // Show the correct toast type based on outcome
+        const isWin = notif.message?.includes('WON');
+        const isDraw = notif.message?.includes('DRAW');
+        showToast(notif.message, isWin ? 'success' : isDraw ? 'info' : 'error');
+
+        // Show an animated floating stat on the player's own XP/coins panel
+        const statId = `async-result-${Date.now()}`;
+        const resultAnim: FloatingStat = isWin
+          ? { id: statId, empId: empId!, type: 'xp_up', amount: 200 }
+          : isDraw
+          ? { id: statId, empId: empId!, type: 'xp_up', amount: 0 }
+          : { id: statId, empId: empId!, type: 'xp_down', amount: 50 };
+
+        if (!isDraw) {
+          setFloatingStats(prev => [...prev, resultAnim]);
+          setTimeout(() => setFloatingStats(prev => prev.filter(s => s.id !== statId)), 2500);
+        }
+      } else {
+        showToast(notif.message, 'info');
+      }
     });
 
     return () => {
@@ -206,7 +231,7 @@ export default function Phase3RealtimeDashboard() {
       socket.off('pending_notifications');
       socket.off('new_notification');
     };
-  }, [socket]);
+  }, [socket, fetchLeaderboard, empId]);
 
   // Timer effect for challenge expiration
   useEffect(() => {
@@ -227,11 +252,14 @@ export default function Phase3RealtimeDashboard() {
     return () => clearInterval(interval);
   }, [challengeTimer, incomingChallenge, socket]);
 
-  const handleScoreBoost = async (empId: string, xpAmount: number = 10, coinCost: number = 50) => {
-    const currentEmpId = empId;
-    if (!currentEmpId || currentEmpId === empId) return; // Cannot boost yourself
+  const handleScoreBoost = async (targetEmpId: string, xpAmount: number = 10, coinCost: number = 50) => {
+    // empId (from useAuth) = logged-in sender. targetEmpId = the leaderboard player being boosted.
+    if (!empId || !targetEmpId || targetEmpId === empId) {
+      showToast('You cannot boost yourself!', 'error');
+      return;
+    }
 
-    const sender = leaderboard.find(p => p.empId === currentEmpId);
+    const sender = leaderboard.find(p => p.empId === empId);
     if (!sender || (sender.coins || 0) < coinCost) {
       showToast(`Not enough coins! You need ${coinCost} coins to send ${xpAmount} XP.`, 'error');
       return;
@@ -239,23 +267,25 @@ export default function Phase3RealtimeDashboard() {
 
     try {
       await Promise.all([
+        // Deduct coins from the sender (logged-in user)
         fetch('/api/users', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ empId: currentEmpId, inc: { coins: -coinCost } }),
+          body: JSON.stringify({ empId, inc: { coins: -coinCost } }),
         }),
+        // Add XP to the target player
         fetch('/api/users', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ empId, inc: { xp: xpAmount } }),
+          body: JSON.stringify({ empId: targetEmpId, inc: { xp: xpAmount } }),
         })
       ]);
 
-      // Trigger real-time refresh for all connected clients (no page reload needed)
+      // Trigger real-time refresh + floating stat animations for all connected clients
       const statIdXP = `xp-${Date.now()}`;
       const statIdCoins = `coins-${Date.now()}`;
-      const xpAnim: FloatingStat = { id: statIdXP, empId, type: 'xp_up', amount: xpAmount };
-      const coinsAnim: FloatingStat = { id: statIdCoins, empId: currentEmpId, type: 'coins_down', amount: coinCost };
+      const xpAnim: FloatingStat = { id: statIdXP, empId: targetEmpId, type: 'xp_up', amount: xpAmount };
+      const coinsAnim: FloatingStat = { id: statIdCoins, empId, type: 'coins_down', amount: coinCost };
 
       if (socket && isConnected) {
         socket.emit('trigger_refresh');
@@ -267,11 +297,14 @@ export default function Phase3RealtimeDashboard() {
         setTimeout(() => setFloatingStats(prev => prev.filter(s => s.id !== statIdXP && s.id !== statIdCoins)), 2000);
       }
 
+      const targetName = leaderboard.find(p => p.empId === targetEmpId)?.name || 'target';
+      showToast(`+${xpAmount} XP sent to ${targetName}!`, 'success');
+
       fetch('/api/activity-logs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          empId,
+          empId: targetEmpId,
           action: 'XP Boost',
           type: 'score',
           details: `XP boosted by +${xpAmount} from ${sender.name}.`,
@@ -282,12 +315,13 @@ export default function Phase3RealtimeDashboard() {
     }
   };
 
-  const handleEmitEmoji = (empId: string, emoji: string) => {
-    const currentEmpId = empId;
-    const sender = leaderboard.find(p => p.empId === currentEmpId);
+  const handleEmitEmoji = (targetEmpId: string, emoji: string) => {
+    // empId (from useAuth) = the logged-in user who is sending the emoji (the sender)
+    // targetEmpId = the leaderboard player the emoji is directed at
+    const sender = leaderboard.find(p => p.empId === empId);
     const senderName = sender ? sender.name : 'Unknown';
 
-    const emojiObj = { empId, emoji, id: `emoji-${Date.now()}-${Math.random()}`, senderName };
+    const emojiObj = { empId: targetEmpId, emoji, id: `emoji-${Date.now()}-${Math.random()}`, senderName };
     if (!socket || !isConnected) {
       setFloatingEmojis((prev) => [...prev, emojiObj]);
       setReactionCounts((prev) => ({ ...prev, [emoji]: (prev[emoji] || 0) + 1 }));
@@ -637,6 +671,18 @@ export default function Phase3RealtimeDashboard() {
                             className="absolute right-4 top-2 text-[#ff0055] font-black font-mono text-lg drop-shadow-[0_0_10px_currentColor] z-50 pointer-events-none"
                           >
                             ↑ +{s.amount}
+                          </motion.div>
+                        ))}
+                        {floatingStats.filter(s => s.empId === me?.empId && s.type === 'xp_down').map(s => (
+                          <motion.div
+                            key={s.id}
+                            initial={{ y: 0, opacity: 1, scale: 1 }}
+                            animate={{ y: 40, opacity: 0, scale: 1.5 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 2, ease: 'easeOut' }}
+                            className="absolute right-4 top-2 text-red-500 font-black font-mono text-lg drop-shadow-[0_0_10px_currentColor] z-50 pointer-events-none"
+                          >
+                            ↓ -{s.amount}
                           </motion.div>
                         ))}
                       </AnimatePresence>
