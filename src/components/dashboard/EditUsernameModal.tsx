@@ -27,7 +27,7 @@ export default function EditUsernameModal({ isOpen, onClose, currentUser, onSucc
     const diffTime = Math.abs(now.getTime() - lastChange.getTime());
     daysSinceChange = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
-  const isCooldownActive = lastChange && daysSinceChange <= 10;
+  const isCooldownActive = !!lastChange && daysSinceChange <= 10;
   const daysLeft = 11 - daysSinceChange;
 
   useEffect(() => {
