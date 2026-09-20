@@ -63,15 +63,33 @@ function BattlePageContent() {
         currentSocket!.emit('join_battle', { matchId, empId: parsedUser.empId, isAsync });
         if (parsedUser.empId === challengerId) {
           const burnedQuestions = JSON.parse(localStorage.getItem('burned_questions') || '[]');
-          fetch(`/api/questions?random=true&limit=50&exclude=${burnedQuestions.join(',')}`).then(r => r.json()).then(data => {
+          const excludeParam = burnedQuestions.length > 0 ? `&exclude=${burnedQuestions.join(',')}` : '';
+          fetch(`/api/questions?batch=711${excludeParam}&t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()).then(data => {
             if (data.success && isMounted) {
-              currentSocket!.emit('init_battle_data', { matchId, questions: data.data });
-              setQuestions(data.data);
+               currentSocket!.emit('init_battle_data', { matchId, questions: data.data });
+               setQuestions(data.data);
             }
           });
         }
       });
       currentSocket.on('battle_data_sync', (data) => { if (isMounted) setQuestions(data.questions); });
+      
+      // Fallback if target joins an async battle and the server lost the in-memory questions
+      setTimeout(() => {
+        if (isMounted && parsedUser.empId !== challengerId) {
+           setQuestions((prev) => {
+              if (prev.length === 0) {
+                 fetch(`/api/questions?batch=711&t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()).then(data => {
+                    if (data.success && isMounted) {
+                       currentSocket!.emit('init_battle_data', { matchId, questions: data.data });
+                       setQuestions(data.data);
+                    }
+                 });
+              }
+              return prev;
+           });
+        }
+      }, 2500);
       currentSocket.on('battle_update', (data) => {
           // Track question played!
           if (questions.length > 0 && currentRound < questions.length) {
@@ -182,7 +200,7 @@ function BattlePageContent() {
         if (data.reason === 'forfeit') {
           if (data.forfeitedBy !== parsedUser.empId) {
              showToast('Opponent forfeited! You win 300 Coins and 200 XP!', 'success');
-             try { await fetch('/api/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ empId: parsedUser.empId, inc: { coins: 300, xp: 200 } }) }); } catch {}
+             try { await fetch('/api/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ empId: parsedUser.empId, inc: { coins: 300, xp: 200, 'metrics.duelsWon': 1 } }) }); } catch {}
              setTimeout(() => router.push('/'), 2000);
           }
           return;
@@ -190,7 +208,7 @@ function BattlePageContent() {
 
         if (iWon) {
           showToast('VICTORY! You earned 300 Coins and 200 XP!', 'success');
-          try { await fetch('/api/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ empId: parsedUser.empId, inc: { coins: 300, xp: 200 } }) }); } catch (e) { console.error('Failed to update score:', e); }
+          try { await fetch('/api/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ empId: parsedUser.empId, inc: { coins: 300, xp: 200, 'metrics.duelsWon': 1 } }) }); } catch (e) { console.error('Failed to update score:', e); }
         } else if (data.winner === 'draw') {
           showToast('DRAW — Equally matched operatives.', 'info');
         } else {
@@ -274,6 +292,7 @@ function BattlePageContent() {
           burnedQuestions.push(q.questionId);
           localStorage.setItem('burned_questions', JSON.stringify(burnedQuestions));
         }
+        try { fetch('/api/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ empId: localUser?.empId, inc: { 'metrics.correctAnswers': 1 } }) }); } catch {}
       }
 
       socket?.emit('submit_battle_answer', { matchId, empId: localUser?.empId, isCorrect: correct, damage: correct ? 0 : getDmg(currentRound), isChallenger });

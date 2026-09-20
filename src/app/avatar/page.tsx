@@ -29,7 +29,7 @@ const ThumbCard: React.FC<ThumbCardProps> = ({ isSelected, onSelect, label, lock
         'border-zinc-800 bg-[#0a030d] hover:border-[#ff0055]/40'
       }`}
   >
-    <div className="flex items-center justify-center w-full h-14 rounded-xl overflow-hidden bg-black/50">
+    <div className="flex items-center justify-center w-full h-20 rounded-xl overflow-hidden bg-black/50">
       {children}
     </div>
     <span className="text-[10px] font-mono font-semibold text-zinc-300 leading-tight text-center line-clamp-1">{label}</span>
@@ -207,7 +207,19 @@ export default function AvatarCustomizerPage() {
                 <motion.button
                   key={g.id}
                   whileTap={{ scale: 0.94 }}
-                  onClick={() => update({ gender: g.id })}
+                  onClick={() => {
+                    const updates: any = { gender: g.id };
+                    if (g.id === 'female') {
+                      updates.hairStyle = 'hr2';
+                      updates.beardStyle = 'bd0';
+                      updates.outfitStyle = 'f_of1';
+                      if (subCat === 'beard') setSubCat('hair');
+                    } else {
+                      updates.hairStyle = 'hr1';
+                      updates.outfitStyle = 'm_of1';
+                    }
+                    update(updates);
+                  }}
                   className={`flex flex-col items-center gap-2 py-4 px-2 rounded-2xl border transition-all cursor-pointer
                     ${ avatar.gender === g.id
                       ? 'border-[#ff0055] bg-[#ff0055]/10 shadow-[0_0_15px_rgba(255,0,85,0.3)]'
@@ -302,10 +314,13 @@ export default function AvatarCustomizerPage() {
           </div>
         );
       case 'hair':
+        const filteredHair = avatar.gender === 'female' 
+          ? HAIR_STYLES.filter(opt => ['hr2', 'hr5', 'hr7', 'hr11', 'hr12', 'hr1'].includes(opt.id))
+          : HAIR_STYLES.filter(opt => ['hr1', 'hr3', 'hr4', 'hr6', 'hr8', 'hr9', 'hr10'].includes(opt.id));
         return (
           <div className="space-y-3">
             <div className="grid grid-cols-3 gap-2">
-              {HAIR_STYLES.map(opt => (
+              {filteredHair.map(opt => (
                 <ThumbCard key={opt.id} isSelected={avatar.hairStyle === opt.id} onSelect={() => update({ hairStyle: opt.id })} label={opt.label}>
                   <MiniAvatar avatar={previewWith({ hairStyle: opt.id })} />
                 </ThumbCard>
@@ -332,31 +347,31 @@ export default function AvatarCustomizerPage() {
             ))}
           </div>
         );
+      case 'clothes':
+        const filteredOutfits = OUTFIT_STYLES.filter(opt => avatar.gender === 'female' ? opt.id.startsWith('f_') : opt.id.startsWith('m_'));
+        return (
+          <div className="space-y-3">
+            <p className="text-[11px] font-mono font-semibold text-zinc-500 uppercase tracking-wider px-1">Outfit Style</p>
+            <div className="grid grid-cols-3 gap-2">
+              {filteredOutfits.map(opt => (
+                <ThumbCard key={opt.id} isSelected={avatar.outfitStyle === opt.id} onSelect={() => { if (!opt.locked) update({ outfitStyle: opt.id }); }} label={opt.label} locked={opt.locked}>
+                  <MiniAvatar avatar={previewWith({ outfitStyle: opt.id })} />
+                </ThumbCard>
+              ))}
+            </div>
+          </div>
+        );
       default: return null;
     }
   };
 
-  // Fashion tab content
-  const renderFashion = () => (
-    <div className="space-y-3">
-      <p className="text-[11px] font-mono font-semibold text-zinc-500 uppercase tracking-wider px-1">Outfit Style</p>
-      <div className="grid grid-cols-3 gap-2">
-        {OUTFIT_STYLES.map(opt => (
-          <ThumbCard key={opt.id} isSelected={avatar.outfitStyle === opt.id} onSelect={() => { if (!opt.locked) update({ outfitStyle: opt.id }); }} label={opt.label} locked={opt.locked}>
-            <MiniAvatar avatar={previewWith({ outfitStyle: opt.id })} />
-          </ThumbCard>
-        ))}
-      </div>
-    </div>
-  );
-
   return (
     <div
-      className="fixed inset-0 flex flex-col select-none overflow-hidden bg-black text-white"
+      className="fixed inset-0 flex flex-col select-none overflow-hidden bg-gradient-to-b from-[#2a0815] to-[#0a0205] text-white"
     >
       {/* Ambient glow matching dashboard */}
-      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#ff0055]/15 rounded-full blur-3xl pointer-events-none z-0" />
-      <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-[#e60039]/15 rounded-full blur-3xl pointer-events-none z-0" />
+      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#ff0055]/40 rounded-full blur-3xl pointer-events-none z-0" />
+      <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-[#e60039]/40 rounded-full blur-3xl pointer-events-none z-0" />
 
       {/* Save Success Message Overlay */}
       <AnimatePresence>
@@ -457,7 +472,7 @@ export default function AvatarCustomizerPage() {
 
         {/* ── Main Tabs ── */}
         <div className="flex border-b border-[#ff0055]/30 flex-shrink-0">
-          {(['fashion', 'wardrobe', 'avatar'] as MainTab[]).map(tab => (
+          {(['wardrobe', 'avatar'] as MainTab[]).map(tab => (
             <button
               key={tab}
               onClick={() => setMainTab(tab)}
@@ -476,19 +491,19 @@ export default function AvatarCustomizerPage() {
         {mainTab === 'avatar' && (
           <div
             ref={subScrollRef}
-            className="flex-shrink-0 flex gap-0 overflow-x-auto border-b border-[#ff0055]/20 px-1"
+            className="flex-shrink-0 flex w-full justify-between overflow-x-auto border-b border-[#ff0055]/20 px-1"
             style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
           >
-            {AVATAR_SUB_CATEGORIES.map(cat => (
+            {AVATAR_SUB_CATEGORIES.filter(cat => !(avatar.gender === 'female' && cat.id === 'beard')).map(cat => (
               <button
                 id={`subcat-${cat.id}`}
                 key={cat.id}
                 onClick={() => scrollSubToActive(cat.id)}
-                className={`flex-shrink-0 flex flex-col items-center gap-0.5 px-3 py-2.5 relative cursor-pointer transition-all font-mono
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 relative cursor-pointer transition-all font-mono min-w-[65px]
                   ${subCat === cat.id ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
               >
-                <span className="text-xl">{cat.icon}</span>
-                <span className="text-[9px] font-semibold">{cat.label}</span>
+                <span className="text-4xl">{cat.icon}</span>
+                <span className="text-sm font-semibold">{cat.label}</span>
                 {subCat === cat.id && (
                   <motion.div layoutId="subcat-indicator" className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-[#ff0055]" />
                 )}
@@ -508,7 +523,6 @@ export default function AvatarCustomizerPage() {
               transition={{ duration: 0.18 }}
             >
               {mainTab === 'avatar' && renderGrid()}
-              {mainTab === 'fashion' && renderFashion()}
               {mainTab === 'wardrobe' && (
                 savedWardrobe.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-10 text-center gap-3">
@@ -537,6 +551,18 @@ export default function AvatarCustomizerPage() {
               )}
             </motion.div>
           </AnimatePresence>
+        </div>
+
+        {/* Unique Scroller Indicator */}
+        <div className="absolute bottom-4 right-4 pointer-events-none flex flex-col items-center gap-1 opacity-70 z-50">
+          <div className="text-[9px] font-mono text-[#ff0055] uppercase tracking-widest font-bold drop-shadow-[0_0_5px_rgba(255,0,85,0.8)]">Scroll</div>
+          <div className="w-4 h-7 border-2 border-[#ff0055] rounded-full flex justify-center pt-0.5 drop-shadow-[0_0_5px_rgba(255,0,85,0.8)]">
+            <motion.div
+              animate={{ y: [0, 10, 0] }}
+              transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+              className="w-1.5 h-1.5 bg-[#ff0055] rounded-full drop-shadow-[0_0_8px_rgba(255,0,85,1)]"
+            />
+          </div>
         </div>
       </div>
 

@@ -15,7 +15,11 @@ export class QuestionService {
     }
 
     if (difficulty) {
-      filter.difficulty = difficulty;
+      if (difficulty.toLowerCase() === 'easy') {
+        filter.difficulty = { $regex: new RegExp(`^(easy|standard)$`, 'i') };
+      } else {
+        filter.difficulty = { $regex: new RegExp(`^${difficulty}$`, 'i') };
+      }
     }
 
     if (random === 'true') {

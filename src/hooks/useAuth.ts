@@ -8,16 +8,20 @@ export interface AuthSession {
   username: string | null;
   isAuthenticated: boolean;
   isAuthReady: boolean;
+  forceUsernameChange?: boolean;
+  updateSession: (data?: any) => Promise<any>;
 }
 
 export function useAuth(): AuthSession {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   
   return {
     empId: (session?.user as any)?.empId || null,
     username: (session?.user as any)?.username || null,
     isAuthenticated: status === 'authenticated',
     isAuthReady: status !== 'loading',
+    forceUsernameChange: (session?.user as any)?.forceUsernameChange || false,
+    updateSession: update,
   };
 }
 

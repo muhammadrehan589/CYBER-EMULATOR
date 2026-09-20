@@ -54,15 +54,19 @@ export const PreGameBriefing = ({ onAcknowledge, isFirstTime = true }: Props) =>
               </li>
               <li className="flex items-start gap-3">
                 <ChevronRight className="w-5 h-5 text-[#ff0055] shrink-0 mt-0.5" />
-                <span><strong className="text-white">Ranking & Progression:</strong> Correct actions yield XP and Matrix Coins. Consecutive correct responses build your streak, multiplying your rewards and helping you climb the global leaderboard.</span>
+                <span><strong className="text-white">Time Limits:</strong> The countdown timer adapts dynamically to the threat level: <span className="text-green-400">Easy (30s)</span>, <span className="text-yellow-400">Medium (45s)</span>, <span className="text-red-500">Hard (60s)</span>.</span>
               </li>
               <li className="flex items-start gap-3">
                 <ChevronRight className="w-5 h-5 text-[#ff0055] shrink-0 mt-0.5" />
-                <span><strong className="text-white">Tactical Skips:</strong> If you encounter an unknown threat, you may skip the node. A 5-second penalty lock will engage, revealing the correct resolution protocol before you can proceed.</span>
+                <span><strong className="text-white">Lifelines (Skip Protocol):</strong> You may skip up to 5 questions every 10 minutes if you get stuck or encounter an unknown threat. A brief penalty lock will engage.</span>
               </li>
               <li className="flex items-start gap-3">
                 <ChevronRight className="w-5 h-5 text-[#ff0055] shrink-0 mt-0.5" />
-                <span><strong className="text-white">The Solo Matrix:</strong> This is an adaptive training ground. Question difficulty scales automatically based on your performance. Keep your guard up—certain actions may trigger wagers or sabotage anomalies.</span>
+                <span><strong className="text-white">Learning Mode:</strong> If you submit an incorrect action or run out of time, the simulation will pause and reveal the correct procedure along with a detailed explanation before allowing you to proceed.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <ChevronRight className="w-5 h-5 text-[#ff0055] shrink-0 mt-0.5" />
+                <span><strong className="text-white">Ranking & Progression:</strong> Correct actions yield XP and Matrix Coins. Consecutive correct responses build your streak, multiplying your rewards and triggering wagers!</span>
               </li>
             </ul>
           </div>
@@ -81,7 +85,7 @@ export const PreGameBriefing = ({ onAcknowledge, isFirstTime = true }: Props) =>
               onClick={onAcknowledge}
               className="w-full sm:w-auto bg-[#ff0055] hover:bg-[#ff007f] text-white font-black font-mono tracking-widest uppercase px-8 py-5 rounded-none border border-[#ff0055] shadow-[0_0_30px_rgba(255,0,85,0.6)] hover:shadow-[0_0_50px_rgba(255,0,85,1)] transition-all flex items-center justify-center gap-3 active:scale-95 cursor-pointer"
             >
-              <CheckCircle2 className="w-5 h-5" /> Acknowledge & Initialize Matrix
+              <CheckCircle2 className="w-5 h-5" /> I Understand / Start
             </button>
           </div>
         )}

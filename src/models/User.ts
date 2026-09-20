@@ -22,12 +22,20 @@ export interface IUser extends Document {
   forceUsernameChange?: boolean;
   hasSeenTour?: boolean;
   lastUsernameChange?: Date;
+  isOnline?: boolean;
+  loginHistory?: Date[];
+  metrics?: {
+    correctAnswers: number;
+    wrongAnswers: number;
+    duelsPlayed: number;
+    duelsWon: number;
+  };
 }
 
-const UserSchema = new Schema<IUser>(
-  {
-    empId: { type: String, required: true, unique: true },
-    name: { type: String, required: true },
+  const UserSchema = new Schema<IUser>(
+    {
+      empId: { type: String, unique: true, sparse: true, required: false },
+      name: { type: String, required: true },
     username: { type: String, unique: true, sparse: true, required: false },
     email: { type: String, sparse: true, required: false },
     password: { type: String },
@@ -55,6 +63,14 @@ const UserSchema = new Schema<IUser>(
     forceUsernameChange: { type: Boolean, default: false },
     hasSeenTour: { type: Boolean, default: false },
     lastUsernameChange: { type: Date, default: null },
+    isOnline: { type: Boolean, default: false },
+    loginHistory: [{ type: Date }],
+    metrics: {
+      correctAnswers: { type: Number, default: 0 },
+      wrongAnswers: { type: Number, default: 0 },
+      duelsPlayed: { type: Number, default: 0 },
+      duelsWon: { type: Number, default: 0 }
+    }
   },
   { timestamps: true }
 );

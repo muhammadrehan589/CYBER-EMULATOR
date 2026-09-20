@@ -64,7 +64,7 @@ export default function SetupUsernamePage() {
           CLAIM ALIAS
         </h1>
         <p className="text-sm text-zinc-400 mb-8 font-mono">
-          You have successfully initialized via Google.
+          You have successfully initialized.
           Assign your unique operative handle to enter the Matrix.
         </p>
 

@@ -83,7 +83,7 @@ export const LeaderboardItem = ({
 
         {/* Avatar */}
         <div className={`${
-          mini ? 'w-10 h-10 rounded-full' : 'w-[48px] h-[76px] rounded-xl'
+          mini ? 'w-10 h-[68px] rounded-full' : 'w-[48px] h-[76px] rounded-xl'
         } overflow-hidden bg-black/60 border border-white/10 shrink-0 flex items-center justify-center`}>
           {mini ? (
             <MiniAvatar avatar={player.avatar} />

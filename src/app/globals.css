@@ -77,14 +77,19 @@ body {
 }
 
 .cyber-scrollbar::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+  height: 8px;
 }
 .cyber-scrollbar::-webkit-scrollbar-track {
-  background: #111;
+  background: #1a0815;
+  border-radius: 4px;
 }
 .cyber-scrollbar::-webkit-scrollbar-thumb {
-  background: #e11d48;
+  background: #ff0055;
   border-radius: 4px;
+}
+.cyber-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #ff3377;
 }
 @keyframes cyberShake {
   0% { transform: translate(0, 0) rotate(0deg); }

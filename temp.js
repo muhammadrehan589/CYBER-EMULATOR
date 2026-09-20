@@ -1,0 +1,1 @@
+const mongoose = require('mongoose'); mongoose.connect('mongodb://localhost:27017/cyber-emulator').then(async () => { const users = await mongoose.connection.db.collection('users').find({}).toArray(); console.log(users.map(u => ({ username: u.username, email: u.email }))); process.exit(0); });

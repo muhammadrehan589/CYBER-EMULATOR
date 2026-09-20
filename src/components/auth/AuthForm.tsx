@@ -11,9 +11,10 @@ import {
   AlertCircle, 
   Key, 
   Eye,
-  EyeOff
+  EyeOff,
+  Hash
 } from 'lucide-react';
-import { GoogleLoginButton } from './GoogleLoginButton';
+// import { GoogleLoginButton } from './GoogleLoginButton';
 
 interface AuthFormProps {
   setIsInputFocused: (focused: boolean) => void;
@@ -28,6 +29,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   
   const [email, setEmail] = useState('');
+  const [empId, setEmpId] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -36,7 +38,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
   const [loginStatus, setLoginStatus] = useState<'idle' | 'loggingIn' | 'success'>('idle');
 
   const isFormValid = authMode === 'signup'
-    ? email.trim().length > 0 && username.trim().length > 0 && password.trim().length > 0
+    ? email.trim().length > 0 && username.trim().length > 0 && password.trim().length > 0 && empId.trim().length > 0
     : username.trim().length > 0 && password.trim().length > 0;
 
   const makeButtonFlee = () => {
@@ -57,7 +59,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
     const error = searchParams.get('error');
     if (error === 'AccountNotFound') {
       setAuthMode('signup');
-      setLoginError('Google Account not found. Please sign up to create a new profile.');
+      setLoginError('Account not found. Please sign up to create a new profile.');
       
       // clean the URL
       const newUrl = new URL(window.location.href);
@@ -81,6 +83,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
       const res = await signIn('credentials', {
         redirect: false,
         email: email.trim(),
+        empId: empId.trim(),
         username: username.trim(),
         password: password.trim(),
         isSignup: authMode === 'signup' ? 'true' : 'false'
@@ -148,26 +151,49 @@ export const AuthForm: React.FC<AuthFormProps> = ({
           <form onSubmit={handleLoginSubmit} className="space-y-6">
             
             {authMode === 'signup' && (
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-zinc-300 block flex justify-between">
-                  <span>Email</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#ff0055]">
-                    <AtSign className="w-4 h-4" />
+              <>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-zinc-300 block flex justify-between">
+                    <span>Email</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#ff0055]">
+                      <AtSign className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="email"
+                      value={email}
+                      onFocus={() => setIsInputFocused(true)}
+                      onBlur={() => setIsInputFocused(false)}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="operative@matrix.com"
+                      required={authMode === 'signup'}
+                      className="w-full pl-11 pr-4 py-3.5 bg-zinc-900/80 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl text-sm focus:outline-none focus:border-[#ff0055] focus:ring-2 focus:ring-[#ff0055]/30 transition-all"
+                    />
                   </div>
-                  <input
-                    type="email"
-                    value={email}
-                    onFocus={() => setIsInputFocused(true)}
-                    onBlur={() => setIsInputFocused(false)}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="operative@matrix.com"
-                    required={authMode === 'signup'}
-                    className="w-full pl-11 pr-4 py-3.5 bg-zinc-900/80 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl text-sm focus:outline-none focus:border-[#ff0055] focus:ring-2 focus:ring-[#ff0055]/30 transition-all"
-                  />
                 </div>
-              </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-zinc-300 block flex justify-between">
+                    <span>Employee ID</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-[#ff0055]">
+                      <Hash className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="text"
+                      value={empId}
+                      onFocus={() => setIsInputFocused(true)}
+                      onBlur={() => setIsInputFocused(false)}
+                      onChange={(e) => setEmpId(e.target.value)}
+                      placeholder="EMP-XXXX"
+                      required={authMode === 'signup'}
+                      className="w-full pl-11 pr-4 py-3.5 bg-zinc-900/80 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl text-sm focus:outline-none focus:border-[#ff0055] focus:ring-2 focus:ring-[#ff0055]/30 transition-all"
+                    />
+                  </div>
+                </div>
+              </>
             )}
 
             <div className="space-y-2">
@@ -254,7 +280,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
               </motion.button>
             </div>
 
-            <div className="pt-2 text-center">
+            {/* <div className="pt-2 text-center">
               <div className="flex items-center justify-center gap-4 py-4 w-full">
                 <div className="h-[1px] bg-zinc-800 flex-1"></div>
                 <span className="text-zinc-600 text-xs font-bold uppercase tracking-widest">OR</span>
@@ -263,7 +289,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
               <div className="flex justify-center w-full mt-2">
                  <GoogleLoginButton mode={authMode} />
               </div>
-            </div>
+            </div> */}
 
             {authMode === 'login' ? (
               <div className="pt-6 text-center">
