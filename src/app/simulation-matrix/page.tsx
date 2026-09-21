@@ -28,12 +28,7 @@ export default function Home() {
       <div className="fixed bottom-1/4 right-1/4 w-[400px] h-[400px] bg-[#e60039]/5 rounded-full blur-[100px] pointer-events-none z-0" />
 
       {/* Global Navigation - Elevated */}
-      <button 
-        onClick={handleAbort}
-        className="absolute top-6 left-6 z-[100] flex items-center gap-3 px-5 py-2.5 bg-red-600 border border-red-500 text-white hover:bg-red-500 rounded font-black text-xs tracking-widest uppercase shadow-[0_0_15px_rgba(255,0,0,0.5)] transition-all"
-      >
-        <ArrowLeft className="w-4 h-4" /> SAVE AND ABORT
-      </button>
+      
       
       <div className="w-full flex-grow p-4 sm:p-8 pt-24 relative z-10 flex justify-center items-start max-w-5xl mx-auto">
         {/* Main Quiz Engine, no outer constrained container to fix layout spillage */}

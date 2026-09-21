@@ -54,7 +54,13 @@ export const PreGameBriefing = ({ onAcknowledge, isFirstTime = true }: Props) =>
               </li>
               <li className="flex items-start gap-3">
                 <ChevronRight className="w-5 h-5 text-[#ff0055] shrink-0 mt-0.5" />
-                <span><strong className="text-white">Time Limits:</strong> The countdown timer adapts dynamically to the threat level: <span className="text-green-400">Easy (30s)</span>, <span className="text-yellow-400">Medium (45s)</span>, <span className="text-red-500">Hard (60s)</span>.</span>
+                <div className="flex flex-col gap-2">
+                  <div className="bg-[#ff0055]/20 border-2 border-[#ff0055] p-4 rounded-lg shadow-[0_0_30px_rgba(255,0,85,0.6)] animate-pulse">
+                    <strong className="text-white text-xl block mb-2 uppercase tracking-widest text-[#ff0055] drop-shadow-[0_0_8px_red]">🚨 15-MINUTE GLOBAL TIMER 🚨</strong> 
+                    <span className="text-white text-base">You will face a relentless 15-minute gauntlet. The <strong>SAVE AND ABORT</strong> protocol is locked until this timer expires.</span>
+                  </div>
+                  <span className="mt-2"><strong className="text-white">Per-Question Limits:</strong> Every question holds a strict <strong>60-second</strong> countdown (<strong>90 seconds</strong> for text-based scenarios).</span>
+                </div>
               </li>
               <li className="flex items-start gap-3">
                 <ChevronRight className="w-5 h-5 text-[#ff0055] shrink-0 mt-0.5" />

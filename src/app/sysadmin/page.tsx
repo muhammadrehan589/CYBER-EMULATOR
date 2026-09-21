@@ -55,7 +55,7 @@ export default function SysadminPage() {
     }
   };
 
-  const handleDownload = async (username: string, type: 'logins' | 'metrics') => {
+  const handleDownload = async (username: string, type: 'logins' | 'metrics' | 'evaluations') => {
     try {
       const res = await fetch(`/api/sysadmin/export/csv?username=${encodeURIComponent(username)}&type=${type}`);
       if (!res.ok) throw new Error('Download failed');

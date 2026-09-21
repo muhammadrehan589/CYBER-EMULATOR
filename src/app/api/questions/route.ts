@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import rawQuestions from '../../../../questions.json';
+import rawQuestions from '@/data/questions.json';
 
 export const dynamic = 'force-dynamic';
 

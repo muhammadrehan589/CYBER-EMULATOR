@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 export interface AuthSession {
   empId: string | null;
   username: string | null;
+  email: string | null;
   isAuthenticated: boolean;
   isAuthReady: boolean;
   forceUsernameChange?: boolean;
@@ -18,6 +19,7 @@ export function useAuth(): AuthSession {
   return {
     empId: (session?.user as any)?.empId || null,
     username: (session?.user as any)?.username || null,
+    email: (session?.user as any)?.email || null,
     isAuthenticated: status === 'authenticated',
     isAuthReady: status !== 'loading',
     forceUsernameChange: (session?.user as any)?.forceUsernameChange || false,
