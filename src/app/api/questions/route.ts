@@ -15,6 +15,20 @@ const questions = (rawQuestions as any[]).map((q, i) => {
     cAnswer = q.options[q.correctIndex];
   }
 
+  
+  let items = [];
+  let draggableItems = [];
+  let correctOrder = [];
+
+  if (mappedType === 'sequence' && q.correctSequence) {
+    items = q.correctSequence.map((text: string, idx: number) => ({
+      id: `seq_${idx}`,
+      content: text
+    }));
+    correctOrder = items.map((i: any) => i.id);
+    draggableItems = [...items].sort(() => Math.random() - 0.5);
+  }
+
   return {
     questionId: String(q.id || q.questionId || `q_${i}`),
     category: q.category || 'general',
@@ -24,7 +38,10 @@ const questions = (rawQuestions as any[]).map((q, i) => {
     options: q.options || [],
     correctAnswer: cAnswer,
     pool: q.pool || q.category || 'general',
-    explanation: q.explanation
+    explanation: q.explanation,
+    items,
+    draggableItems,
+    correctOrder
   };
 });
 
