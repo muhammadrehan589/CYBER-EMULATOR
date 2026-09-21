@@ -213,7 +213,7 @@ export default function AvatarCustomizerPage() {
                       updates.hairStyle = 'hr2';
                       updates.beardStyle = 'bd0';
                       updates.outfitStyle = 'f_of1';
-                      if (subCat === 'beard') setSubCat('hair');
+                      if ((subCat as any) === 'beard') setSubCat('hair');
                     } else {
                       updates.hairStyle = 'hr1';
                       updates.outfitStyle = 'm_of1';
@@ -480,7 +480,7 @@ export default function AvatarCustomizerPage() {
                 ${mainTab === tab ? 'text-[#ff0055] border-b-2 border-[#ff0055] bg-[#ff0055]/10' : 'text-zinc-500 hover:text-zinc-300'}`}
             >
               <span className="text-base">
-                {tab === 'fashion' ? '🏪' : tab === 'wardrobe' ? '🤍' : '🧑'}
+                {(tab as any) === 'fashion' ? '🏪' : tab === 'wardrobe' ? '🤍' : '🧑'}
               </span>
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>

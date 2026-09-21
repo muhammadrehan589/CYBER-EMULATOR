@@ -137,6 +137,13 @@ export default function SysadminPage() {
               All Scores (CSV)
             </button>
             <button 
+              onClick={() => { window.location.href = '/api/sysadmin/export/all?type=evaluations'; }}
+              className="px-4 py-2 bg-blue-900/30 border border-blue-500/50 hover:bg-blue-500/20 text-blue-400 rounded text-sm font-bold tracking-wide transition-all uppercase flex items-center gap-2"
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M14 11V14H2V11M8 2V11M8 11L5 8M8 11L11 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              Evaluations (CSV)
+            </button>
+            <button 
               onClick={() => router.push('/')}
               className="px-4 py-2 bg-zinc-900 border border-zinc-700 hover:border-zinc-500 rounded text-sm font-bold tracking-wide transition-all uppercase flex items-center gap-2"
             >

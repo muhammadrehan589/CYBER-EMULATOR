@@ -26,6 +26,7 @@ export async function POST(req: Request) {
     }
 
     // Append a new login/visit timestamp
+    if (!user.loginHistory) user.loginHistory = [];
     user.loginHistory.push(new Date());
     user.isOnline = true;
     await user.save();

@@ -34,11 +34,30 @@ export default function QuizEngine() {
   const [soloQuestionIndex, setSoloQuestionIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   
+  const [globalTimeLeft, setGlobalTimeLeft] = useState(900);
+  const [isQuizOver, setIsQuizOver] = useState(false);
+  const [evalLog, setEvalLog] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (isLoading || isQuizOver) return;
+    
+    // We can't access isBriefing here if it's declared below, so we'll just let the timer tick even if they are in the briefing, or we can just keep it simple.
+    // Actually wait, Javascript hoisting doesn't work for const. 
+    if (globalTimeLeft <= 0) {
+      setIsQuizOver(true);
+      return;
+    }
+    const timer = setInterval(() => setGlobalTimeLeft(prev => prev - 1), 1000);
+    return () => clearInterval(timer);
+  }, [isLoading, isQuizOver, globalTimeLeft]);
+  
   useEffect(() => {
     const fetchQuestions = async () => {
       const burnedQuestions = JSON.parse(localStorage.getItem('burned_questions') || '[]');
       const excludeParam = burnedQuestions.length > 0 ? `&exclude=${burnedQuestions.join(',')}` : '';
-      const url = `/api/questions?batch=711${excludeParam}&t=${Date.now()}`;
+      const selectedPool = localStorage.getItem('selectedPool');
+      const poolParam = selectedPool ? `&pool=${selectedPool}` : '&pool=scenarios';
+      const url = `/api/questions?batch=20_fixed${excludeParam}${poolParam}&t=${Date.now()}`;
       
       try {
         const res = await fetch(url, { cache: 'no-store' });
@@ -48,14 +67,15 @@ export default function QuizEngine() {
         if (dbQuestions.length === 0) {
            console.log("Database exhausted. Resetting matrix...");
            localStorage.setItem('burned_questions', JSON.stringify([]));
-           const resetRes = await fetch(`/api/questions?batch=711&t=${Date.now()}`, { cache: 'no-store' });
+           const resetRes = await fetch(`/api/questions?batch=20_fixed${poolParam}&t=${Date.now()}`, { cache: 'no-store' });
            const resetData = await resetRes.json();
            dbQuestions = resetData.data || [];
         }
         
         setAllQuestions(dbQuestions);
         if (dbQuestions.length > 0) {
-          setQuestions([dbQuestions[0]]);
+          setQuestions(dbQuestions);
+          setSoloQuestionIndex(0);
         } else {
           setQuestions([]);
         }
@@ -133,11 +153,12 @@ export default function QuizEngine() {
   const [isTimeout, setIsTimeout] = useState(false);
   
   const getInitialTime = (q: any) => {
-    if (!q || !q.difficulty) return 30;
-    const diff = q.difficulty.toLowerCase();
-    if (diff === 'hard') return 60;
-    if (diff === 'medium') return 45;
-    return 30; // default easy
+    if (!q) return 60;
+    if (q.type === 'text_input' || q.type === 'text') return 90;
+    const diff = (q.difficulty || '').toLowerCase();
+    if (diff === 'hard' || diff === 'difficult' || diff === 'expert') return 90;
+    if (diff === 'medium') return 75;
+    return 60; // default easy
   };
 
   useEffect(() => {
@@ -273,8 +294,10 @@ export default function QuizEngine() {
   }, [timeLeft, isSubmitted, activeQuestion, resetStreak]);
 
   // Handle Simulation Complete - Save Session
+  const [hasSaved, setHasSaved] = useState(false);
   useEffect(() => {
-    if (mounted && !activeQuestion) {
+    if (mounted && (!activeQuestion || isQuizOver) && !hasSaved) {
+      setHasSaved(true);
       const saveSession = async () => {
         const state = useQuizStore.getState();
         const sessionEmpId = empId || 'EMP-456'; 
@@ -306,7 +329,7 @@ export default function QuizEngine() {
       };
       saveSession();
     }
-  }, [activeQuestion, mounted, score, empId]);
+  }, [activeQuestion, mounted, score, empId, isQuizOver, hasSaved]);
 
   useEffect(() => {
     if (isSkipping && skipTimer > 0) {
@@ -333,6 +356,13 @@ export default function QuizEngine() {
       isCorrect: false,
       timeSpent: initialTime,
     });
+    
+    setEvalLog(prev => [...prev, {
+      question: activeQuestion.question,
+      isCorrect: false,
+      userAnswer: 'Timed Out',
+      correctAnswer: activeQuestion.correctAnswer || (activeQuestion.type === 'sequence' ? 'Valid Sequence Order' : 'Valid Text')
+    }]);
   };
 
   const handleSkip = () => {
@@ -358,6 +388,13 @@ export default function QuizEngine() {
       isCorrect: false,
       timeSpent: initialTime - timeLeft,
     });
+    
+    setEvalLog(prev => [...prev, {
+      question: activeQuestion.question,
+      isCorrect: false,
+      userAnswer: 'Skipped',
+      correctAnswer: activeQuestion.correctAnswer || (activeQuestion.type === 'sequence' ? 'Valid Sequence Order' : 'Valid Text')
+    }]);
 
     setIsSubmitted(true);
     setIsCorrect(false);
@@ -402,6 +439,13 @@ export default function QuizEngine() {
       isCorrect: correct,
       timeSpent: initialTime - timeLeft,
     });
+    
+    setEvalLog(prev => [...prev, {
+      question: activeQuestion.question,
+      isCorrect: correct,
+      userAnswer: selected || 'No Answer',
+      correctAnswer: activeQuestion.correctAnswer || (activeQuestion.type === 'sequence' ? 'Valid Sequence Order' : 'Valid Text')
+    }]);
 
     if (correct) {
       const diff = (activeQuestion.difficulty?.toLowerCase() || 'easy') as keyof typeof DIFFICULTY_XP_REWARDS;
@@ -606,19 +650,38 @@ export default function QuizEngine() {
     );
   }
 
-  if (!activeQuestion) {
+  if (!activeQuestion || isQuizOver) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen w-full">
-        <h1 className="text-3xl text-[#ff0055] font-black uppercase tracking-widest mb-4">Simulation Complete</h1>
-        <p className="text-gray-400 font-mono mb-2">Final Score: {score}</p>
-        <p className="text-yellow-400 font-mono mb-2">Coins Earned: {coinsEarned}</p>
-        <p className="text-blue-400 font-mono mb-8">XP Earned: {xpEarned}</p>
+      <div className="flex flex-col items-center justify-start min-h-screen w-full p-8 max-w-4xl mx-auto">
+        <h1 className="text-3xl text-[#ff0055] font-black uppercase tracking-widest mt-8 mb-4">Evaluation Report</h1>
+        <div className="flex gap-8 mb-6 bg-gray-900 p-4 rounded-lg border border-gray-700 w-full justify-center">
+          <p className="text-gray-400 font-mono">Final Score: <span className="text-white font-bold">{score}</span></p>
+          <p className="text-yellow-400 font-mono">Coins Earned: <span className="text-white font-bold">{coinsEarned}</span></p>
+          <p className="text-blue-400 font-mono">XP Earned: <span className="text-white font-bold">{xpEarned}</span></p>
+        </div>
+        
+        <div className="w-full flex-grow bg-gray-900 border border-gray-700 rounded-lg p-6 mb-8 overflow-y-auto">
+          <h2 className="text-xl text-white font-bold mb-4">Question Breakdown</h2>
+          {evalLog.length === 0 && <p className="text-gray-400">No questions answered.</p>}
+          {evalLog.map((log, idx) => (
+            <div key={idx} className={`mb-4 p-4 rounded border ${log.isCorrect ? 'bg-green-900/20 border-green-700' : 'bg-red-900/20 border-red-700'}`}>
+              <p className="text-white font-bold mb-2">Q{idx + 1}: {log.question}</p>
+              <div className="flex flex-col gap-1 text-sm font-mono">
+                <span className={log.isCorrect ? "text-green-400" : "text-red-400"}>Your Answer: {log.userAnswer}</span>
+                {!log.isCorrect && (
+                  <span className="text-green-400">Correct Answer: {log.correctAnswer}</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
         <button 
           onClick={() => {
             useQuizStore.getState().resetQuiz();
             router.push('/');
           }}
-          className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded transition-colors"
+          className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded transition-colors w-full"
         >
           Return to Dashboard
         </button>

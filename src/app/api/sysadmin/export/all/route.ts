@@ -9,8 +9,8 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const type = searchParams.get('type');
 
-    if (!type || (type !== 'logins' && type !== 'scores')) {
-      return NextResponse.json({ error: 'Invalid type parameter. Must be logins or scores' }, { status: 400 });
+    if (!type || (type !== 'logins' && type !== 'scores' && type !== 'evaluations')) {
+      return NextResponse.json({ error: 'Invalid type parameter. Must be logins, scores, or evaluations' }, { status: 400 });
     }
 
     await connectDB();
@@ -35,6 +35,14 @@ export async function GET(req: Request) {
         csvString += `"${user.empId || ''}","${user.username || ''}","${user.email || ''}",${user.score || 0},${user.coins || 0},${user.xp || 0},${metrics.correctAnswers || 0},${metrics.duelsWon || 0}\n`;
       });
       filename = 'all_players_scores.csv';
+    } else if (type === 'evaluations') {
+      const QuizSession = (await import('@/models/QuizSession')).default;
+      const sessions = await QuizSession.find({}).lean();
+      csvString = 'EmpID,StartedAt,FinalScore,QuestionsPlayed,HighestStreak\n';
+      sessions.forEach((s: any) => {
+        csvString += `"${s.empId || ''}","${s.startedAt ? new Date(s.startedAt).toISOString() : ''}",${s.finalScore || 0},${s.sessionLogs?.length || 0},${s.highestStreak || 0}\n`;
+      });
+      filename = 'all_evaluations_report.csv';
     }
 
     return new Response(csvString, {

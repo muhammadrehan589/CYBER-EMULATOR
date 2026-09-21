@@ -15,8 +15,13 @@ export class QuestionService {
     }
 
     if (difficulty) {
-      if (difficulty.toLowerCase() === 'easy') {
+      const diff = difficulty.toLowerCase();
+      if (diff === 'easy') {
         filter.difficulty = { $regex: new RegExp(`^(easy|standard)$`, 'i') };
+      } else if (diff === 'medium') {
+        filter.difficulty = { $regex: new RegExp(`^(medium|advanced)$`, 'i') };
+      } else if (diff === 'difficult' || diff === 'hard') {
+        filter.difficulty = { $regex: new RegExp(`^(hard|difficult|advanced)$`, 'i') };
       } else {
         filter.difficulty = { $regex: new RegExp(`^${difficulty}$`, 'i') };
       }
