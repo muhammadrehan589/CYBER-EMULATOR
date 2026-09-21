@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 export default function ForceRenamePage() {
   const router = useRouter();
-  const { empId, isAuthenticated, isAuthReady } = useAuth();
+  const { empId, isAuthenticated, isAuthReady, updateSession } = useAuth();
   const [newUsername, setNewUsername] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,6 +38,7 @@ export default function ForceRenamePage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
+        await updateSession();
         router.push('/');
       } else {
         setError(data.error || 'Failed to update username. It might be taken.');

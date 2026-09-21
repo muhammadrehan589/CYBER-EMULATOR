@@ -120,7 +120,7 @@ export default function EditUsernameModal({ isOpen, onClose, currentUser, onSucc
                     value={newUsername}
                     onChange={(e) => setNewUsername(e.target.value)}
                     placeholder={currentUser?.username || "Enter new alias"}
-                    disabled={isCooldownActive}
+                    disabled={!!isCooldownActive}
                     className="w-full px-4 py-3 bg-zinc-900/80 border border-zinc-800 text-white placeholder-zinc-500 rounded-xl text-sm font-mono focus:outline-none focus:border-[#ff0055] focus:ring-1 focus:ring-[#ff0055]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>

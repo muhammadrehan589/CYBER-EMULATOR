@@ -43,7 +43,7 @@ import EditUsernameModal from '@/components/dashboard/EditUsernameModal';
 
 export default function Phase3RealtimeDashboard() {
   const router = useRouter();
-  const { empId, role, username, isAuthenticated, isAuthReady } = useAuth();
+  const { empId, username, isAuthenticated, isAuthReady, forceUsernameChange } = useAuth();
   const { socket, isConnected } = useSocket(empId);
   const { leaderboard, setLeaderboard, fetchLeaderboard } = useLeaderboard(socket);
 
@@ -52,17 +52,32 @@ export default function Phase3RealtimeDashboard() {
   const setCoins = (c: number) => useQuizStore.setState({ coinsEarned: c });
   const { showToast, ToastContainer } = useToast();
 
+
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/sysadmin')) {
+      return;
+    }
     if (isAuthReady) {
       if (!isAuthenticated) {
         router.push('/login');
-      } else if (role === 'Admin') {
-        router.push('/admin');
+      } else if (forceUsernameChange) {
+        setShowForceRenameWarning(true);
       } else if (!username || username.startsWith('init_')) {
         router.push('/setup-username');
       }
     }
-  }, [isAuthReady, isAuthenticated, role, username, router]);
+  }, [isAuthReady, isAuthenticated, username, empId, router, forceUsernameChange]);
+
+  useEffect(() => {
+    if (socket) {
+      socket.on('force_rename_trigger', () => {
+        setShowForceRenameWarning(true);
+      });
+      return () => {
+        socket.off('force_rename_trigger');
+      }
+    }
+  }, [socket, router]);
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
   const [floatingStats, setFloatingStats] = useState<FloatingStat[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -76,6 +91,7 @@ export default function Phase3RealtimeDashboard() {
   const [showRecentBattlesModal, setShowRecentBattlesModal] = useState(false);
   const [selectedPool, setSelectedPool] = useState<string | null>(null);
   const [showPreBriefing, setShowPreBriefing] = useState(false);
+  const [showForceRenameWarning, setShowForceRenameWarning] = useState(false);
 
   useEffect(() => {
     try {
@@ -634,7 +650,7 @@ export default function Phase3RealtimeDashboard() {
                   {/* Player Profile */}
                   <div id="tour-profile" className="bg-[#030303]/90 rounded-2xl p-6 border border-[#ff0055]/40 backdrop-blur-xl shadow-[0_0_20px_rgba(255,0,85,0.15)] flex flex-col space-y-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded bg-gray-800 flex items-center justify-center border border-[#ff0055] overflow-hidden">
+                      <div className="w-20 h-[84px] rounded bg-gray-800 flex items-center justify-center border border-[#ff0055] overflow-hidden shrink-0">
                         {me ? <MiniAvatar avatar={me.avatar as AvatarState} /> : <div className="text-xs text-gray-500">NO ID</div>}
                       </div>
                       <div className="flex-1 flex flex-col justify-center">
@@ -1116,6 +1132,27 @@ export default function Phase3RealtimeDashboard() {
                 Acknowledge
               </button>
             )}
+          </div>
+        </div>
+      )}
+      
+      {showForceRenameWarning && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4 font-mono pointer-events-auto">
+          <div className="max-w-md w-full bg-[#0a0002] border-2 border-[#ff0055] rounded-xl p-8 shadow-[0_0_80px_rgba(255,0,85,0.4)] text-center relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#ff0055] to-transparent animate-pulse" />
+            <AlertTriangle className="w-20 h-20 text-[#ff0055] mx-auto mb-6 animate-pulse drop-shadow-[0_0_15px_rgba(255,0,85,0.8)]" />
+            <h2 className="text-3xl font-black text-white mb-4 tracking-widest drop-shadow-[0_0_10px_rgba(255,0,85,0.5)]">SYSTEM WARNING</h2>
+            <p className="text-zinc-300 mb-8 text-sm leading-relaxed border-t border-b border-[#ff0055]/20 py-4">
+              Your account has been flagged by a System Administrator. Your current username has been revoked due to a violation of system protocols.
+              <br /><br />
+              <span className="text-[#ff0055] font-bold">You must choose a new username to restore system access.</span>
+            </p>
+            <button
+              onClick={() => router.push('/force-rename')}
+              className="w-full bg-[#ff0055] hover:bg-white text-white hover:text-[#ff0055] font-black py-4 rounded-lg tracking-widest uppercase transition-all shadow-[0_0_20px_rgba(255,0,85,0.4)]"
+            >
+              Acknowledge & Proceed
+            </button>
           </div>
         </div>
       )}

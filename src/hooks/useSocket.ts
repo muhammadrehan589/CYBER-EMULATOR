@@ -27,7 +27,16 @@ export function useSocket(empId: string | null) {
       setIsConnected(true);
       // Register this user with the socket server once connected
       if (empId) {
-        s.emit('register', empId);
+        let isNewSession = false;
+        if (typeof window !== 'undefined') {
+          const lastLogged = localStorage.getItem('socket_visit_time_v4');
+          const now = Date.now();
+          if (!lastLogged || (now - parseInt(lastLogged)) > 60 * 60 * 1000) { // 1 hour cooldown
+            isNewSession = true;
+            localStorage.setItem('socket_visit_time_v4', now.toString());
+          }
+        }
+        s.emit('register', empId, isNewSession);
       }
     });
 

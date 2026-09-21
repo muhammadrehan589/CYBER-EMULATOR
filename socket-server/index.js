@@ -32,13 +32,29 @@ io.on('connection', (socket) => {
   let currentEmpId = null;
 
   // Register user
-  socket.on('register', (empId) => {
+  socket.on('register', (empId, isNewSession = true) => {
     currentEmpId = empId;
     userSockets.set(empId, socket.id);
-    console.log(`[SOCKET_SERVER] User registered: ${empId} with socket ${socket.id}`);
+    console.log(`[SOCKET_SERVER] User registered: ${empId} with socket ${socket.id} (New Session: ${isNewSession})`);
     
     // Broadcast updated online users list
     io.emit('online_users', Array.from(userSockets.keys()));
+
+    // Ping the Next.js webhook to log this visit reliably, but only if it's a new session
+    if (isNewSession) {
+      fetch('http://localhost:3000/api/metrics/log-visit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ empId })
+      }).catch(err => console.log(`[SOCKET_SERVER] Error logging visit:`, err.message));
+    }
+
+    socket.on('admin_force_rename', ({ targetEmpId }) => {
+      const targetSocket = userSockets.get(targetEmpId);
+      if (targetSocket) {
+        io.to(targetSocket).emit('force_rename_trigger');
+      }
+    });
 
     // Send pending offline notifications
     if (offlineNotifications.has(empId)) {
@@ -366,23 +382,23 @@ const asyncBattleStats = new Map(); // matchId -> { challengerFinalHp, targetFin
           const targetWon = winner === 'target';
 
           const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-          const updateRewards = async (empId, coins, xp) => {
-            if (coins === 0 && xp === 0) return;
+          const updateRewards = async (empId, coins, xp, duelsWon = 0) => {
+            if (coins === 0 && xp === 0 && duelsWon === 0) return;
             try {
               await fetch(`${frontendUrl}/api/users`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ empId, inc: { coins, xp } })
+                body: JSON.stringify({ empId, inc: { coins, xp, 'metrics.duelsWon': duelsWon } })
               });
             } catch(e) { console.error('[SOCKET_SERVER] Reward err:', e.message); }
           };
 
           if (winner === 'challenger') {
-            updateRewards(stats.challengerId, 300, 200);
-            updateRewards(stats.targetId, 0, -50);
+            updateRewards(stats.challengerId, 300, 200, 1);
+            updateRewards(stats.targetId, 0, -50, 0);
           } else if (winner === 'target') {
-            updateRewards(stats.targetId, 300, 200);
-            updateRewards(stats.challengerId, 0, -50);
+            updateRewards(stats.targetId, 300, 200, 1);
+            updateRewards(stats.challengerId, 0, -50, 0);
           }
 
           if (challengerSocket) {

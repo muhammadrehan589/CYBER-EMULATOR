@@ -26,44 +26,75 @@ const shuffleArray = (array: any[]) => {
 // own socket-fetched question list and no dependency on quizStore.
 export default function QuizEngine() {
   const router = useRouter();
-  const { empId } = useAuth();
+  const { empId, username, email } = useAuth();
   const { advanceQuestion, score, multiplier, resetStreak, coinsEarned, xpEarned, inventory } = useQuizStore();
 
   const [allQuestions, setAllQuestions] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
   const [soloQuestionIndex, setSoloQuestionIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
   
+  const [globalTimeLeft, setGlobalTimeLeft] = useState(900);
+  const [isQuizOver, setIsQuizOver] = useState(false);
+  const [showTimerEndOptions, setShowTimerEndOptions] = useState(false);
+  const [timerExtended, setTimerExtended] = useState(false);
+  const [evalLog, setEvalLog] = useState<any[]>([]);
+
   useEffect(() => {
-    const fetchQuestions = async () => {
-      const url = `/api/questions`;
-      try {
-        const res = await fetch(url);
-        const data = await res.json();
-        const dbQuestions = data.data || [];
-        
-        const burnedQuestions = JSON.parse(localStorage.getItem('burned_questions') || '[]');
-        let freshQuestions = dbQuestions.filter((q: any) => !burnedQuestions.includes(q.questionId));
-        
-        if (freshQuestions.length === 0 && dbQuestions.length > 0) {
-           console.log("Database exhausted. Resetting matrix...");
-           localStorage.setItem('burned_questions', JSON.stringify([]));
-           freshQuestions = dbQuestions;
-        }
-        
-        const shuffledFresh = shuffleArray(freshQuestions);
-        setAllQuestions(shuffledFresh);
-        
-        // Pick first question (completely random)
-        if (shuffledFresh[0]) {
-          setQuestions([shuffledFresh[0]]);
-        }
-      } catch (err) {
-        console.error("Failed to fetch questions:", err);
-      } finally {
-        setIsLoading(false);
+    if (isLoading || isQuizOver || showTimerEndOptions || timerExtended) return;
+    
+    if (globalTimeLeft <= 0) {
+      setShowTimerEndOptions(true);
+      return;
+    }
+    const timer = setInterval(() => setGlobalTimeLeft(prev => prev - 1), 1000);
+    return () => clearInterval(timer);
+  }, [isLoading, isQuizOver, showTimerEndOptions, timerExtended, globalTimeLeft]);
+  
+  const fetchQuestions = async (isReload = false) => {
+    if (isFetchingMore) return;
+    if (isReload) setIsFetchingMore(true);
+    if (!isReload) setIsLoading(true);
+    const burnedQuestions = JSON.parse(localStorage.getItem('burned_questions') || '[]');
+    const excludeParam = burnedQuestions.length > 0 ? `&exclude=${burnedQuestions.join(',')}` : '';
+    const selectedPool = localStorage.getItem('selectedPool');
+    const poolParam = selectedPool ? `&pool=${selectedPool}` : '&pool=general';
+    const url = `/api/questions?batch=711${excludeParam}${poolParam}&t=${Date.now()}`;
+    
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      const data = await res.json();
+      let dbQuestions = data.data || [];
+      
+      if (dbQuestions.length === 0) {
+         console.log("Database exhausted. Resetting matrix...");
+         localStorage.setItem('burned_questions', JSON.stringify([]));
+         const resetRes = await fetch(`/api/questions?batch=711${poolParam}&t=${Date.now()}`, { cache: 'no-store' });
+         const resetData = await resetRes.json();
+         dbQuestions = resetData.data || [];
       }
-    };
+      
+      if (isReload) {
+        setAllQuestions(prev => [...prev, ...dbQuestions]);
+        setQuestions(prev => [...prev, ...dbQuestions]);
+      } else {
+        setAllQuestions(dbQuestions);
+        if (dbQuestions.length > 0) {
+          setQuestions(dbQuestions);
+          setSoloQuestionIndex(0);
+        } else {
+          setQuestions([]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch questions:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchQuestions();
   }, []);
 
@@ -80,13 +111,19 @@ export default function QuizEngine() {
   ];
 
   useEffect(() => {
-    const popTime = Math.floor(Math.random() * 20000) + 10000; // 10s to 30s delay
+    // Spawns much less frequently (30s to 90s delay)
+    const popTime = Math.floor(Math.random() * 60000) + 30000; 
     
     const dropTimer = setTimeout(() => {
-      const randomAsset = publicAssets[Math.floor(Math.random() * publicAssets.length)];
       const fullUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://cyber-emulator.vercel.app'}/black-market?secret=qr_discovery`;
       
       setQrEvent({ active: true, payload: fullUrl });
+
+      // Auto close after 5 seconds
+      setTimeout(() => {
+        setQrEvent(prev => prev.active ? { active: false, payload: "" } : prev);
+      }, 5000);
+
     }, popTime);
 
     return () => clearTimeout(dropTimer);
@@ -97,6 +134,18 @@ export default function QuizEngine() {
   const [isCorrect, setIsCorrect] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
   const [skipTimer, setSkipTimer] = useState(0);
+  const [skipsUsed, setSkipsUsed] = useState<number>(0);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const skipHistory = JSON.parse(localStorage.getItem('skip_history') || '[]');
+      const tenMinsAgo = Date.now() - 10 * 60 * 1000;
+      const validSkips = skipHistory.filter((time: number) => time > tenMinsAgo);
+      setSkipsUsed(validSkips.length);
+      localStorage.setItem('skip_history', JSON.stringify(validSkips));
+    }
+  }, [soloQuestionIndex]);
+
   const [eliminatedOptions, setEliminatedOptions] = useState<string[]>([]);
 
   const [activeMedia, setActiveMedia] = useState<{ type: 'video'|'image'|'audio', url: string } | null>(null);
@@ -114,11 +163,9 @@ export default function QuizEngine() {
   const [isTimeout, setIsTimeout] = useState(false);
   
   const getInitialTime = (q: any) => {
-    if (!q) return 30;
-    if (q.type === 'sequence') return 30;
-    if (q.type === 'text_input') return 60;
-    if (q.category && q.category.toLowerCase().includes('scenario')) return 45;
-    return 30;
+    if (!q) return 60;
+    if (q.type === 'text_input' || q.type === 'text') return 90;
+    return 60; // default for easy, medium, and hard
   };
 
   useEffect(() => {
@@ -254,8 +301,10 @@ export default function QuizEngine() {
   }, [timeLeft, isSubmitted, activeQuestion, resetStreak]);
 
   // Handle Simulation Complete - Save Session
+  const [hasSaved, setHasSaved] = useState(false);
   useEffect(() => {
-    if (mounted && !activeQuestion) {
+    if (mounted && (!activeQuestion || isQuizOver) && !hasSaved) {
+      setHasSaved(true);
       const saveSession = async () => {
         const state = useQuizStore.getState();
         const sessionEmpId = empId || 'EMP-456'; 
@@ -287,7 +336,7 @@ export default function QuizEngine() {
       };
       saveSession();
     }
-  }, [activeQuestion, mounted, score, empId]);
+  }, [activeQuestion, mounted, score, empId, isQuizOver, hasSaved]);
 
   useEffect(() => {
     if (isSkipping && skipTimer > 0) {
@@ -314,11 +363,31 @@ export default function QuizEngine() {
       isCorrect: false,
       timeSpent: initialTime,
     });
+    
+    setEvalLog(prev => [...prev, {
+      question: activeQuestion.question,
+      isCorrect: false,
+      userAnswer: 'Timed Out',
+      correctAnswer: activeQuestion.correctAnswer || (activeQuestion.type === 'sequence' ? 'Valid Sequence Order' : 'Valid Text')
+    }]);
   };
 
   const handleSkip = () => {
     if (isSubmitted || isSkipping) return;
     
+    if (typeof window !== 'undefined') {
+      const skipHistory = JSON.parse(localStorage.getItem('skip_history') || '[]');
+      const tenMinsAgo = Date.now() - 10 * 60 * 1000;
+      const validSkips = skipHistory.filter((time: number) => time > tenMinsAgo);
+      if (validSkips.length >= 5) {
+        alert("Skip limit reached (5 per 10 minutes).");
+        return;
+      }
+      validSkips.push(Date.now());
+      localStorage.setItem('skip_history', JSON.stringify(validSkips));
+      setSkipsUsed(validSkips.length);
+    }
+
     const initialTime = getInitialTime(activeQuestion);
 
     useQuizStore.getState().addLog({
@@ -326,6 +395,13 @@ export default function QuizEngine() {
       isCorrect: false,
       timeSpent: initialTime - timeLeft,
     });
+    
+    setEvalLog(prev => [...prev, {
+      question: activeQuestion.question,
+      isCorrect: false,
+      userAnswer: 'Skipped',
+      correctAnswer: activeQuestion.correctAnswer || (activeQuestion.type === 'sequence' ? 'Valid Sequence Order' : 'Valid Text')
+    }]);
 
     setIsSubmitted(true);
     setIsCorrect(false);
@@ -370,6 +446,13 @@ export default function QuizEngine() {
       isCorrect: correct,
       timeSpent: initialTime - timeLeft,
     });
+    
+    setEvalLog(prev => [...prev, {
+      question: activeQuestion.question,
+      isCorrect: correct,
+      userAnswer: selected || 'No Answer',
+      correctAnswer: activeQuestion.correctAnswer || (activeQuestion.type === 'sequence' ? 'Valid Sequence Order' : 'Valid Text')
+    }]);
 
     if (correct) {
       const diff = (activeQuestion.difficulty?.toLowerCase() || 'easy') as keyof typeof DIFFICULTY_XP_REWARDS;
@@ -387,7 +470,7 @@ export default function QuizEngine() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           empId: userEmpId,
-          inc: { coins: coinsEarned, xp: xpEarned }
+          inc: { coins: coinsEarned, xp: xpEarned, 'metrics.correctAnswers': 1 }
         })
       }).then(() => {
         // Broadcast to all connected clients that the leaderboard has updated
@@ -416,19 +499,9 @@ export default function QuizEngine() {
       
       advanceQuestion(false, 10);
       
-      if (soloQuestionIndex >= 9) {
-         setQuestions(prev => [...prev, null]);
-         setSoloQuestionIndex(prev => prev + 1);
-      } else {
-         const usedIds = questions.map(q => q?.questionId);
-         let nextQ = allQuestions.find(q => !usedIds.includes(q.questionId));
-         if (nextQ) {
-            setQuestions(prev => [...prev, nextQ]);
-            setSoloQuestionIndex(prev => prev + 1);
-         } else {
-            setQuestions(prev => [...prev, null]);
-            setSoloQuestionIndex(prev => prev + 1);
-         }
+      setSoloQuestionIndex(prev => prev + 1);
+      if (soloQuestionIndex >= questions.length - 3) {
+         fetchQuestions(true);
       }
     } else {
       // --- WAGER RESOLUTION ---
@@ -445,13 +518,11 @@ export default function QuizEngine() {
         setIsWagerActive(false);
       }
 
-      // Log question ID to the permanent burn list ONLY if correct!
-      if (isCorrect) {
-        const burnedQuestions = JSON.parse(localStorage.getItem('burned_questions') || '[]');
-        if (activeQuestion && !burnedQuestions.includes(activeQuestion.questionId)) {
-          burnedQuestions.push(activeQuestion.questionId);
-          localStorage.setItem('burned_questions', JSON.stringify(burnedQuestions));
-        }
+      // Log question ID to the permanent burn list regardless of correctness
+      const burnedQuestions = JSON.parse(localStorage.getItem('burned_questions') || '[]');
+      if (activeQuestion && !burnedQuestions.includes(activeQuestion.questionId)) {
+        burnedQuestions.push(activeQuestion.questionId);
+        localStorage.setItem('burned_questions', JSON.stringify(burnedQuestions));
       }
 
       setSelectedOption(null);
@@ -477,20 +548,9 @@ export default function QuizEngine() {
       }
 
       // Advance or reload seamlessly
-      if (soloQuestionIndex >= 9) {
-         setQuestions(prev => [...prev, null]); 
-         setSoloQuestionIndex(prev => prev + 1);
-      } else {
-         const usedIds = questions.map(q => q?.questionId);
-         let nextQ = allQuestions.find(q => !usedIds.includes(q.questionId));
-
-         if (nextQ) {
-            setQuestions(prev => [...prev, nextQ]);
-            setSoloQuestionIndex(prev => prev + 1);
-         } else {
-            setQuestions(prev => [...prev, null]); 
-            setSoloQuestionIndex(prev => prev + 1);
-         }
+      setSoloQuestionIndex(prev => prev + 1);
+      if (soloQuestionIndex >= questions.length - 3) {
+         fetchQuestions(true);
       }
     }
   };
@@ -501,21 +561,10 @@ export default function QuizEngine() {
       setIsWagerActive(true);
     }
     // Proceed to next question
-    if (soloQuestionIndex >= 9) {
-       setQuestions(prev => [...prev, null]);
-       setSoloQuestionIndex(prev => prev + 1);
-    } else {
-       const usedIds = questions.map(q => q?.questionId);
-       let nextQ = allQuestions.find(q => !usedIds.includes(q.questionId));
-
-       if (nextQ) {
-          setQuestions(prev => [...prev, nextQ]);
-          setSoloQuestionIndex(prev => prev + 1);
-       } else {
-          setQuestions(prev => [...prev, null]);
-          setSoloQuestionIndex(prev => prev + 1);
-       }
-    }
+    setSoloQuestionIndex(prev => prev + 1);
+      if (soloQuestionIndex >= questions.length - 3) {
+         fetchQuestions(true);
+      }
   };
 
   const handleSaveAndExit = async () => {
@@ -559,9 +608,8 @@ export default function QuizEngine() {
     }
 
     useQuizStore.getState().resetQuiz();
-    router.push('/');
-  };
-
+      router.push('/');
+    };
   if (!mounted) return <div className="min-h-screen w-full bg-[#050505]" />;
 
   if (isLoading) {
@@ -574,19 +622,60 @@ export default function QuizEngine() {
     );
   }
 
-  if (!activeQuestion) {
+  if (showTimerEndOptions) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen w-full">
-        <h1 className="text-3xl text-[#ff0055] font-black uppercase tracking-widest mb-4">Simulation Complete</h1>
-        <p className="text-gray-400 font-mono mb-2">Final Score: {score}</p>
-        <p className="text-yellow-400 font-mono mb-2">Coins Earned: {coinsEarned}</p>
-        <p className="text-blue-400 font-mono mb-8">XP Earned: {xpEarned}</p>
+      <div className="flex flex-col items-center justify-center min-h-screen w-full bg-[#050505] text-white p-8">
+        <h1 className="text-3xl font-black text-[#ff0055] uppercase tracking-widest mb-6 animate-pulse">TIME EXPIRED</h1>
+        <p className="text-lg text-gray-300 mb-8 max-w-xl text-center">Your 15-minute Solo Matrix timer has concluded. Do you wish to view your evaluation report now, or continue playing indefinitely?</p>
+        <div className="flex gap-6 w-full max-w-md">
+          <button 
+            onClick={() => { setShowTimerEndOptions(false); setIsQuizOver(true); }}
+            className="flex-1 px-6 py-4 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded border border-gray-600 transition-colors"
+          >
+            SEE REPORT
+          </button>
+          <button 
+            onClick={() => { setShowTimerEndOptions(false); setTimerExtended(true); setGlobalTimeLeft(999999); }}
+            className="flex-1 px-6 py-4 bg-[#ff0055]/20 hover:bg-[#ff0055]/40 text-[#ff0055] hover:text-white font-bold rounded border border-[#ff0055] transition-colors"
+          >
+            PLAY MORE
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!activeQuestion || isQuizOver) {
+    const wrongAnswers = evalLog.filter(log => !log.isCorrect);
+    return (
+      <div className="flex flex-col items-center justify-start min-h-screen w-full p-8 max-w-4xl mx-auto">
+        <h1 className="text-3xl text-[#ff0055] font-black uppercase tracking-widest mt-8 mb-4">Evaluation Report</h1>
+        <div className="flex gap-8 mb-6 bg-gray-900 p-4 rounded-lg border border-gray-700 w-full justify-center">
+          <p className="text-gray-400 font-mono">Final Score: <span className="text-white font-bold">{score}</span></p>
+          <p className="text-yellow-400 font-mono">Coins Earned: <span className="text-white font-bold">{coinsEarned}</span></p>
+          <p className="text-blue-400 font-mono">XP Earned: <span className="text-white font-bold">{xpEarned}</span></p>
+        </div>
+        
+        <div className="w-full flex-grow bg-gray-900 border border-gray-700 rounded-lg p-6 mb-8 overflow-y-auto">
+          <h2 className="text-xl text-white font-bold mb-4">Incorrect Answers Analysis</h2>
+          {wrongAnswers.length === 0 && <p className="text-gray-400">Excellent! No incorrect answers recorded.</p>}
+          {wrongAnswers.map((log, idx) => (
+            <div key={idx} className="mb-4 p-4 rounded border bg-red-900/20 border-red-700">
+              <p className="text-white font-bold mb-2">Q: {log.question}</p>
+              <div className="flex flex-col gap-1 text-sm font-mono">
+                <span className="text-red-400">Your Answer: {log.userAnswer}</span>
+                <span className="text-green-400">Correct Answer: {log.correctAnswer}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
         <button 
           onClick={() => {
             useQuizStore.getState().resetQuiz();
             router.push('/');
           }}
-          className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded transition-colors"
+          className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded transition-colors w-full"
         >
           Return to Dashboard
         </button>
@@ -600,12 +689,22 @@ export default function QuizEngine() {
 
   return (
     <div className={`flex flex-col items-center justify-center w-full max-w-4xl mx-auto min-h-[85vh] p-6 relative transition-all ${isSabotaged ? 'animate-cyber-shake border-4 border-red-600' : ''}`}>
-      <button 
-        onClick={handleSaveAndExit}
-        className="absolute top-6 left-6 bg-red-600 hover:bg-red-700 text-white font-mono text-xs px-4 py-2 rounded flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(220,38,38,0.4)] z-50"
-      >
-        <span className="text-lg font-bold">←</span> SAVE AND ABORT
-      </button>
+      {timerExtended && (
+          <button 
+            onClick={handleSaveAndExit}
+            className="absolute top-6 left-6 bg-red-600 hover:bg-red-700 text-white font-mono text-xs px-4 py-2 rounded flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(220,38,38,0.4)] z-50"
+          >
+            <span className="text-lg font-bold">🚨</span> SAVE AND ABORT
+          </button>
+        )}
+        {!timerExtended && !showTimerEndOptions && !isQuizOver && (
+          <div className="absolute top-6 left-1/2 transform -translate-x-1/2 bg-[#1a0008] border-4 border-[#ff0055] px-8 py-3 rounded-xl shadow-[0_0_50px_rgba(255,0,85,0.9)] z-[100] flex items-center gap-6 animate-pulse">
+            <span className="text-[#ff0055] font-mono text-lg uppercase tracking-[0.3em] font-black drop-shadow-[0_0_5px_red]">Global Timer</span>
+            <span className="text-4xl font-black text-white font-mono tracking-widest drop-shadow-[0_0_15px_white]">
+              {Math.floor(globalTimeLeft / 60).toString().padStart(2, '0')}:{(globalTimeLeft % 60).toString().padStart(2, '0')}
+            </span>
+          </div>
+        )}
       
       {/* QUIZ UI */}
       <div className="flex flex-col w-full h-auto mt-12">
@@ -722,9 +821,14 @@ export default function QuizEngine() {
             {!isSubmitted && !isSkipping && (
               <button
                 onClick={handleSkip}
-                className="w-full py-3 bg-transparent border border-gray-600 text-gray-400 font-bold uppercase tracking-widest hover:border-gray-400 hover:text-white transition-all rounded"
+                disabled={skipsUsed >= 5}
+                className={`w-full py-3 bg-transparent border font-bold uppercase tracking-widest transition-all rounded ${
+                  skipsUsed >= 5 
+                    ? 'border-gray-800 text-gray-700 cursor-not-allowed opacity-50' 
+                    : 'border-gray-600 text-gray-400 hover:border-gray-400 hover:text-white'
+                }`}
               >
-                SKIP QUESTION
+                {skipsUsed >= 5 ? 'SKIP LIMIT REACHED (MAX 5 / 10 MIN)' : `SKIP QUESTION (${5 - skipsUsed} REMAINING)`}
               </button>
             )}
           </div>
@@ -786,7 +890,6 @@ export default function QuizEngine() {
       {qrEvent.active && (
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-950 border-2 border-yellow-500 p-8 rounded-lg shadow-[0_0_50px_rgba(234,179,8,0.4)] z-50 text-center animate-pulse w-[90%] max-w-md">
           
-          {/* Quick Close 'X' in top right */}
           <button 
             onClick={() => setQrEvent({ active: false, payload: "" })} 
             className="absolute top-3 right-4 text-gray-500 hover:text-white font-mono text-2xl transition-colors"
@@ -815,7 +918,6 @@ export default function QuizEngine() {
             />
           </div>
           
-          {/* Massive Skip Button */}
           <button 
             onClick={() => setQrEvent({ active: false, payload: "" })} 
             className="block w-full bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white py-4 rounded font-mono text-sm tracking-[0.2em] transition-all"
