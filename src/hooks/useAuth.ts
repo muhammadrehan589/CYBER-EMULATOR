@@ -19,6 +19,7 @@ export function useAuth(): AuthSession {
   
   return {
     empId: (session?.user as any)?.empId || null,
+    role: (session?.user as any)?.role || null,
     username: (session?.user as any)?.username || null,
     email: (session?.user as any)?.email || null,
     isAuthenticated: status === 'authenticated',

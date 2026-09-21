@@ -43,7 +43,7 @@ import EditUsernameModal from '@/components/dashboard/EditUsernameModal';
 
 export default function Phase3RealtimeDashboard() {
   const router = useRouter();
-  const { empId, username, isAuthenticated, isAuthReady, forceUsernameChange } = useAuth();
+  const { empId, username, role, isAuthenticated, isAuthReady, forceUsernameChange } = useAuth();
   const { socket, isConnected } = useSocket(empId);
   const { leaderboard, setLeaderboard, fetchLeaderboard } = useLeaderboard(socket);
 
